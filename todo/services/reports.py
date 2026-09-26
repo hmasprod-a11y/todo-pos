@@ -163,3 +163,17 @@ def payment_breakdown(period='month',year=None):
     with connect() as c:
         rows=c.execute(sql,(start,end,start,end)).fetchall()
     return {r['method']:r['amount_cents'] for r in rows}
+
+
+def finance_overview(period='month', year=None):
+    """Purchases for the selected period plus current receivables/payables."""
+    start,end,_=_date_range(period)
+    if period=='year' and year is not None:
+        year=int(year);start,end=f'{year}-01-01',f'{year}-12-31'
+    from services.clients import credit_statement
+    from services.supplier_payments import supplier_credit_statement
+    with connect() as c:
+        purchases=c.execute("SELECT COALESCE(SUM(total_cents),0) FROM purchases WHERE date(created_at,'localtime') BETWEEN ? AND ?",(start,end)).fetchone()[0]
+    client_debt=sum(max(0,int(r['balance_cents'])) for r in credit_statement())
+    supplier_debt=sum(max(0,int(r['balance_cents'])) for r in supplier_credit_statement())
+    return dict(purchases=int(purchases),client_debt=client_debt,supplier_debt=supplier_debt)

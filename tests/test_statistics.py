@@ -7,7 +7,7 @@ from services.bootstrap import ensure_defaults
 from services.security import current_user
 from services.cash import open_session
 from services.sales import complete_sale,create_return
-from services.reports import today_summary,period_summary,sales_evolution,top_products,top_cashiers,category_breakdown,payment_breakdown
+from services.reports import today_summary,period_summary,sales_evolution,top_products,top_cashiers,category_breakdown,payment_breakdown,finance_overview
 
 class StatisticsTests(unittest.TestCase):
     def setUp(self):
@@ -67,6 +67,15 @@ class StatisticsTests(unittest.TestCase):
         self.assertEqual(top_cashiers('year',previous)[0]['revenue'],2500)
         self.assertEqual(category_breakdown('year',previous)[0]['revenue'],2500)
         self.assertEqual(sum(sales_evolution('year',previous)[1]),2500)
+
+    def test_finance_overview_tracks_period_purchases_and_current_debts(self):
+        from services.clients import save_client
+        from services.suppliers import save_supplier
+        previous=datetime.date.today().year-1
+        with database.connect() as c:
+            c.execute("INSERT INTO purchases(total_cents,created_at) VALUES(?,?)",(7000,f"{previous}-04-10 10:00:00"))
+        self.assertEqual(finance_overview('year',previous)['purchases'],7000)
+        self.assertEqual(finance_overview('year',datetime.date.today().year)['purchases'],0)
 
     def test_multiple_families_do_not_duplicate_revenue(self):
         from services.catalog import set_product_categories

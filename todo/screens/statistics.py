@@ -311,6 +311,11 @@ class StatisticsFrame(ttk.Frame):
         self.payment_summary = ttk.Label(pay_card, text='—', font=('Segoe UI', 11, 'bold'))
         self.payment_summary.pack(anchor='w')
 
+        finance_card = ttk.LabelFrame(self, text=self.tr('Vue financière','نظرة مالية'), padding=6)
+        finance_card.pack(fill='x', pady=(8, 0))
+        self.finance_summary = ttk.Label(finance_card, text='—', font=('Segoe UI', 11, 'bold'))
+        self.finance_summary.pack(anchor='w')
+
         self._set_period('month')
 
     # ── Period ────────────────────────────────────────────────────────────────
@@ -357,6 +362,7 @@ class StatisticsFrame(ttk.Frame):
             self._load_categories()
             self._load_recent()
             self._load_payments()
+            self._load_finance()
         except Exception as e:
             from tkinter import messagebox
             messagebox.showerror(self.tr('Statistiques','الإحصائيات'),str(e),parent=self)
@@ -388,6 +394,13 @@ class StatisticsFrame(ttk.Frame):
         month_names=(['يناير','فبراير','مارس','أبريل','ماي','يونيو','يوليوز','غشت','شتنبر','أكتوبر','نونبر','دجنبر'] if self.lang=='ar' else ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'])
         label='—' if not best['month'] else f"{month_names[best['month']-1]} · {fmt(best['revenue'])}"
         self._kpi_labels['top_month'].config(text=label)
+
+    def _load_finance(self):
+        data=finance_overview(self._period, self._year if self._period=='year' else None)
+        self.finance_summary.config(text=self.tr(
+            f"Achats période: {fmt(data['purchases'])}   ·   Créances clients: {fmt(data['client_debt'])}   ·   Dettes fournisseurs: {fmt(data['supplier_debt'])}",
+            f"مشتريات الفترة: {fmt(data['purchases'])}   ·   ديون الزبناء: {fmt(data['client_debt'])}   ·   ديون الموردين: {fmt(data['supplier_debt'])}"
+        ))
 
     def _load_payments(self):
         data=payment_breakdown(self._period, self._year if self._period=='year' else None)
