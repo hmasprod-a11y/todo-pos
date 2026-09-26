@@ -56,6 +56,18 @@ class StatisticsTests(unittest.TestCase):
         self.assertEqual(payment_breakdown(),{'CARD':7000,'CASH':3000})
         create_return(sale['id'],self.session,self.uid,[(item,1)],refund_method='AUTO')
         self.assertEqual(payment_breakdown(),{'CARD':3500,'CASH':1500})
+    def test_historical_year_selector_applies_to_all_rankings_and_kpis(self):
+        sale=self.sell()
+        previous=datetime.date.today().year-1
+        with database.connect() as c:
+            c.execute("UPDATE sales SET created_at=? WHERE id=?",(f"{previous}-06-15 12:00:00",sale['id']))
+        self.assertEqual(period_summary('year',previous)['net_sales'],2500)
+        self.assertEqual(period_summary('year',datetime.date.today().year)['net_sales'],0)
+        self.assertEqual(top_products(period='year',year=previous)[0]['revenue'],2500)
+        self.assertEqual(top_cashiers('year',previous)[0]['revenue'],2500)
+        self.assertEqual(category_breakdown('year',previous)[0]['revenue'],2500)
+        self.assertEqual(sum(sales_evolution('year',previous)[1]),2500)
+
     def test_multiple_families_do_not_duplicate_revenue(self):
         from services.catalog import set_product_categories
         with database.connect() as c:

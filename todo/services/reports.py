@@ -58,6 +58,8 @@ EVENTS = """WITH events AS (
 
 def period_summary(period='month',year=None):
     start,end,_=_date_range(period)
+    if period=='year' and year is not None:
+        year=int(year);start,end=f'{year}-01-01',f'{year}-12-31'
     with connect() as c:
         row=c.execute(EVENTS+'SELECT COALESCE(SUM(revenue),0),COALESCE(SUM(cost),0) FROM period_events',(start,end)).fetchone()
         tickets=c.execute("SELECT COUNT(*) FROM sales WHERE status='COMPLETED' AND date(created_at,'localtime') BETWEEN ? AND ?",(start,end)).fetchone()[0]
@@ -93,12 +95,16 @@ def product_evolution(product_id, period='month', year=None):
 
 def top_products(limit=10,period='month',year=None):
     start,end,_=_date_range(period)
+    if period=='year' and year is not None:
+        year=int(year);start,end=f'{year}-01-01',f'{year}-12-31'
     with connect() as c:
         rows=c.execute(EVENTS+"SELECT name,SUM(qty) qty,SUM(revenue) revenue FROM period_events GROUP BY product_id,name ORDER BY revenue DESC LIMIT ?",(start,end,limit)).fetchall()
     return [dict(r) for r in rows]
 
 def top_cashiers(period='month',year=None):
     start,end,_=_date_range(period)
+    if period=='year' and year is not None:
+        year=int(year);start,end=f'{year}-01-01',f'{year}-12-31'
     with connect() as c:
         rows=c.execute(EVENTS+"""SELECT u.display_name name,SUM(e.revenue) revenue,
            (SELECT COUNT(*) FROM sales s WHERE s.cashier_user_id=u.id AND s.status='COMPLETED'
@@ -131,6 +137,8 @@ def top_clients(period='month',year=None):
 
 def category_breakdown(period='month',year=None):
     start,end,_=_date_range(period)
+    if period=='year' and year is not None:
+        year=int(year);start,end=f'{year}-01-01',f'{year}-12-31'
     with connect() as c:
         rows=c.execute(EVENTS+"""SELECT COALESCE(c.name,'Sans famille') name,SUM(e.revenue) revenue
             FROM period_events e LEFT JOIN categories c ON c.id=e.category_id
