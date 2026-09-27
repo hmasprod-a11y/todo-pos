@@ -173,7 +173,7 @@ class SaleFrame(ttk.Frame):
                   foreground='#64748B',font=('Segoe UI',9)).pack(side='right')
         self.ticket=ttk.Treeview(right,columns=('qty','price','discount','total'),show='tree headings',selectmode='browse',style='Cart.Treeview',height=12)
         self.ticket.heading('#0',text=self.tr('ARTICLE','المنتوج'));self.ticket.column('#0',width=190,minwidth=120)
-        for key,label,width in [('qty',self.tr('QTÉ','الكمية'),55),('price',self.tr('P.U.','ثمن الوحدة'),70),('discount',self.tr('REMISE','التخفيض'),75),('total',self.tr('NET','الصافي'),85)]:
+        for key,label,width in [('qty',self.tr('QTÉ','الكمية'),55),('price',self.tr('P.U.','ثمن الوحدة'),70),('discount',self.tr('REMISE %','التخفيض %'),75),('total',self.tr('NET','الصافي'),85)]:
             self.ticket.heading(key,text=label);self.ticket.column(key,width=width+8,minwidth=48,anchor='center')
         self.ticket.tag_configure('offer',background='#DCFCE7',foreground='#166534')
         self.ticket.tag_configure('even',background='#F8FAFC')
@@ -821,7 +821,9 @@ class SaleFrame(ttk.Frame):
             quantity=f"{x['qty']/step:g}p" if step!=1 else f"{x['qty']:g}"
             price=fmt(line_total(x['unit_price_cents'],step),'')
             tag='offer' if offer else ('even' if i%2==0 else 'odd')
-            self.ticket.insert('','end',iid=str(i),text=name,image=thumb,values=(quantity,price,fmt(gross-net,''),fmt(net,'')),tags=(tag,))
+            discount_pct=(float(gross-net)*100/float(gross)) if gross else 0
+            discount_text=(f"{discount_pct:.1f}%".replace('.0%','%')) if discount_pct else '—'
+            self.ticket.insert('','end',iid=str(i),text=name,image=thumb,values=(quantity,price,discount_text,fmt(net,'')),tags=(tag,))
         if self.cart:
             chosen=str(min(index if index is not None else len(self.cart)-1,len(self.cart)-1))
             self.ticket.selection_set(chosen);self.ticket.see(chosen)
