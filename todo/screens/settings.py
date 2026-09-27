@@ -639,7 +639,7 @@ class SettingsFrame(ttk.Frame):
         except Exception as error:messagebox.showerror(self.tr('Aide','المساعدة'),str(error),parent=parent)
 
     def database_tools(self):
-        from services.database_admin import table_inventory,export_table_csv,import_reference_csv,integrity_status
+        from services.database_admin import table_inventory,export_table_csv,import_reference_csv,integrity_status,export_schema_sql,export_database_bundle
         w=tk.Toplevel(self);w.title(self.tr('Base de Données','قاعدة البيانات'));w.geometry('850x590');w.transient(self.winfo_toplevel());w.grab_set()
         warning=self.tr("ATTENTION ! Les tables de ventes, caisse et stock sont protégées contre l'import direct. Utilisez Backup/Restore pour une migration complète.",
                         "انتباه! جداول المبيعات والصندوق والمخزون محمية من الاستيراد المباشر. استعمل النسخ الاحتياطي/الاسترجاع للنقل الكامل.")
@@ -678,6 +678,18 @@ class SettingsFrame(ttk.Frame):
                 result=import_reference_csv(table,path);refresh()
                 messagebox.showinfo('ToDo',self.tr(f"{result['rows']} ligne(s) importée(s).\nBackup: {result['safety']}",f"تم استيراد {result['rows']} سجل.\nنسخة الأمان: {result['safety']}"),parent=w)
             except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
+        def export_schema():
+            path=filedialog.asksaveasfilename(parent=w,defaultextension='.sql',filetypes=[('SQL','*.sql')],initialfile='todo_schema.sql')
+            if not path:return
+            try:
+                result=export_schema_sql(path);status.config(text=self.tr(f'Schéma exporté : {result}',f'تم تصدير البنية: {result}'))
+            except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
+        def export_bundle():
+            path=filedialog.asksaveasfilename(parent=w,defaultextension='.zip',filetypes=[('ZIP','*.zip')],initialfile='todo_database_export.zip')
+            if not path:return
+            try:
+                result=export_database_bundle(path);status.config(text=self.tr(f'Export complet : {result}',f'تم التصدير الكامل: {result}'))
+            except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
         def check():
             try:
                 result=integrity_status()
@@ -688,6 +700,8 @@ class SettingsFrame(ttk.Frame):
         ttk.Button(bar,text=self.tr('Actualiser','تحديث'),command=refresh).pack(side='left')
         ttk.Button(bar,text=self.tr('Exporter CSV','تصدير CSV'),style='Soft.TButton',command=export_csv).pack(side='left',padx=6)
         ttk.Button(bar,text=self.tr('Importer CSV','استيراد CSV'),style='Primary.TButton',command=import_csv).pack(side='left',padx=6)
+        ttk.Button(bar,text=self.tr('Exporter schéma SQL','تصدير بنية SQL'),command=export_schema).pack(side='left',padx=6)
+        ttk.Button(bar,text=self.tr('Export complet ZIP','تصدير كامل ZIP'),command=export_bundle).pack(side='left',padx=6)
         ttk.Button(bar,text=self.tr("Vérifier l'intégrité",'فحص سلامة البيانات'),command=check).pack(side='left',padx=6)
         ttk.Button(bar,text=self.tr('Fermer','إغلاق'),command=w.destroy).pack(side='right')
         refresh()
