@@ -2,7 +2,7 @@ import json, math
 from decimal import Decimal
 from datetime import datetime
 from uuid import uuid4
-from database import connect
+from database import connect, get_setting
 from services.inventory import apply_stock_movement
 from services.pricing import resolve_unit_price, resolve_line_price, line_total
 from services.money import allocate, rounded
