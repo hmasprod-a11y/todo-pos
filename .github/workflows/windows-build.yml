@@ -39,7 +39,21 @@ jobs:
         shell: pwsh
         run: |
           Copy-Item dist/ImporterToDo.exe dist/ToDo/ImporterToDo.exe
-          Copy-Item README_1_1_AR.md,VALIDATION.md dist/ToDo/
+          New-Item -ItemType Directory -Force -Path dist/ToDo/docs | Out-Null
+          Copy-Item README.md,README_1_1_AR.md,VALIDATION.md,CHANGELOG.md dist/ToDo/
+          Copy-Item docs/* dist/ToDo/docs/
+          $required = @(
+            "dist/ToDo/README.md",
+            "dist/ToDo/README_1_1_AR.md",
+            "dist/ToDo/VALIDATION.md",
+            "dist/ToDo/CHANGELOG.md",
+            "dist/ToDo/docs/USER_GUIDE_FR.md",
+            "dist/ToDo/docs/USER_GUIDE_AR.md",
+            "dist/ToDo/docs/BACKUP_RESTORE.md",
+            "dist/ToDo/docs/INSTALLATION_WINDOWS.md",
+            "dist/ToDo/docs/RELEASE_CHECKLIST.md"
+          )
+          foreach ($file in $required) { if (-not (Test-Path $file)) { throw "Missing release document: $file" } }
       - name: Build Windows installer
         shell: cmd
         run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'

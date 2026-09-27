@@ -2,7 +2,7 @@
 
 Offline Windows point of sale for Moroccan shops. This branch implements the first stage of the ToDo Vision: transaction safety, a keyboard-driven sale screen, unified search and traceable stock.
 
-See [the Arabic user guide](README_1_1_AR.md) for startup, importing old data, pricing rules and release limitations. See [validation](VALIDATION.md) for regression tests and measured backend performance.
+See [the Arabic quick guide](README_1_1_AR.md), the full manuals in [docs](docs/), the [validation record](VALIDATION.md) and the [changelog](CHANGELOG.md).
 
 ## Source layout
 
