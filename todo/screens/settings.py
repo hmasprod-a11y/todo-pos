@@ -155,6 +155,15 @@ class SettingsFrame(ttk.Frame):
         ttk.Entry(sr,textvariable=self.new_seller_name,width=28).pack(side="left")
         ttk.Button(sr,text=self.tr('+ Ajouter vendeur','+ إضافة بائع'),style='Soft.TButton',command=self.add_seller).pack(side='left',padx=6)
         self.refresh_sellers()
+        pm=ttk.LabelFrame(self,text=self.tr('Modes de paiement','طرق الأداء'),padding=10);pm.pack(fill='x',pady=10)
+        self.payment_methods_frame=ttk.Frame(pm);self.payment_methods_frame.pack(fill='x',pady=(0,6))
+        row_pm=ttk.Frame(pm);row_pm.pack(fill='x')
+        self.new_payment_code=tk.StringVar();self.new_payment_fr=tk.StringVar();self.new_payment_ar=tk.StringVar()
+        ttk.Entry(row_pm,textvariable=self.new_payment_code,width=12).pack(side='left')
+        ttk.Entry(row_pm,textvariable=self.new_payment_fr,width=20).pack(side='left',padx=4)
+        ttk.Entry(row_pm,textvariable=self.new_payment_ar,width=20).pack(side='left',padx=4)
+        ttk.Button(row_pm,text=self.tr('+ Ajouter mode','+ إضافة طريقة'),style='Soft.TButton',command=self.add_payment_method).pack(side='left',padx=6)
+        self.refresh_payment_methods()
         p=ttk.LabelFrame(self,text=self.tr('Impression','الطباعة'),padding=10);p.pack(fill="x",pady=10)
         self.printer=tk.StringVar(value=get_setting('printer_receipt_name',get_setting("printer_name","")))
         self.report_printer=tk.StringVar(value=get_setting('printer_report_name',''))
@@ -261,6 +270,31 @@ class SettingsFrame(ttk.Frame):
     def toggle_seller(self,seller_id,active):
         with connect() as c:c.execute("UPDATE sellers SET active=? WHERE id=?",(0 if active else 1,seller_id))
         self.refresh_sellers()
+
+    def refresh_payment_methods(self):
+        from services.payment_methods import list_payment_methods
+        for w in self.payment_methods_frame.winfo_children():w.destroy()
+        for r in list_payment_methods():
+            line=ttk.Frame(self.payment_methods_frame);line.pack(fill='x',pady=2)
+            ttk.Label(line,text=r['code'],width=12).pack(side='left')
+            ttk.Label(line,text=r['name_fr'],width=22).pack(side='left')
+            ttk.Label(line,text=r['name_ar'] or '—',width=18).pack(side='left')
+            ttk.Label(line,text=self.tr('Actif','نشط') if r['active'] else self.tr('Inactif','معطل'),width=10).pack(side='left')
+            if not r['system']:
+                ttk.Button(line,text=self.tr('Désactiver','تعطيل') if r['active'] else self.tr('Activer','تفعيل'),
+                           command=lambda mid=r['id'],a=r['active']:self.toggle_payment_method(mid,a)).pack(side='left',padx=4)
+
+    def add_payment_method(self):
+        from services.payment_methods import save_payment_method
+        try:
+            save_payment_method(self.new_payment_code.get(),self.new_payment_fr.get(),self.new_payment_ar.get())
+            self.new_payment_code.set('');self.new_payment_fr.set('');self.new_payment_ar.set('');self.refresh_payment_methods()
+        except Exception as e:messagebox.showerror('ToDo',str(e),parent=self)
+
+    def toggle_payment_method(self,method_id,active):
+        from services.payment_methods import set_payment_method_active
+        try:set_payment_method_active(method_id,not bool(active));self.refresh_payment_methods()
+        except Exception as e:messagebox.showerror('ToDo',str(e),parent=self)
 
     def refresh_price_grids(self):
         for w in self.price_grids_frame.winfo_children():w.destroy()

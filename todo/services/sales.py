@@ -28,12 +28,16 @@ def validate_session(conn,session_id,user_id):
 def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cents=0,held_id=None,client_id=None,payments=None,seller_id=None,loyalty_points=0,customer_order_id=None,quotation_id=None):
     if not cart:
         raise ValueError('Ticket vide')
-    if payments is None and payment_method not in ('CASH','CARD','CREDIT'):
-        raise ValueError('Mode de paiement invalide')
+    payment_method=str(payment_method).upper()
     if payments is not None and payment_method not in ('CASH','CARD','MIXED'):
         raise ValueError('Mode de paiement invalide')
     with connect() as conn:
         conn.execute('BEGIN IMMEDIATE')
+        if payments is None and payment_method!='CREDIT':
+            from services.payment_methods import payment_method as get_payment_method
+            method_row=get_payment_method(payment_method,conn)
+            if not method_row or not method_row['active']:
+                raise ValueError('Mode de paiement invalide')
         validate_session(conn,session_id,user_id)
         if held_id is not None and not conn.execute('SELECT id FROM held_sales WHERE id=? AND cashier_user_id=?',(held_id,user_id)).fetchone():
             raise ValueError('Ce ticket en attente a déjà été encaissé, supprimé ou appartient à un autre utilisateur.')
@@ -107,7 +111,7 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
             paid=total
         if payment_method=='CASH' and paid<total:
             raise ValueError('Montant reçu insuffisant.')
-        if payment_method=='CARD':paid=total
+        if payment_method not in ('CASH','CREDIT'):paid=total
         if paid<0 or (payment_method=='CREDIT' and paid>total):
             raise ValueError('Acompte invalide.')
         change=max(0,paid-total)

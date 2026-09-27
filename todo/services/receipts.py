@@ -26,15 +26,8 @@ def _receipt_width():
 
 
 def _payment_label(method):
-    lang=get_setting('language','fr')
-    labels={
-        'CASH':('Espèces','نقداً'),
-        'CARD':('Carte','بطاقة'),
-        'CREDIT':('Crédit','دين'),
-        'MIXED':('Mixte','مختلط'),
-    }
-    fr,ar=labels.get(method,(method or '',method or ''))
-    return ar if lang=='ar' else fr
+    from services.payment_methods import payment_label
+    return payment_label(method,get_setting('language','fr'))
 
 
 def build_receipt(sale_id):

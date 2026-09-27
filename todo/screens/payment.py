@@ -1,4 +1,5 @@
 from database import get_setting
+from services.payment_methods import list_payment_methods,payment_label
 import tkinter as tk
 from tkinter import ttk
 from services.money import fmt, to_cents
@@ -38,8 +39,13 @@ class PaymentDialog(tk.Toplevel):
         body.pack(fill='both', expand=True)
         modes = ttk.Frame(body)
         modes.pack(fill='x', pady=(0, 12))
-        choices=[(self.tr('F2 Espèces','F2 نقداً'),'CASH'),(self.tr('F3 Carte','F3 بطاقة'),'CARD'),(self.tr('Mixte','مختلط'),'MIXED')]
+        choices=[]
+        for row in list_payment_methods(True):
+            prefix='F2 ' if row['code']=='CASH' else ('F3 ' if row['code']=='CARD' else '')
+            choices.append((prefix+payment_label(row['code'],self.lang),row['code']))
+        choices.append((self.tr('Mixte','مختلط'),'MIXED'))
         if client_name and get_setting('credit_enabled','1')=='1':choices.append((self.tr('Crédit','دين'),'CREDIT'))
+        if method not in {code for _,code in choices}:method='CASH'
         if client_name:ttk.Label(body,text=self.tr('Client : ','الزبون: ')+client_name).pack(anchor='w')
         for label, value in choices:
             ttk.Radiobutton(modes, text=label, variable=self.method, value=value,
@@ -176,20 +182,21 @@ class PaymentDialog(tk.Toplevel):
         self.cash_breakdown.configure(text=(self.tr('Compté : ','محسوب: ')+'  ·  '.join(parts)) if parts else '')
 
     def paid_cents(self):
-        if self.method.get() == 'CARD': return self.total
+        method=self.method.get()
+        if method not in ('CASH','CREDIT','MIXED'): return self.total
         cash=to_cents(self.amount.get())
-        return cash + (to_cents(self.card_amount.get()) if self.method.get() == 'MIXED' else 0)
+        return cash + (to_cents(self.card_amount.get()) if method == 'MIXED' else 0)
 
     def update_amount(self):
         method = self.method.get()
-        card = method == 'CARD'
+        fixed = method not in ('CASH','CREDIT','MIXED')
         mixed = method == 'MIXED'
-        self.entry.configure(state='disabled' if card else 'normal')
+        self.entry.configure(state='disabled' if fixed else 'normal')
         self.card_entry.configure(state='normal' if mixed else 'disabled')
         try:
             paid = self.paid_cents()
-            cash = to_cents(self.amount.get()) if not card else 0
-            card_paid = to_cents(self.card_amount.get()) if mixed else (self.total if card else 0)
+            cash = to_cents(self.amount.get()) if not fixed else 0
+            card_paid = to_cents(self.card_amount.get()) if mixed else (self.total if fixed else 0)
             if paid < 0 or cash < 0 or card_paid < 0: raise ValueError()
             difference = paid - self.total
             credit=method=='CREDIT' and self.client_name is not None
@@ -215,7 +222,7 @@ class PaymentDialog(tk.Toplevel):
             method=self.method.get()
             credit=method=='CREDIT' and self.client_name is not None
             mixed=method=='MIXED'
-            invalid=(credit and not 0<=paid<=self.total) or (mixed and paid!=self.total) or (not credit and not mixed and paid<self.total)
+            invalid=(credit and not 0<=paid<=self.total) or (mixed and paid!=self.total) or (method=='CASH' and paid<self.total) or (method not in ('CASH','CREDIT','MIXED') and paid!=self.total)
             if invalid:
                 self.update_amount()
                 return
