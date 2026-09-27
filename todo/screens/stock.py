@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog
 from database import connect, get_setting
-from services.inventory import apply_stock_movement
+from services.inventory import apply_stock_movement, stock_activity
 
 class StockFrame(ttk.Frame):
     def __init__(self,master,app=None):
@@ -14,6 +14,7 @@ class StockFrame(ttk.Frame):
         self.q=tk.StringVar();self.filter=tk.StringVar(value=self.tr('Tous','الكل'))
         self.search_entry=ttk.Entry(top,textvariable=self.q,width=26,style="Search.TEntry");self.search_entry.pack(side="left",padx=(20,8));self.search_entry.bind("<KeyRelease>",lambda e:self.refresh())
         box=ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل'),self.tr('Alertes stock','تنبيهات المخزون'),self.tr('Stock négatif','مخزون سالب')],state="readonly",width=15);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
+        ttk.Button(top,text=self.tr('Journal global','السجل العام'),style="Soft.TButton",command=self.global_ledger).pack(side="right",padx=8)
         ttk.Button(top,text=self.tr('Historique','السجل'),style="Soft.TButton",command=self.ledger).pack(side="right",padx=8)
         if app is not None:
             ttk.Button(top,text=self.tr('Articles','المنتجات'),style="Soft.TButton",command=lambda: app.show("products")).pack(side="right",padx=8)
@@ -65,6 +66,35 @@ class StockFrame(ttk.Frame):
             with connect() as c:c.execute("BEGIN IMMEDIATE");apply_stock_movement(c,pid,q,"ADJUSTMENT",note=note);c.commit()
             self.refresh()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
+
+    def global_ledger(self):
+        w=tk.Toplevel(self);w.title(self.tr("Journal global du stock","السجل العام للمخزون"));w.geometry('1180x650');w.transient(self)
+        tools=ttk.Frame(w);tools.pack(fill='x',padx=12,pady=(12,4))
+        query=tk.StringVar();kind=tk.StringVar(value=self.tr('Tous','الكل'))
+        ttk.Entry(tools,textvariable=query,width=30).pack(side='left')
+        kinds=[self.tr('Tous','الكل'),'SALE','PURCHASE','RETURN','INVENTORY','ADJUSTMENT','OUT','OPENING']
+        ttk.Combobox(tools,textvariable=kind,values=kinds,state='readonly',width=16).pack(side='left',padx=6)
+        tree=ttk.Treeview(w,columns=('date','product','user','type','old','delta','new','document','reason'),show='headings')
+        for key,label,width in [
+            ('date',self.tr('Date','التاريخ'),145),('product',self.tr('Article','المنتوج'),220),
+            ('user',self.tr('Utilisateur','المستخدم'),110),('type',self.tr('Type','النوع'),100),
+            ('old',self.tr('Avant','قبل'),70),('delta',self.tr('Variation','التغيير'),75),
+            ('new',self.tr('Après','بعد'),70),('document',self.tr('Document','الوثيقة'),120),
+            ('reason',self.tr('Raison','السبب'),260)]:
+            tree.heading(key,text=label);tree.column(key,width=width)
+        tree.pack(fill='both',expand=True,padx=12,pady=(4,12))
+        tree.tag_configure('out',foreground='#B91C1C');tree.tag_configure('in',foreground='#15803D')
+        def load(*_):
+            selected='' if kind.get()==self.tr('Tous','الكل') else kind.get()
+            rows=stock_activity(query.get(),selected)
+            tree.delete(*tree.get_children())
+            for r in rows:
+                ref=f"{self._ref_label(r['ref_type'])} #{r['ref_id'] or ''}".strip()
+                tree.insert('','end',values=(r['created_at'],r['product_name'],r['username'] or self.tr('Historique','سجل'),
+                    self._movement_label(r['movement_type']),r['old_qty'],r['qty_delta'],r['stock_after'],ref,r['note']),
+                    tags=('out' if float(r['qty_delta'])<0 else 'in',))
+        ttk.Button(tools,text=self.tr('Actualiser','تحديث'),command=load).pack(side='left')
+        query.trace_add('write',load);kind.trace_add('write',load);load()
 
     def ledger(self):
         selection=self.t.selection()

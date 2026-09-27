@@ -25,3 +25,25 @@ def apply_stock_movement(conn, product_id, qty_delta, movement_type,
                  (product_id,movement_type,delta,old,new,int(unit_cost_cents or 0),ref_type,ref_id,note,uid))
     audit(conn,'STOCK_'+movement_type,ref_id or product_id,note,uid)
     return new
+
+
+def stock_activity(query='', movement_type='', limit=2000):
+    """Global stock ledger with product, actor, before/after quantities and document."""
+    q=(query or '').strip()
+    movement_type=(movement_type or '').strip().upper()
+    params=[q,q]
+    extra=''
+    if movement_type:
+        extra=' AND sm.movement_type=?'
+        params.append(movement_type)
+    params.append(int(limit))
+    from database import connect
+    with connect() as conn:
+        rows=conn.execute("""
+            SELECT sm.*,p.name product_name,COALESCE(u.display_name,'') username
+            FROM stock_movements sm
+            JOIN products p ON p.id=sm.product_id
+            LEFT JOIN users u ON u.id=sm.user_id
+            WHERE (?='' OR instr(lower(p.name),lower(?))>0)
+        """+extra+""" ORDER BY sm.id DESC LIMIT ?""",params).fetchall()
+        return [dict(r) for r in rows]

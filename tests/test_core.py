@@ -7,7 +7,7 @@ from services.bootstrap import ensure_defaults
 from services.cash import open_session,close_session
 from services.sales import complete_sale,create_return,hold_sale,resume_held,list_held
 from services.pricing import resolve_unit_price,line_total
-from services.inventory import apply_stock_movement
+from services.inventory import apply_stock_movement,stock_activity
 from services.purchases import receive_purchase
 from services.catalog import search_products,scan_barcode,add_product_barcode
 from services.security import current_user,hash_pin,verify_pin
@@ -280,6 +280,15 @@ class CoreTests(unittest.TestCase):
    c.executemany("INSERT INTO product_barcodes(product_id,barcode) VALUES(?,'SHARED')",[(self.pid,),(second,)])
   for q in ['Olive','live','REF-123','بلدي','SUP-789']:self.assertIn(second,[r['id'] for r in search_products(q)])
   self.assertEqual(len(scan_barcode('SHARED')),2)
+ def test_global_stock_activity_filters_product_and_type(self):
+  second=self.product('Other item')
+  with db.connect() as c:
+   apply_stock_movement(c,self.pid,-2,'OUT',note='Casse')
+   apply_stock_movement(c,second,3,'PURCHASE',300,'purchase',99,'INV-99')
+  out=stock_activity('Article','OUT')
+  self.assertEqual(len(out),1);self.assertEqual(out[0]['product_id'],self.pid);self.assertEqual(out[0]['qty_delta'],-2)
+  purchases=stock_activity('', 'PURCHASE')
+  self.assertTrue(any(r['product_id']==second and r['ref_id']==99 for r in purchases))
  def test_stock_actor(self):
   with db.connect() as c:
    apply_stock_movement(c,self.pid,3,'ADJUSTMENT',note='Correction fiche')
