@@ -26,6 +26,7 @@ from screens.supplier_payments import SupplierReglementFrame
 from screens.rendez_vous import RendezVousFrame
 from screens.clients import ClientsFrame
 from screens.promotions import PromotionsFrame
+from screens.inventory_sessions import InventorySessionsFrame
 
 class ToDoApp(tk.Tk):
     def __init__(self):
@@ -282,7 +283,7 @@ class ToDoApp(tk.Tk):
     def show(self, key):
         if self.lock_window and self.lock_window.winfo_exists():
             self.lock_window.lift();return
-        if self.user['role']!='admin' and key in ('products','purchases','suppliers','clients','settings','journal','management','statistics','inventory','sorties','supplier_payments','rendez_vous','promotions'):
+        if self.user['role']!='admin' and key in ('products','purchases','suppliers','clients','settings','journal','management','statistics','inventory','sorties','supplier_payments','rendez_vous','promotions','inventory_sessions'):
             messagebox.showerror('ToDo',('هذه العملية مخصصة للمدير.' if get_setting('language','fr')=='ar' else 'Action réservée à un administrateur.'));return
         if self.current:
             if self.current is self.sale_frame:self.current.pack_forget()
@@ -313,6 +314,7 @@ class ToDoApp(tk.Tk):
             "supplier_payments": lambda: SupplierReglementFrame(self.content, self),
             "rendez_vous": lambda: RendezVousFrame(self.content, self),
             "promotions": lambda: PromotionsFrame(self.content, self),
+            "inventory_sessions": lambda: InventorySessionsFrame(self.content, self),
         }
 
         self.current = makers[key]()

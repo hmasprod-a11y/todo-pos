@@ -162,6 +162,31 @@ CREATE TABLE IF NOT EXISTS held_sales (
     FOREIGN KEY(cashier_user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS inventory_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    label TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'OPEN',
+    created_by INTEGER,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    validated_by INTEGER,
+    validated_at TEXT,
+    FOREIGN KEY(created_by) REFERENCES users(id),
+    FOREIGN KEY(validated_by) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS inventory_session_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    product_name TEXT NOT NULL,
+    theory_qty REAL NOT NULL,
+    counted_qty REAL,
+    unit_cost_cents INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY(session_id) REFERENCES inventory_sessions(id) ON DELETE CASCADE,
+    FOREIGN KEY(product_id) REFERENCES products(id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_inventory_session_product ON inventory_session_items(session_id,product_id);
+
 CREATE TABLE IF NOT EXISTS stock_movements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     product_id INTEGER NOT NULL,

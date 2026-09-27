@@ -10,6 +10,7 @@ GROUPS = [
         ("📤", "Sorties",             "sorties",    "#D97706", "#fff"),
         ("🏷️", "Promotions",          "promotions", "#BE185D", "#fff"),
         ("📝", "Inventaire",          "inventory",  "#16A34A", "#fff"),
+        ("🧾", "Inventaires enregistrés","inventory_sessions","#0F766E","#fff"),
         ("🔄", "Mouvements de stock", "stock",      "#7C3AED", "#fff"),
     ],
     [
@@ -72,7 +73,7 @@ class ManagementFrame(ttk.Frame):
             row = tk.Frame(area, bg="#F6F7FB")
             row.pack(anchor="center", pady=8)
             for emoji, label, key, bg, fg in group:
-                self._card(row, emoji, self.tr(label, dict({'Réceptions':'الاستلامات','Sorties':'الإخراجات','Inventaire':'الجرد','Mouvements de stock':'حركات المخزون','Fournisseurs':'الموردون','Règlements fournisseurs':'دفعات الموردين','État crédits fournisseurs':'ديون الموردين','Clients':'الزبائن','Règlements clients':'دفعات الزبائن','État crédits clients':'ديون الزبائن','Dépenses':'المصاريف','Rendez-vous':'المواعيد','Promotions':'العروض'}).get(label,label)), key, bg, fg)
+                self._card(row, emoji, self.tr(label, dict({'Réceptions':'الاستلامات','Sorties':'الإخراجات','Inventaire':'الجرد','Mouvements de stock':'حركات المخزون','Fournisseurs':'الموردون','Règlements fournisseurs':'دفعات الموردين','État crédits fournisseurs':'ديون الموردين','Clients':'الزبائن','Règlements clients':'دفعات الزبائن','État crédits clients':'ديون الزبائن','Dépenses':'المصاريف','Rendez-vous':'المواعيد','Promotions':'العروض','Inventaires enregistrés':'سجلات الجرد'}).get(label,label)), key, bg, fg)
 
     def _card(self, parent, emoji, label, key, bg, fg):
         is_placeholder = key is None
