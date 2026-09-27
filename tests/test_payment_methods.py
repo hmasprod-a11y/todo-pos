@@ -18,8 +18,10 @@ class PaymentMethodTests(unittest.TestCase):
         with database.connect() as c:
             self.uid=c.execute("SELECT id FROM users WHERE username='admin'").fetchone()[0]
             self.pid=c.execute("INSERT INTO products(name,sale_price_cents,purchase_price_cents) VALUES('Pay Item',1000,300)").lastrowid
+        self.token=current_user.set(self.uid)
+        with database.connect() as c:
             apply_stock_movement(c,self.pid,5,'OPENING',300,'product',self.pid,'Initial')
-        self.token=current_user.set(self.uid);self.session=open_session(self.uid,0)
+        self.session=open_session(self.uid,0)
     def tearDown(self):
         current_user.reset(self.token);database.DB_PATH=self.old;self.tmp.cleanup()
     def test_custom_method_is_real_checkout_method(self):
