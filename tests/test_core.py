@@ -7,7 +7,7 @@ from services.bootstrap import ensure_defaults
 from services.cash import open_session,close_session
 from services.sales import complete_sale,create_return,hold_sale,resume_held,list_held
 from services.pricing import resolve_unit_price,line_total
-from services.inventory import apply_stock_movement,stock_activity
+from services.inventory import apply_stock_movement,stock_activity,reorder_list
 from services.purchases import receive_purchase
 from services.catalog import search_products,scan_barcode,add_product_barcode
 from services.security import current_user,hash_pin,verify_pin
@@ -280,6 +280,14 @@ class CoreTests(unittest.TestCase):
    c.executemany("INSERT INTO product_barcodes(product_id,barcode) VALUES(?,'SHARED')",[(self.pid,),(second,)])
   for q in ['Olive','live','REF-123','بلدي','SUP-789']:self.assertIn(second,[r['id'] for r in search_products(q)])
   self.assertEqual(len(scan_barcode('SHARED')),2)
+ def test_reorder_list_targets_twice_alert_level_and_estimates_cost(self):
+  with db.connect() as c:
+   c.execute("UPDATE products SET stock_qty=2,alert_qty=5,purchase_price_cents=300,supplier_code='SUP-A' WHERE id=?",(self.pid,))
+  row=reorder_list()[0]
+  self.assertEqual(row['id'],self.pid);self.assertEqual(row['target_qty'],10)
+  self.assertEqual(row['suggested_qty'],8);self.assertEqual(row['estimated_cost_cents'],2400)
+  with db.connect() as c:c.execute("UPDATE products SET stock_qty=6 WHERE id=?",(self.pid,))
+  self.assertEqual(reorder_list(),[])
  def test_global_stock_activity_filters_product_and_type(self):
   second=self.product('Other item')
   with db.connect() as c:

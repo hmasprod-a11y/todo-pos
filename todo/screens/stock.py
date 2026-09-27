@@ -1,7 +1,8 @@
+import csv
 import tkinter as tk
-from tkinter import ttk,messagebox,simpledialog
+from tkinter import ttk,messagebox,simpledialog,filedialog
 from database import connect, get_setting
-from services.inventory import apply_stock_movement, stock_activity
+from services.inventory import apply_stock_movement, stock_activity, reorder_list
 
 class StockFrame(ttk.Frame):
     def __init__(self,master,app=None):
@@ -14,6 +15,7 @@ class StockFrame(ttk.Frame):
         self.q=tk.StringVar();self.filter=tk.StringVar(value=self.tr('Tous','الكل'))
         self.search_entry=ttk.Entry(top,textvariable=self.q,width=26,style="Search.TEntry");self.search_entry.pack(side="left",padx=(20,8));self.search_entry.bind("<KeyRelease>",lambda e:self.refresh())
         box=ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل'),self.tr('Alertes stock','تنبيهات المخزون'),self.tr('Stock négatif','مخزون سالب')],state="readonly",width=15);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
+        ttk.Button(top,text=self.tr('Réapprovisionnement','إعادة الطلب'),style="Soft.TButton",command=self.reorder_window).pack(side="right",padx=8)
         ttk.Button(top,text=self.tr('Journal global','السجل العام'),style="Soft.TButton",command=self.global_ledger).pack(side="right",padx=8)
         ttk.Button(top,text=self.tr('Historique','السجل'),style="Soft.TButton",command=self.ledger).pack(side="right",padx=8)
         if app is not None:
@@ -66,6 +68,39 @@ class StockFrame(ttk.Frame):
             with connect() as c:c.execute("BEGIN IMMEDIATE");apply_stock_movement(c,pid,q,"ADJUSTMENT",note=note);c.commit()
             self.refresh()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
+
+    def reorder_window(self):
+        rows=reorder_list()
+        w=tk.Toplevel(self);w.title(self.tr("Réapprovisionnement","إعادة الطلب"));w.geometry('1000x620');w.transient(self)
+        ttk.Label(w,text=self.tr("Articles à commander — cible automatique = 2 × seuil d'alerte","منتجات لإعادة الطلب — الهدف التلقائي = ضعفي حد التنبيه"),
+                  font=('Segoe UI',11,'bold')).pack(anchor='w',padx=12,pady=(12,4))
+        tree=ttk.Treeview(w,columns=('name','sku','supplier','stock','alert','target','order','cost'),show='headings')
+        for key,label,width,anchor_col in [
+            ('name',self.tr('Article','المنتوج'),250,'w'),('sku','SKU',100,'center'),
+            ('supplier',self.tr('Code fournisseur','كود المورد'),120,'center'),('stock',self.tr('Stock','المخزون'),80,'e'),
+            ('alert',self.tr('Seuil','الحد'),80,'e'),('target',self.tr('Cible','الهدف'),80,'e'),
+            ('order',self.tr('À commander','للطلب'),95,'e'),('cost',self.tr('Coût estimé','التكلفة المقدرة'),110,'e')]:
+            tree.heading(key,text=label);tree.column(key,width=width,anchor=anchor_col)
+        tree.pack(fill='both',expand=True,padx=12,pady=8)
+        total=0
+        for r in rows:
+            total+=r['estimated_cost_cents']
+            tree.insert('','end',values=(r['name'],r['sku'] or '',r['supplier_code'] or '',f"{r['stock_qty']:g}",
+                f"{r['alert_qty']:g}",f"{r['target_qty']:g}",f"{r['suggested_qty']:g}",f"{r['estimated_cost_cents']/100:.2f}"))
+        footer=ttk.Frame(w);footer.pack(fill='x',padx=12,pady=(0,12))
+        ttk.Label(footer,text=self.tr(f"Coût total estimé: {total/100:.2f} DH",f"إجمالي التكلفة المقدرة: {total/100:.2f} درهم"),
+                  font=('Segoe UI',11,'bold')).pack(side='right')
+        def export_csv():
+            path=filedialog.asksaveasfilename(parent=w,defaultextension='.csv',filetypes=[('CSV','*.csv')],
+                title=self.tr('Exporter la liste','تصدير اللائحة'))
+            if not path:return
+            with open(path,'w',newline='',encoding='utf-8-sig') as fh:
+                wr=csv.writer(fh)
+                wr.writerow(['Article','SKU','Code fournisseur','Stock','Seuil','Cible','Quantité à commander','Coût estimé cents'])
+                for r in rows:
+                    wr.writerow([r['name'],r['sku'],r['supplier_code'],r['stock_qty'],r['alert_qty'],r['target_qty'],r['suggested_qty'],r['estimated_cost_cents']])
+            messagebox.showinfo('ToDo',self.tr('Liste exportée.','تم تصدير اللائحة.'),parent=w)
+        ttk.Button(footer,text=self.tr('Exporter CSV','تصدير CSV'),style='Primary.TButton',command=export_csv).pack(side='left')
 
     def global_ledger(self):
         w=tk.Toplevel(self);w.title(self.tr("Journal global du stock","السجل العام للمخزون"));w.geometry('1180x650');w.transient(self)

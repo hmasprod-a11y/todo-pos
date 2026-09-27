@@ -47,3 +47,27 @@ def stock_activity(query='', movement_type='', limit=2000):
             WHERE (?='' OR instr(lower(p.name),lower(?))>0)
         """+extra+""" ORDER BY sm.id DESC LIMIT ?""",params).fetchall()
         return [dict(r) for r in rows]
+
+
+def reorder_list():
+    """Products at/below alert level with a practical target of twice the alert threshold."""
+    from database import connect
+    with connect() as conn:
+        rows=conn.execute("""
+            SELECT id,name,sku,supplier_code,stock_qty,alert_qty,purchase_price_cents,allow_fraction
+            FROM products
+            WHERE active=1 AND alert_qty>0 AND stock_qty<=alert_qty
+            ORDER BY (alert_qty-stock_qty) DESC,name COLLATE NOCASE
+        """).fetchall()
+    result=[]
+    for row in rows:
+        r=dict(row)
+        target=float(r['alert_qty'])*2
+        suggested=max(0.0,target-float(r['stock_qty']))
+        if not r['allow_fraction']:
+            suggested=math.ceil(suggested)
+        r['target_qty']=target
+        r['suggested_qty']=suggested
+        r['estimated_cost_cents']=int(round(suggested*int(r['purchase_price_cents'])))
+        result.append(r)
+    return result
