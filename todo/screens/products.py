@@ -732,7 +732,7 @@ class ProductsFrame(ttk.Frame):
                         try:os.unlink(temp_path)
                         except OSError:pass
             with connect() as c:
-                c.execute("BEGIN IMMEDIATE");require_admin(c)
+                c.execute("BEGIN IMMEDIATE");require_permission('MANAGEMENT', c)
                 imported=updated=skipped=0
                 imported_groups={}
                 for action,item,target in resolved:
