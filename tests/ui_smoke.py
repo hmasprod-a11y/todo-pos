@@ -17,7 +17,7 @@ def unexpected_dialog(title,message,**kwargs):
  raise AssertionError(f'{title}: {message}')
 messagebox.showerror=unexpected_dialog
 messagebox.showwarning=unexpected_dialog
-assert callable(inventory_screen.require_admin)
+assert callable(inventory_screen.require_permission)
 app=ToDoApp()
 app.withdraw()
 assert app.customer_video is None and app.customer_video_delay==33
