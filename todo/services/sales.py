@@ -25,7 +25,7 @@ def validate_session(conn,session_id,user_id):
     if current_user.get() is not None and current_user.get()!=user_id:
         raise PermissionError('Utilisateur incompatible')
 
-def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cents=0,held_id=None,client_id=None,payments=None,seller_id=None,loyalty_points=0):
+def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cents=0,held_id=None,client_id=None,payments=None,seller_id=None,loyalty_points=0,customer_order_id=None):
     if not cart:
         raise ValueError('Ticket vide')
     if payments is None and payment_method not in ('CASH','CARD','CREDIT'):
@@ -126,6 +126,14 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
                          (sid,p['id'],barcode,p['name'],qty,pricing['unit_price_cents'] if pack else rounded(unit),p['purchase_price_cents'],gross-net,gross,net,pricing['qty_multiplier'] if pricing else 1,'PACK' if pack else 'UNIT'))
             if not p['is_misc']:
                 apply_stock_movement(conn,p['id'],-qty,'SALE',p['purchase_price_cents'],'sale',sid,no,user_id)
+        if customer_order_id is not None:
+            order=conn.execute("SELECT client_id,status FROM customer_orders WHERE id=?",(int(customer_order_id),)).fetchone()
+            if not order or order['status'] not in ('OPEN','READY'):
+                raise ValueError('Commande client indisponible.')
+            if client_id is None or int(order['client_id'])!=int(client_id):
+                raise ValueError('Client incompatible avec la commande.')
+            conn.execute("UPDATE customer_orders SET status='COMPLETED',sale_id=?,completed_at=CURRENT_TIMESTAMP WHERE id=?",(sid,int(customer_order_id)))
+            audit(conn,'CUSTOMER_ORDER_COMPLETE',customer_order_id,no,user_id)
         if loyalty_points:
             from services.loyalty import redeem_points
             redeem_points(conn,client_id,loyalty_points,sid,user_id)

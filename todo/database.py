@@ -153,6 +153,35 @@ CREATE TABLE IF NOT EXISTS sale_items (
     FOREIGN KEY(product_id) REFERENCES products(id)
 );
 
+CREATE TABLE IF NOT EXISTS customer_orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'OPEN',
+    delivery_address TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    total_cents INTEGER NOT NULL DEFAULT 0,
+    sale_id INTEGER,
+    created_by INTEGER,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TEXT,
+    FOREIGN KEY(client_id) REFERENCES clients(id),
+    FOREIGN KEY(sale_id) REFERENCES sales(id),
+    FOREIGN KEY(created_by) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS customer_order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    name_snapshot TEXT NOT NULL,
+    qty REAL NOT NULL,
+    unit_price_cents INTEGER NOT NULL,
+    line_total_cents INTEGER NOT NULL,
+    FOREIGN KEY(order_id) REFERENCES customer_orders(id) ON DELETE CASCADE,
+    FOREIGN KEY(product_id) REFERENCES products(id)
+);
+CREATE INDEX IF NOT EXISTS idx_customer_orders_status ON customer_orders(status,id);
+
 CREATE TABLE IF NOT EXISTS held_sales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     label TEXT NOT NULL DEFAULT '',
