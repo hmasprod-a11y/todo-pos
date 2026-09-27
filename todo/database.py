@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS cash_sessions (
     closed_at TEXT,
     opening_cash_cents INTEGER NOT NULL DEFAULT 0,
     expected_cash_cents INTEGER NOT NULL DEFAULT 0,
+    workstation_code TEXT NOT NULL DEFAULT '01',
     actual_cash_cents INTEGER,
     difference_cents INTEGER,
     status TEXT NOT NULL DEFAULT 'OPEN',
@@ -156,6 +157,7 @@ CREATE TABLE IF NOT EXISTS sales (
     paid_cents INTEGER NOT NULL,
     change_cents INTEGER NOT NULL DEFAULT 0,
     client_ticket_no INTEGER,
+    workstation_code TEXT NOT NULL DEFAULT '01',
     status TEXT NOT NULL DEFAULT 'COMPLETED',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(session_id) REFERENCES cash_sessions(id),
@@ -525,7 +527,8 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('receipt_show_ticket_no','1'),
 ('receipt_show_sale_mode','1'),
 ('receipt_show_barcode','0'),
-('receipt_next_client_ticket','1');
+('receipt_next_client_ticket','1'),
+('workstation_code','01');
 """
 
 class Connection(sqlite3.Connection):
@@ -592,7 +595,8 @@ def migrate(conn):
         'returns': {'refund_paid_cents': 'INTEGER'},
         'client_payments': {'session_id': 'INTEGER REFERENCES cash_sessions(id)', 'user_id': 'INTEGER REFERENCES users(id)', 'payment_method': "TEXT NOT NULL DEFAULT 'CASH'"},
         'supplier_payments': {'session_id': 'INTEGER REFERENCES cash_sessions(id)', 'user_id': 'INTEGER REFERENCES users(id)', 'payment_method': "TEXT NOT NULL DEFAULT 'CARD'"},
-        'sales': {'client_id': 'INTEGER REFERENCES clients(id)', 'seller_id': 'INTEGER REFERENCES sellers(id)', 'client_ticket_no': 'INTEGER'},
+        'sales': {'client_id': 'INTEGER REFERENCES clients(id)', 'seller_id': 'INTEGER REFERENCES sellers(id)', 'client_ticket_no': 'INTEGER', 'workstation_code': "TEXT NOT NULL DEFAULT '01'"},
+        'cash_sessions': {'workstation_code': "TEXT NOT NULL DEFAULT '01'"},
         'categories': {'color': "TEXT NOT NULL DEFAULT '#2563EB'", 'icon': "TEXT NOT NULL DEFAULT ''"},
     }
     for table, fields in additions.items():

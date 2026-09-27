@@ -49,6 +49,7 @@ def build_receipt(sale_id):
             lines.append(f"{tr('Réf.','المرجع')}: {s['sale_no']}")
     if get_setting('receipt_show_sale_mode','1')=='1':
         lines.append(f"{tr('Mode vente','نوع البيع')}: {tr('VENTE','بيع')}")
+    lines.append(f"{tr('Poste','المحطة')}: {s['workstation_code']}")
     lines.append(f"{tr('Caissier','الكاشير')}: {s['display_name']}")
     if client:lines.append(f"{tr('Client','الزبون')}: {client['name']}")
     lines.append(dash)

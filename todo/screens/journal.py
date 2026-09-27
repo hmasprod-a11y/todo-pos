@@ -51,9 +51,9 @@ class JournalFrame(ttk.Frame):
         ttk.Label(filters,text=self.tr('Vendeur','البائع')).pack(side="left");self.seller_box=ttk.Combobox(filters,textvariable=self.seller,state="readonly",width=16);self.seller_box.pack(side="left",padx=(3,10))
         ttk.Label(filters,text=self.tr('Paiement','الدفع')).pack(side="left");ttk.Combobox(filters,textvariable=self.payment,values=[self.all_label,"CASH","CARD","MIXED","CREDIT"],state="readonly",width=10).pack(side="left",padx=(3,10))
         ttk.Button(filters,text=self.tr('Aujourd’hui','اليوم'),command=lambda:self.set_period(0)).pack(side="left",padx=2);ttk.Button(filters,text=self.tr('7 jours','7 أيام'),command=lambda:self.set_period(6)).pack(side="left",padx=2);ttk.Button(filters,text=self.tr('30 jours','30 يوماً'),command=lambda:self.set_period(29)).pack(side="left",padx=2);ttk.Button(filters,text=self.tr('Consulter','عرض'),command=self.refresh).pack(side="right")
-        cols=("id","ticket","date","cashier","seller","pay","total","cost","margin")
+        cols=("id","ticket","poste","date","cashier","seller","pay","total","cost","margin")
         self.t=ttk.Treeview(self,columns=cols,show="headings",height=15)
-        for c,h,w in [("id","ID",45),("ticket",self.tr("Ticket","التذكرة"),190),("date",self.tr("Date","التاريخ"),160),("cashier",self.tr("Caissier","الكاشير"),110),("seller",self.tr("Vendeur","البائع"),110),("pay",self.tr("Paiement","الدفع"),90),("total",self.tr("Total","المجموع"),90),("cost",self.tr("Coût","التكلفة"),90),("margin",self.tr("Marge brute","الهامش الإجمالي"),100)]:self.t.heading(c,text=h);self.t.column(c,width=w,anchor="center")
+        for c,h,w in [("id","ID",45),("ticket",self.tr("Ticket","التذكرة"),170),("poste",self.tr("Poste","المحطة"),70),("date",self.tr("Date","التاريخ"),145),("cashier",self.tr("Caissier","الكاشير"),110),("seller",self.tr("Vendeur","البائع"),110),("pay",self.tr("Paiement","الدفع"),90),("total",self.tr("Total","المجموع"),90),("cost",self.tr("Coût","التكلفة"),90),("margin",self.tr("Marge brute","الهامش الإجمالي"),100)]:self.t.heading(c,text=h);self.t.column(c,width=w,anchor="center")
         self.t.pack(fill="both",expand=True)
         summary_bar=ttk.Frame(self,style="Card.TFrame",padding=(10,8));summary_bar.pack(fill="x",pady=(8,0))
         self.summary=ttk.Label(summary_bar,text="",style="Card.TLabel",font=("Segoe UI",11,"bold"));self.summary.pack(side="right")
@@ -82,7 +82,7 @@ class JournalFrame(ttk.Frame):
                 where.append("EXISTS (SELECT 1 FROM sale_payments sp WHERE sp.sale_id=s.id AND sp.payment_method=?)");params.append(self.payment.get())
             else:
                 where.append("s.payment_method=?");params.append(self.payment.get())
-        sql="""SELECT s.id,s.sale_no,s.created_at,u.display_name,COALESCE(v.name,'') seller_name,s.payment_method,
+        sql="""SELECT s.id,s.sale_no,s.workstation_code,s.created_at,u.display_name,COALESCE(v.name,'') seller_name,s.payment_method,
           COALESCE((SELECT SUM(sp.amount_cents) FROM sale_payments sp WHERE sp.sale_id=s.id AND sp.payment_method=\'CASH\'),0) cash_paid,
           COALESCE((SELECT SUM(sp.amount_cents) FROM sale_payments sp WHERE sp.sale_id=s.id AND sp.payment_method=\'CARD\'),0) card_paid,
           COALESCE((SELECT SUM(rp.amount_cents) FROM return_payments rp JOIN returns rr ON rr.id=rp.return_id WHERE rr.sale_id=s.id AND rp.payment_method=\'CASH\'),0) cash_refund,
@@ -98,7 +98,7 @@ class JournalFrame(ttk.Frame):
             margin=int(r["total_cents"]-r["cost"]);total+=r["total_cents"];cost+=r["cost"]
             pay=r["payment_method"]
             if pay=="MIXED":pay="MIXED (Cash {} + Card {})".format(fmt(r["cash_paid"]-r["cash_refund"],""),fmt(r["card_paid"]-r["card_refund"],""))
-            self.t.insert("", "end",values=(r["id"],r["sale_no"],r["created_at"],r["display_name"],r["seller_name"],pay,fmt(r["total_cents"],""),fmt(r["cost"],""),fmt(margin,"")))
+            self.t.insert("", "end",values=(r["id"],r["sale_no"],r["workstation_code"],r["created_at"],r["display_name"],r["seller_name"],pay,fmt(r["total_cents"],""),fmt(r["cost"],""),fmt(margin,"")))
         self.summary.config(text=f"{len(rows)} ticket(s) · Ventes nettes {fmt(total)} · Coût {fmt(cost)} · Marge brute {fmt(total-cost)}")
     def detail_report(self,mode):
         try:

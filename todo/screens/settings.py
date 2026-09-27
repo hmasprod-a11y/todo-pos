@@ -113,7 +113,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(self,text=self.tr('Paramètres','الإعدادات'),style='Title.TLabel').pack(anchor='w')
         ttk.Label(self,text=self.tr('Configuration du magasin, impression, données et utilisateurs','إعدادات المتجر والطباعة والبيانات والمستخدمين'),foreground='#64748B',font=('Segoe UI',9)).pack(anchor='w',pady=(0,12))
         f=ttk.LabelFrame(self,text=self.tr('Magasin et vente','المتجر والبيع'),padding=10);f.pack(fill="x")
-        self.shop=tk.StringVar(value=get_setting("shop_name","ToDo"));self.cur=tk.StringVar(value=get_setting("currency","DH"));self.neg=tk.BooleanVar(value=get_setting("allow_negative_stock","1")=="1")
+        self.shop=tk.StringVar(value=get_setting("shop_name","ToDo"));self.cur=tk.StringVar(value=get_setting("currency","DH"));self.workstation=tk.StringVar(value=get_setting("workstation_code","01"));self.neg=tk.BooleanVar(value=get_setting("allow_negative_stock","1")=="1")
         self.footer=tk.StringVar(value=get_setting("receipt_footer","Merci"))
         self.block_insufficient=tk.BooleanVar(value=get_setting('block_insufficient_stock','0')=='1')
         self.require_client=tk.BooleanVar(value=get_setting('require_client_on_sale','0')=='1')
@@ -129,6 +129,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(f,text=self.tr('Nom magasin','اسم المتجر')).grid(row=0,column=0,sticky="w");ttk.Entry(f,textvariable=self.shop,width=30).grid(row=0,column=1,padx=8)
         ttk.Label(f,text=self.tr('Langue','اللغة')).grid(row=0,column=2,sticky="w",padx=(18,4));ttk.Combobox(f,textvariable=self.language,values=("fr","ar"),state="readonly",width=8).grid(row=0,column=3,sticky="w")
         ttk.Label(f,text=self.tr('Devise','العملة')).grid(row=1,column=0,sticky="w",pady=5);ttk.Entry(f,textvariable=self.cur,width=10).grid(row=1,column=1,sticky="w",padx=8)
+        ttk.Label(f,text=self.tr('Poste de caisse','رقم محطة الصندوق')).grid(row=1,column=2,sticky='w',padx=(18,4));ttk.Entry(f,textvariable=self.workstation,width=12).grid(row=1,column=3,sticky='w')
         ttk.Checkbutton(f,text=self.tr('Autoriser stock négatif','السماح بالمخزون السالب'),variable=self.neg,command=self.sync_stock_options).grid(row=2,column=0,columnspan=2,sticky="w")
         ttk.Checkbutton(f,text=self.tr('Bloquer vente si stock insuffisant','منع البيع عند نقص المخزون'),variable=self.block_insufficient,command=self.sync_stock_options).grid(row=3,column=0,columnspan=2,sticky="w")
         ttk.Checkbutton(f,text=self.tr('Afficher le choix du client pendant la vente','إظهار اختيار الزبون أثناء البيع'),variable=self.require_client).grid(row=4,column=0,columnspan=2,sticky="w")
@@ -398,7 +399,10 @@ class SettingsFrame(ttk.Frame):
             if limit<1 or limit>1000:raise ValueError()
         except ValueError:
             messagebox.showerror("ToDo",self.tr("Limite de recherche entre 1 et 1000.","حد البحث بين 1 و1000."),parent=self);return
-        set_setting("shop_name",self.shop.get().strip() or "ToDo");set_setting("currency",self.cur.get().strip() or "DH");set_setting("allow_negative_stock","1" if self.neg.get() else "0")
+        workstation=self.workstation.get().strip().upper()
+        if not workstation or len(workstation)>16 or not all(ch.isalnum() or ch in '-_' for ch in workstation):
+            messagebox.showerror('ToDo',self.tr('Identifiant poste invalide (lettres/chiffres, - ou _).','رقم محطة الصندوق غير صالح.'),parent=self);return
+        set_setting("shop_name",self.shop.get().strip() or "ToDo");set_setting("currency",self.cur.get().strip() or "DH");set_setting('workstation_code',workstation);set_setting("allow_negative_stock","1" if self.neg.get() else "0")
         print_mode=self.print_mode.get() or "ask"
         if print_mode not in ('ask','always','never'):print_mode='ask'
         set_setting("receipt_footer",self.footer.get());set_setting("search_limit",limit);set_setting("printer_name",self.printer.get().strip());set_setting('printer_receipt_name',self.printer.get().strip());set_setting('printer_report_name',self.report_printer.get().strip());set_setting('printer_addition_name',self.addition_printer.get().strip())

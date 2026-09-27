@@ -23,7 +23,7 @@ def next_client_ticket_number(conn):
     return number
 
 def validate_session(conn,session_id,user_id):
-    session=conn.execute("SELECT id,user_id FROM cash_sessions WHERE id=? AND status='OPEN'",(session_id,)).fetchone()
+    session=conn.execute("SELECT id,user_id,workstation_code FROM cash_sessions WHERE id=? AND status='OPEN'",(session_id,)).fetchone()
     if not session:
         raise ValueError('Ouvrez la caisse avant cette opération.')
     if int(session['user_id'])!=int(user_id):
@@ -32,6 +32,7 @@ def validate_session(conn,session_id,user_id):
         raise ValueError('Utilisateur invalide')
     if current_user.get() is not None and current_user.get()!=user_id:
         raise PermissionError('Utilisateur incompatible')
+    return session
 
 def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cents=0,held_id=None,client_id=None,payments=None,seller_id=None,loyalty_points=0,customer_order_id=None,quotation_id=None):
     if not cart:
@@ -46,7 +47,7 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
             method_row=get_payment_method(payment_method,conn)
             if not method_row or not method_row['active']:
                 raise ValueError('Mode de paiement invalide')
-        validate_session(conn,session_id,user_id)
+        session=validate_session(conn,session_id,user_id)
         if held_id is not None and not conn.execute('SELECT id FROM held_sales WHERE id=? AND cashier_user_id=?',(held_id,user_id)).fetchone():
             raise ValueError('Ce ticket en attente a déjà été encaissé, supprimé ou appartient à un autre utilisateur.')
         if client_id is not None and not conn.execute('SELECT id FROM clients WHERE id=? AND active=1',(client_id,)).fetchone():
@@ -125,8 +126,9 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
         change=max(0,paid-total)
         no=sale_number()
         client_ticket_no=next_client_ticket_number(conn)
-        sid=conn.execute('INSERT INTO sales(sale_no,session_id,cashier_user_id,subtotal_cents,discount_cents,total_cents,payment_method,paid_cents,change_cents,client_id,seller_id,client_ticket_no) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
-                         (no,session_id,user_id,subtotal,discount+loyalty_value,total,payment_method,paid,change,client_id,seller_id,client_ticket_no)).lastrowid
+        workstation=(session['workstation_code'] or '01').strip().upper()
+        sid=conn.execute('INSERT INTO sales(sale_no,session_id,cashier_user_id,subtotal_cents,discount_cents,total_cents,payment_method,paid_cents,change_cents,client_id,seller_id,client_ticket_no,workstation_code) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                         (no,session_id,user_id,subtotal,discount+loyalty_value,total,payment_method,paid,change,client_id,seller_id,client_ticket_no,workstation)).lastrowid
         if split is None:
             settled=paid-change if payment_method=='CASH' else paid
             conn.execute('INSERT INTO sale_payments(sale_id,payment_method,amount_cents) VALUES(?,?,?)',(sid,payment_method,settled))
@@ -164,7 +166,7 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
         if held_id is not None:
             conn.execute('DELETE FROM held_sales WHERE id=?',(held_id,))
         audit(conn,'SALE',sid,no,user_id)
-        return dict(id=sid,sale_no=no,client_ticket_no=client_ticket_no,subtotal_cents=subtotal,discount_cents=discount+loyalty_value,total_cents=total,paid_cents=paid,change_cents=change,loyalty_points_used=loyalty_points,loyalty_value_cents=loyalty_value)
+        return dict(id=sid,sale_no=no,client_ticket_no=client_ticket_no,workstation_code=workstation,subtotal_cents=subtotal,discount_cents=discount+loyalty_value,total_cents=total,paid_cents=paid,change_cents=change,loyalty_points_used=loyalty_points,loyalty_value_cents=loyalty_value)
 
 def hold_sale(user_id,cart,label='',discount_cents=0,held_id=None,client_id=None,seller_id=None,price_grid_id=None,payment_method='CASH'):
     if not cart:raise ValueError('Ticket vide')

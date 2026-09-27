@@ -1,4 +1,4 @@
-from database import connect
+from database import connect, get_setting
 from services.security import audit, current_user
 
 def get_open_session():
@@ -18,11 +18,14 @@ def open_session(user_id, opening_cash_cents):
         if int(opening_cash_cents)<0: raise ValueError("Montant invalide")
         if conn.execute("SELECT id FROM cash_sessions WHERE status='OPEN'").fetchone():
             raise ValueError("كاينة كيس مفتوحة دابا.")
+        workstation=(get_setting('workstation_code','01',conn) or '01').strip().upper()
+        if not workstation or len(workstation)>16 or not all(ch.isalnum() or ch in '-_' for ch in workstation):
+            raise ValueError("Identifiant poste invalide.")
         cur = conn.execute(
-            "INSERT INTO cash_sessions(user_id,opening_cash_cents,expected_cash_cents) VALUES(?,?,?)",
-            (user_id, int(opening_cash_cents), int(opening_cash_cents))
+            "INSERT INTO cash_sessions(user_id,opening_cash_cents,expected_cash_cents,workstation_code) VALUES(?,?,?,?)",
+            (user_id, int(opening_cash_cents), int(opening_cash_cents),workstation)
         )
-        audit(conn,'CASH_OPEN',cur.lastrowid,user_id=user_id)
+        audit(conn,'CASH_OPEN',cur.lastrowid,f'Poste={workstation}',user_id=user_id)
         return cur.lastrowid
 
 def session_totals(conn, session_id):
