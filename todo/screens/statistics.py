@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 from services.reports import (
     today_summary, period_summary, sales_evolution, top_products,
-    top_cashiers, top_clients, top_month, category_breakdown, payment_breakdown, product_evolution,
+    top_cashiers, top_clients, top_month, category_breakdown, payment_breakdown, product_evolution, finance_overview,
 )
 from services.money import fmt
 from database import connect, get_setting
