@@ -1071,5 +1071,15 @@ class SaleFrame(ttk.Frame):
         text=tk.Text(w,font=('Consolas',11),padx=16,pady=16)
         text.pack(fill='both',expand=True);text.insert('1.0',build_receipt(result['id']));text.config(state='disabled')
         ttk.Button(buttons,text=self.tr('Imprimer','طباعة'),command=lambda:print_receipt_windows(result['id'])).pack(side='left',padx=12,pady=12)
+        def send_mail():
+            address=simpledialog.askstring(self.tr('E-mail','البريد الإلكتروني'),self.tr('Adresse destinataire:','بريد المستلم:'),parent=w)
+            if not address:return
+            try:
+                from services.emailer import send_email
+                send_email(address,self.tr(f"Ticket {result['sale_no']}",f"تذكرة {result['sale_no']}"),build_receipt(result['id']))
+                messagebox.showinfo('ToDo',self.tr('Ticket envoyé.','تم إرسال التذكرة.'),parent=w)
+            except Exception as error:messagebox.showerror(self.tr('E-mail','البريد الإلكتروني'),str(error),parent=w)
+        if get_setting('email_enabled','0')=='1':
+            ttk.Button(buttons,text=self.tr('E-mail','بريد'),command=send_mail).pack(side='left',padx=8,pady=12)
         ttk.Button(buttons,text=self.tr('Fermer','إغلاق'),command=w.destroy).pack(side='right',padx=12,pady=12)
         w.bind('<Escape>',lambda e:w.destroy())

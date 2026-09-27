@@ -24,6 +24,7 @@ class JournalFrame(ttk.Frame):
             (self.tr('Export détaillé PDF','تصدير مفصل PDF'),self.export_pdf,'Soft.TButton'),
             (self.tr('Export détaillé Excel','تصدير مفصل Excel'),self.export_excel,'Soft.TButton'),
             (self.tr('Export détaillé CSV','تصدير مفصل CSV'),self.export,'Soft.TButton'),
+            (self.tr('Envoyer e-mail','إرسال بالبريد'),self.email_report,'Soft.TButton'),
             (self.tr('Rapport global','التقرير العام'),self.global_report,'Soft.TButton'),
             (self.tr('Rapport articles','تقرير المنتجات'),self.article_report,'Soft.TButton'),
             (self.tr('Rapport familles','تقرير الفئات'),self.family_report,'Soft.TButton'),
@@ -230,6 +231,27 @@ class JournalFrame(ttk.Frame):
                 print_file_windows(p,'report')
             else:messagebox.showinfo("ToDo",self.tr("PDF prêt pour impression.","ملف PDF جاهز للطباعة."),parent=self)
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
+
+
+    def email_report(self):
+        if get_setting('email_enabled','0')!='1':
+            messagebox.showinfo('ToDo',self.tr("Activez l'e-mail dans Paramètres.","فعّل البريد الإلكتروني من الإعدادات."),parent=self);return
+        address=simpledialog.askstring(self.tr('E-mail','البريد الإلكتروني'),self.tr('Adresse destinataire:','بريد المستلم:'),parent=self)
+        if not address:return
+        rows=self.rows()
+        if not rows:
+            messagebox.showinfo('ToDo',self.tr('Aucune donnée à envoyer.','لا توجد بيانات للإرسال.'),parent=self);return
+        try:
+            import csv,tempfile
+            from pathlib import Path
+            path=Path(tempfile.gettempdir())/'todo_journal_email.csv'
+            with path.open('w',newline='',encoding='utf-8-sig') as fh:
+                wr=csv.writer(fh);wr.writerow(['Ticket','Date','Caissier','Vendeur','Paiement','Total'])
+                for r in rows:wr.writerow([r['sale_no'],r['created_at'],r['display_name'],r['seller_name'],self._payment_label(r['payment_method']),r['total_cents']/100])
+            from services.emailer import send_email
+            send_email(address,self.tr('Rapport Journal ToDo','تقرير سجل ToDo'),self.tr(f"Période: {self.date_from.get()} - {self.date_to.get()}",f"الفترة: {self.date_from.get()} - {self.date_to.get()}"),[path])
+            messagebox.showinfo('ToDo',self.tr('Rapport envoyé.','تم إرسال التقرير.'),parent=self)
+        except Exception as error:messagebox.showerror(self.tr('E-mail','البريد الإلكتروني'),str(error),parent=self)
 
     def movement_report(self):
         try:

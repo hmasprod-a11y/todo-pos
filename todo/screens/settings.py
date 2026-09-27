@@ -232,6 +232,18 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(media_row,text=self.tr('Durée de chaque image (secondes)','مدة كل صورة (ثوانٍ)')).pack(side='left')
         ttk.Spinbox(media_row,from_=2,to=300,textvariable=self.customer_seconds,width=6).pack(side='left',padx=8)
         ttk.Label(media_row,text=self.tr('Dossier : customer_media · images + vidéos · format conseillé 16:9','المجلد: customer_media · صور + فيديوهات · القياس المقترح 16:9'),foreground="#475569").pack(side='left',padx=12)
+        mail=ttk.LabelFrame(self,text=self.tr('E-mail / Gmail','البريد الإلكتروني / Gmail'),padding=10);mail.pack(fill='x',pady=10)
+        self.email_enabled=tk.BooleanVar(value=get_setting('email_enabled','0')=='1')
+        self.smtp_host=tk.StringVar(value=get_setting('smtp_host','smtp.gmail.com'));self.smtp_port=tk.StringVar(value=get_setting('smtp_port','587'))
+        self.smtp_user=tk.StringVar(value=get_setting('smtp_user',''));self.smtp_password=tk.StringVar(value=get_setting('smtp_app_password',''))
+        self.smtp_from=tk.StringVar(value=get_setting('smtp_from_name','ToDo'))
+        ttk.Checkbutton(mail,text=self.tr('Activer envoi ticket / rapport par e-mail','تفعيل إرسال التذاكر والتقارير بالبريد'),variable=self.email_enabled).grid(row=0,column=0,columnspan=2,sticky='w')
+        ttk.Label(mail,text='SMTP').grid(row=1,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_host,width=28).grid(row=1,column=1,sticky='w',padx=8)
+        ttk.Label(mail,text='Port').grid(row=1,column=2,sticky='e');ttk.Entry(mail,textvariable=self.smtp_port,width=7).grid(row=1,column=3,sticky='w',padx=8)
+        ttk.Label(mail,text=self.tr('Compte Gmail / e-mail','حساب Gmail / البريد')).grid(row=2,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_user,width=32).grid(row=2,column=1,sticky='w',padx=8)
+        ttk.Label(mail,text=self.tr('App Password','كلمة مرور التطبيق')).grid(row=3,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_password,width=32,show='•').grid(row=3,column=1,sticky='w',padx=8)
+        ttk.Label(mail,text=self.tr('Nom expéditeur','اسم المرسل')).grid(row=4,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_from,width=24).grid(row=4,column=1,sticky='w',padx=8)
+        ttk.Button(mail,text=self.tr('Tester e-mail','اختبار البريد'),style='Soft.TButton',command=self.test_email).grid(row=4,column=2,padx=6)
         b=ttk.LabelFrame(self,text=self.tr('Données','البيانات'),padding=10);b.pack(fill="x",pady=10)
         ttk.Button(b,text=self.tr('Backup maintenant','نسخ احتياطي الآن'),style='Success.TButton',command=self.backup).pack(side='left',padx=4)
         self.auto_backup=tk.StringVar(value=get_setting("auto_backup_minutes","15"))
@@ -357,6 +369,12 @@ class SettingsFrame(ttk.Frame):
         except ValueError:
             messagebox.showerror('ToDo',self.tr('Paramètres de balance invalides.','إعدادات الميزان غير صالحة.'),parent=self);return
         set_setting('scale_enabled','1' if self.scale_enabled.get() else '0');set_setting('scale_port',self.scale_port.get().strip());set_setting('scale_baudrate',str(scale_baud));set_setting('scale_timeout_ms',str(scale_timeout))
+        try:smtp_port=int(self.smtp_port.get())
+        except ValueError:
+            messagebox.showerror('ToDo',self.tr('Port SMTP invalide.','منفذ SMTP غير صالح.'),parent=self);return
+        if smtp_port<1 or smtp_port>65535:
+            messagebox.showerror('ToDo',self.tr('Port SMTP invalide.','منفذ SMTP غير صالح.'),parent=self);return
+        set_setting('email_enabled','1' if self.email_enabled.get() else '0');set_setting('smtp_host',self.smtp_host.get().strip());set_setting('smtp_port',str(smtp_port));set_setting('smtp_user',self.smtp_user.get().strip());set_setting('smtp_app_password',self.smtp_password.get());set_setting('smtp_from_name',self.smtp_from.get().strip() or 'ToDo')
         set_setting('customer_display_enabled','1' if self.customer_enabled.get() else '0')
         set_setting("customer_slide_seconds",str(seconds))
         mode=self.customer_mode_labels.get(self.customer_mode_box.get(),'promotions')
@@ -368,6 +386,16 @@ class SettingsFrame(ttk.Frame):
         set_setting("auto_backup_minutes",backup_minutes)
         self.app.schedule_auto_backup()
         messagebox.showinfo("ToDo",self.tr("Paramètres enregistrés.","تم حفظ الإعدادات."),parent=self)
+
+
+    def test_email(self):
+        try:
+            from services.emailer import test_email_connection
+            cfg={'enabled':True,'host':self.smtp_host.get().strip(),'port':int(self.smtp_port.get()),'user':self.smtp_user.get().strip(),'password':self.smtp_password.get(),'from_name':self.smtp_from.get().strip() or 'ToDo'}
+            test_email_connection(settings=cfg)
+            messagebox.showinfo('ToDo',self.tr('E-mail test envoyé.','تم إرسال بريد الاختبار.'),parent=self)
+        except Exception as error:
+            messagebox.showerror(self.tr('E-mail','البريد الإلكتروني'),str(error),parent=self)
 
     def refresh_scale_ports(self):
         try:

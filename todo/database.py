@@ -483,7 +483,13 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('scale_enabled','0'),
 ('scale_port',''),
 ('scale_baudrate','9600'),
-('scale_timeout_ms','800');
+('scale_timeout_ms','800'),
+('email_enabled','0'),
+('smtp_host','smtp.gmail.com'),
+('smtp_port','587'),
+('smtp_user',''),
+('smtp_app_password',''),
+('smtp_from_name','ToDo');
 """
 
 class Connection(sqlite3.Connection):
