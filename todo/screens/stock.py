@@ -87,7 +87,14 @@ class StockFrame(ttk.Frame):
             total+=r['estimated_cost_cents']
             tree.insert('','end',values=(r['name'],r['preferred_supplier_name'] or self.tr('Non assigné','غير محدد'),r['sku'] or '',r['supplier_code'] or '',f"{r['stock_qty']:g}",
                 f"{r['alert_qty']:g}",f"{r['target_qty']:g}",f"{r['suggested_qty']:g}",f"{r['estimated_cost_cents']/100:.2f}"))
+        supplier_ids=sorted({int(r['preferred_supplier_id']) for r in rows if r.get('preferred_supplier_id')})
+        suppliers={int(r['preferred_supplier_id']):r['preferred_supplier_name'] for r in rows if r.get('preferred_supplier_id')}
         footer=ttk.Frame(w);footer.pack(fill='x',padx=12,pady=(0,12))
+        supplier_var=tk.StringVar()
+        supplier_values=[f"{suppliers[sid]} · #{sid}" for sid in supplier_ids]
+        if supplier_values:supplier_var.set(supplier_values[0])
+        ttk.Label(footer,text=self.tr('Fournisseur','المورد')).pack(side='left',padx=(0,4))
+        ttk.Combobox(footer,textvariable=supplier_var,values=supplier_values,state='readonly',width=24).pack(side='left',padx=(0,8))
         ttk.Label(footer,text=self.tr(f"Coût total estimé: {total/100:.2f} DH",f"إجمالي التكلفة المقدرة: {total/100:.2f} درهم"),
                   font=('Segoe UI',11,'bold')).pack(side='right')
         def export_csv():
@@ -100,7 +107,21 @@ class StockFrame(ttk.Frame):
                 for r in rows:
                     wr.writerow([r['name'],r['preferred_supplier_name'],r['sku'],r['supplier_code'],r['stock_qty'],r['alert_qty'],r['target_qty'],r['suggested_qty'],r['estimated_cost_cents']])
             messagebox.showinfo('ToDo',self.tr('Liste exportée.','تم تصدير اللائحة.'),parent=w)
-        ttk.Button(footer,text=self.tr('Exporter CSV','تصدير CSV'),style='Primary.TButton',command=export_csv).pack(side='left')
+        ttk.Button(footer,text=self.tr('Exporter CSV','تصدير CSV'),style='Soft.TButton',command=export_csv).pack(side='left')
+        def prepare_reception():
+            if self.app is None:
+                messagebox.showerror('ToDo',self.tr("Navigation indisponible.","التنقل غير متاح."),parent=w);return
+            value=supplier_var.get().strip()
+            if not value:
+                messagebox.showinfo('ToDo',self.tr("Aucun fournisseur préféré assigné.","لا يوجد مورد مفضل محدد."),parent=w);return
+            supplier_id=int(value.rsplit('#',1)[1])
+            selected=[r for r in rows if r.get('preferred_supplier_id')==supplier_id and r['suggested_qty']>0]
+            if not selected:return
+            self.app.pending_purchase_draft={'supplier_id':supplier_id,'lines':[
+                {'product_id':r['id'],'name':r['name'],'qty':r['suggested_qty'],'unit_cost_cents':r['purchase_price_cents']}
+                for r in selected]}
+            w.destroy();self.app.show('purchases')
+        ttk.Button(footer,text=self.tr('Préparer réception','تحضير الاستلام'),style='Primary.TButton',command=prepare_reception).pack(side='left',padx=6)
 
     def global_ledger(self):
         w=tk.Toplevel(self);w.title(self.tr("Journal global du stock","السجل العام للمخزون"));w.geometry('1180x650');w.transient(self)

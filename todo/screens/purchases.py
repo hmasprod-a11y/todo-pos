@@ -7,8 +7,8 @@ from services.suppliers import list_suppliers, save_supplier
 from screens.suppliers import SupplierEditor
 
 class PurchasesFrame(ttk.Frame):
-    def __init__(self,master):
-        super().__init__(master,padding=16);self.lines=[]
+    def __init__(self,master,app=None):
+        super().__init__(master,padding=16);self.lines=[];self.app=app
         self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
         top=ttk.Frame(self);top.pack(fill="x")
         ttk.Label(top,text=self.tr('Réceptions','المشتريات'),style='Title.TLabel').pack(side='left')
@@ -42,6 +42,20 @@ class PurchasesFrame(ttk.Frame):
         self.payment_method=tk.StringVar(value='CASH')
         ttk.Combobox(line_actions,textvariable=self.payment_method,values=('CASH','CARD'),state='readonly',width=7).pack(side='right',padx=5)
         ttk.Label(line_actions,text=self.tr("Payé maintenant (DH)","المؤدى الآن (درهم)")).pack(side="right")
+        self._load_pending_reorder()
+    def _load_pending_reorder(self):
+        if self.app is None:return
+        draft=getattr(self.app,'pending_purchase_draft',None)
+        if not draft:return
+        self.app.pending_purchase_draft=None
+        supplier_id=draft.get('supplier_id')
+        if supplier_id:
+            try:self.refresh_suppliers(supplier_id)
+            except (ValueError,StopIteration):pass
+        self.lines=[dict(product_id=int(x['product_id']),name=x['name'],qty=float(x['qty']),
+                         unit_cost_cents=int(x['unit_cost_cents'])) for x in draft.get('lines',[]) if float(x['qty'])>0]
+        self.refresh_lines()
+
     def refresh_suppliers(self, selected=None):
         self.suppliers=list_suppliers()
         self.supplier_choice['values']=[f"{r['name']} · #{r['id']}" for r in self.suppliers]

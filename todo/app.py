@@ -299,7 +299,7 @@ class ToDoApp(tk.Tk):
             "products": lambda: ProductsFrame(self.content),
             "cash": lambda: CashFrame(self.content, self),
             "stock": lambda: StockFrame(self.content, self),
-            "purchases": lambda: PurchasesFrame(self.content),
+            "purchases": lambda: PurchasesFrame(self.content, self),
             "suppliers": lambda: SuppliersFrame(self.content),
             "clients": lambda: ClientsFrame(self.content,self),
             "returns": lambda: ReturnsFrame(self.content, self),
