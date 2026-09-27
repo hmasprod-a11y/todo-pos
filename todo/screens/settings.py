@@ -302,6 +302,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Button(b,text=self.tr('Restaurer backup','استرجاع نسخة احتياطية'),style='Soft.TButton',command=self.restore).pack(side='left',padx=4)
         ttk.Button(b,text=self.tr('Backup complet portable','نسخة كاملة للنقل'),style='Soft.TButton',command=self.full_backup).pack(side='left',padx=4)
         ttk.Button(b,text=self.tr('Restaurer backup complet','استرجاع النسخة الكاملة'),style='Soft.TButton',command=self.full_restore).pack(side='left',padx=4)
+        ttk.Button(b,text=self.tr('Base de Données','قاعدة البيانات'),style='Primary.TButton',command=self.database_tools).pack(side='left',padx=8)
         u=ttk.LabelFrame(self,text=self.tr('Utilisateurs','المستخدمون'),padding=10);u.pack(fill="x")
         ttk.Button(u,text=self.tr('Nouvel utilisateur','مستخدم جديد'),style='Primary.TButton',command=self.new_user).pack(side='left');ttk.Button(u,text=self.tr('Gérer utilisateurs','إدارة المستخدمين'),style='Soft.TButton',command=self.manage_users).pack(side='left',padx=8)
         ttk.Button(u,text=self.tr('Changer mon PIN','تغيير PIN'),command=self.change_pin).pack(side="left",padx=8)
@@ -579,6 +580,61 @@ class SettingsFrame(ttk.Frame):
             messagebox.showinfo("ToDo",self.tr(f"Restauration complète terminée.\nCopie sécurité: {safety}\nToDo va se fermer.","تم الاسترجاع الكامل.\nنسخة الأمان: {safety}\nسيتم إغلاق ToDo."),parent=self)
             self.app.destroy()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
+
+    def database_tools(self):
+        from services.database_admin import table_inventory,export_table_csv,import_reference_csv,integrity_status
+        w=tk.Toplevel(self);w.title(self.tr('Base de Données','قاعدة البيانات'));w.geometry('850x590');w.transient(self.winfo_toplevel());w.grab_set()
+        warning=self.tr("ATTENTION ! Les tables de ventes, caisse et stock sont protégées contre l'import direct. Utilisez Backup/Restore pour une migration complète.",
+                        "انتباه! جداول المبيعات والصندوق والمخزون محمية من الاستيراد المباشر. استعمل النسخ الاحتياطي/الاسترجاع للنقل الكامل.")
+        tk.Label(w,text=warning,bg='#FEF2F2',fg='#B91C1C',font=('Segoe UI',10,'bold'),wraplength=790,justify='left',padx=12,pady=10).pack(fill='x',padx=12,pady=12)
+        tree=ttk.Treeview(w,columns=('table','rows','import'),show='headings',height=18)
+        tree.heading('table',text=self.tr('Table','الجدول'));tree.heading('rows',text=self.tr('Lignes','السجلات'));tree.heading('import',text=self.tr('Import CSV','استيراد CSV'))
+        tree.column('table',width=330);tree.column('rows',width=120,anchor='center');tree.column('import',width=180,anchor='center')
+        tree.pack(fill='both',expand=True,padx=12)
+        status=ttk.Label(w,text='');status.pack(fill='x',padx=12,pady=(5,0))
+        def refresh():
+            tree.delete(*tree.get_children())
+            for row in table_inventory():
+                tree.insert('','end',iid=row['name'],values=(row['name'],row['rows'],self.tr('Autorisé','مسموح') if row['importable'] else self.tr('Export seulement','تصدير فقط')))
+        def selected():
+            s=tree.selection()
+            if not s:messagebox.showwarning('ToDo',self.tr('Sélectionnez une table.','اختر جدولا.'),parent=w);return None
+            return s[0]
+        def export_csv():
+            table=selected()
+            if not table:return
+            path=filedialog.asksaveasfilename(parent=w,defaultextension='.csv',filetypes=[('CSV','*.csv')],initialfile=table+'.csv')
+            if not path:return
+            try:
+                export_table_csv(table,path);status.config(text=self.tr(f'Export terminé : {path}',f'تم التصدير: {path}'))
+            except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
+        def import_csv():
+            table=selected()
+            if not table:return
+            allowed={r['name'] for r in table_inventory() if r['importable']}
+            if table not in allowed:
+                messagebox.showerror('ToDo',self.tr('Import direct interdit pour cette table.','الاستيراد المباشر ممنوع لهذا الجدول.'),parent=w);return
+            path=filedialog.askopenfilename(parent=w,filetypes=[('CSV','*.csv')])
+            if not path:return
+            if not messagebox.askyesno('ToDo',self.tr('Importer ce CSV ? Un backup de sécurité sera créé automatiquement.','استيراد CSV؟ سيتم إنشاء نسخة أمان تلقائيا.'),parent=w):return
+            try:
+                result=import_reference_csv(table,path);refresh()
+                messagebox.showinfo('ToDo',self.tr(f"{result['rows']} ligne(s) importée(s).\nBackup: {result['safety']}",f"تم استيراد {result['rows']} سجل.\nنسخة الأمان: {result['safety']}"),parent=w)
+            except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
+        def check():
+            try:
+                result=integrity_status()
+                text_value=self.tr('Base saine.','قاعدة البيانات سليمة.') if result['ok'] else self.tr(f"Problème: {result['integrity']} · FK {result['foreign_key_errors']}",f"مشكلة: {result['integrity']} · العلاقات {result['foreign_key_errors']}")
+                messagebox.showinfo(self.tr('Intégrité','سلامة البيانات'),text_value,parent=w)
+            except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
+        bar=ttk.Frame(w);bar.pack(fill='x',padx=12,pady=12)
+        ttk.Button(bar,text=self.tr('Actualiser','تحديث'),command=refresh).pack(side='left')
+        ttk.Button(bar,text=self.tr('Exporter CSV','تصدير CSV'),style='Soft.TButton',command=export_csv).pack(side='left',padx=6)
+        ttk.Button(bar,text=self.tr('Importer CSV','استيراد CSV'),style='Primary.TButton',command=import_csv).pack(side='left',padx=6)
+        ttk.Button(bar,text=self.tr("Vérifier l'intégrité",'فحص سلامة البيانات'),command=check).pack(side='left',padx=6)
+        ttk.Button(bar,text=self.tr('Fermer','إغلاق'),command=w.destroy).pack(side='right')
+        refresh()
+
     def new_user(self):
         user=simpledialog.askstring(self.tr("Utilisateur","المستخدم"),self.tr("Username:","اسم المستخدم:"),parent=self)
         if not user:return

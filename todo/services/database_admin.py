@@ -1,0 +1,83 @@
+import csv
+from pathlib import Path
+from database import connect
+from services.security import require_admin,audit
+from services.backup import create_backup
+
+IMPORTABLE_TABLES={'categories','suppliers','clients','sellers','price_grids'}
+_HIDDEN_PREFIXES=('sqlite_','product_search','fts5_')
+
+def _quote(name):
+    if not str(name).replace('_','').isalnum():
+        raise ValueError('Nom de table invalide')
+    return '"'+str(name).replace('"','""')+'"'
+
+def table_inventory():
+    with connect() as conn:
+        names=[r['name'] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
+        result=[]
+        for name in names:
+            if name.startswith(_HIDDEN_PREFIXES) or name.startswith('product_search_'):
+                continue
+            count=conn.execute(f"SELECT COUNT(*) n FROM {_quote(name)}").fetchone()['n']
+            result.append(dict(name=name,rows=int(count),importable=name in IMPORTABLE_TABLES))
+        return result
+
+def export_table_csv(table,destination):
+    inventory={r['name'] for r in table_inventory()}
+    if table not in inventory:raise ValueError('Table inconnue')
+    path=Path(destination)
+    with connect() as conn:
+        columns=[r['name'] for r in conn.execute(f"PRAGMA table_info({_quote(table)})")]
+        rows=conn.execute(f"SELECT * FROM {_quote(table)}").fetchall()
+    path.parent.mkdir(parents=True,exist_ok=True)
+    with path.open('w',newline='',encoding='utf-8-sig') as fh:
+        writer=csv.writer(fh);writer.writerow(columns)
+        for row in rows:writer.writerow([row[c] for c in columns])
+    return path
+
+def import_reference_csv(table,source):
+    if table not in IMPORTABLE_TABLES:
+        raise ValueError('Import direct interdit pour cette table.')
+    path=Path(source)
+    if not path.is_file():raise ValueError('Fichier CSV introuvable.')
+    with path.open('r',newline='',encoding='utf-8-sig') as fh:
+        reader=csv.DictReader(fh)
+        if not reader.fieldnames:raise ValueError('CSV sans en-tête.')
+        rows=list(reader)
+        headers=[h.strip() for h in reader.fieldnames if h and h.strip()]
+    if not rows:raise ValueError('CSV vide.')
+    with connect() as conn:
+        info=conn.execute(f"PRAGMA table_info({_quote(table)})").fetchall()
+        schema={r['name']:r for r in info}
+    unknown=[h for h in headers if h not in schema]
+    if unknown:raise ValueError('Colonnes inconnues: '+', '.join(unknown))
+    # Never reuse exported primary keys. The destination owns its identifiers.
+    insert_columns=[h for h in headers if not (h=='id' and schema[h]['pk'])]
+    if not insert_columns:raise ValueError('Aucune colonne importable.')
+    required=[r['name'] for r in info if r['notnull'] and r['dflt_value'] is None and not r['pk']]
+    missing=[name for name in required if name not in insert_columns]
+    if missing:raise ValueError('Colonnes obligatoires manquantes: '+', '.join(missing))
+    safety=create_backup()
+    placeholders=','.join('?' for _ in insert_columns)
+    cols=','.join(_quote(c) for c in insert_columns)
+    sql=f"INSERT INTO {_quote(table)} ({cols}) VALUES ({placeholders})"
+    with connect() as conn:
+        conn.execute('BEGIN IMMEDIATE');require_admin(conn)
+        try:
+            for row in rows:
+                values=[row.get(c,'') for c in insert_columns]
+                conn.execute(sql,values)
+            problems=conn.execute('PRAGMA foreign_key_check').fetchall()
+            if problems:raise ValueError('Relations invalides après import.')
+            audit(conn,'DATABASE_TABLE_IMPORT',table,f'{len(rows)} rows; safety={safety}')
+            conn.commit()
+        except Exception:
+            conn.rollback();raise
+    return dict(rows=len(rows),safety=str(safety))
+
+def integrity_status():
+    with connect() as conn:
+        integrity=conn.execute('PRAGMA integrity_check').fetchone()[0]
+        fk=conn.execute('PRAGMA foreign_key_check').fetchall()
+    return dict(ok=(integrity=='ok' and not fk),integrity=integrity,foreign_key_errors=len(fk))
