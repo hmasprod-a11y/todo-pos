@@ -528,7 +528,9 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('receipt_show_sale_mode','1'),
 ('receipt_show_barcode','0'),
 ('receipt_next_client_ticket','1'),
-('workstation_code','01');
+('workstation_code','01'),
+('license_enforced','0'),
+('license_public_key_b64','');
 """
 
 class Connection(sqlite3.Connection):

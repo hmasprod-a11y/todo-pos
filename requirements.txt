@@ -7,3 +7,5 @@ screeninfo>=0.8
 opencv-python-headless>=4.10
 
 pyserial>=3.5
+
+cryptography>=45.0

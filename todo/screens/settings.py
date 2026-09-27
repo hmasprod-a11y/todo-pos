@@ -311,6 +311,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Button(u,text=self.tr('Changer mon PIN','تغيير PIN'),command=self.change_pin).pack(side="left",padx=8)
         ttk.Button(u,text=self.tr('Journal des actions','سجل العمليات'),command=self.audit_log).pack(side="left",padx=8)
         ttk.Button(u,text=self.tr('À propos - Aide','حول - مساعدة'),style='Soft.TButton',command=self.about_help).pack(side='left',padx=8)
+        ttk.Button(u,text=self.tr('Licence','الترخيص'),style='Soft.TButton',command=self.license_tools).pack(side='left',padx=8)
         ttk.Label(u,text=self.tr('Admin initial: admin / PIN 1234 — changez-le.','المدير الأولي: admin / PIN 1234 — غيّره.')).pack(side="left",padx=15)
     def toggle_windows_startup(self):
         enabled=bool(self.start_with_windows.get())
@@ -588,6 +589,49 @@ class SettingsFrame(ttk.Frame):
             self.app.destroy()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
 
+
+
+    def license_tools(self):
+        from services.license import license_status,machine_fingerprint,install_license
+        w=tk.Toplevel(self);w.title(self.tr('Licence','الترخيص'));w.geometry('720x470');w.transient(self.winfo_toplevel());w.grab_set()
+        status=license_status()
+        ttk.Label(w,text=self.tr('Licence ToDo','ترخيص ToDo'),style='Title.TLabel').pack(anchor='w',padx=18,pady=(16,8))
+        box=ttk.LabelFrame(w,text=self.tr('État','الحالة'),padding=12);box.pack(fill='x',padx=18,pady=8)
+        rows=[
+            (self.tr('Machine ID','معرف الجهاز'),status['machine_id']),
+            (self.tr('Protection active','الحماية مفعلة'),self.tr('Oui','نعم') if status['enforced'] else self.tr('Non','لا')),
+            (self.tr('Licence installée','الترخيص مثبت'),self.tr('Oui','نعم') if status['installed'] else self.tr('Non','لا')),
+            (self.tr('Valide','صالح'),self.tr('Oui','نعم') if status['valid'] else self.tr('Non','لا')),
+            (self.tr('Client','الزبون'),status.get('customer') or '—'),
+            (self.tr('Expiration','الانتهاء'),status.get('expires_at') or '—'),
+            (self.tr('Message','الرسالة'),status.get('error') or self.tr('OK','سليم')),
+        ]
+        for i,(label,value) in enumerate(rows):
+            ttk.Label(box,text=label+':',font=('Segoe UI',9,'bold')).grid(row=i,column=0,sticky='nw',pady=3)
+            ttk.Label(box,text=value,wraplength=480).grid(row=i,column=1,sticky='w',padx=8,pady=3)
+        keybox=ttk.LabelFrame(w,text=self.tr('Configuration administrateur','إعداد المدير'),padding=12);keybox.pack(fill='x',padx=18,pady=8)
+        keyvar=tk.StringVar(value=get_setting('license_public_key_b64',''))
+        enforce=tk.BooleanVar(value=get_setting('license_enforced','0')=='1')
+        ttk.Label(keybox,text=self.tr('Clé publique Ed25519 (Base64)','المفتاح العام Ed25519 (Base64)')).grid(row=0,column=0,sticky='w')
+        ttk.Entry(keybox,textvariable=keyvar,width=62).grid(row=1,column=0,columnspan=2,sticky='ew',pady=4)
+        ttk.Checkbutton(keybox,text=self.tr('Activer la protection licence au démarrage','تفعيل حماية الترخيص عند التشغيل'),variable=enforce).grid(row=2,column=0,columnspan=2,sticky='w',pady=4)
+        def save_cfg():
+            key=keyvar.get().strip()
+            if enforce.get() and not key:
+                messagebox.showerror('ToDo',self.tr('Clé publique obligatoire avant activation.','المفتاح العام مطلوب قبل التفعيل.'),parent=w);return
+            set_setting('license_public_key_b64',key);set_setting('license_enforced','1' if enforce.get() else '0')
+            messagebox.showinfo('ToDo',self.tr('Configuration licence enregistrée.','تم حفظ إعدادات الترخيص.'),parent=w);w.destroy()
+        def activate():
+            path=filedialog.askopenfilename(parent=w,filetypes=[('ToDo Licence','*.json'),(self.tr('Tous les fichiers','كل الملفات'),'*.*')])
+            if not path:return
+            try:
+                result=install_license(path)
+                messagebox.showinfo('ToDo',self.tr(f"Licence activée pour {result['customer']} jusqu'au {result['expires_at']}.",f"تم تفعيل الترخيص لـ {result['customer']} حتى {result['expires_at']}."),parent=w);w.destroy()
+            except Exception as error:messagebox.showerror('ToDo',str(error),parent=w)
+        bar=ttk.Frame(w);bar.pack(fill='x',padx=18,pady=12)
+        ttk.Button(bar,text=self.tr('Installer licence','تثبيت الترخيص'),style='Primary.TButton',command=activate).pack(side='left')
+        ttk.Button(bar,text=self.tr('Enregistrer configuration','حفظ الإعداد'),command=save_cfg).pack(side='left',padx=6)
+        ttk.Button(bar,text=self.tr('Fermer','إغلاق'),command=w.destroy).pack(side='right')
 
     def about_help(self):
         from services.support import diagnostics,diagnostic_text,documentation_paths,open_document

@@ -37,6 +37,14 @@ class ToDoApp(tk.Tk):
         super().__init__()
         init_db()
         ensure_defaults()
+        try:
+            from services.license import assert_license_if_enforced
+            assert_license_if_enforced()
+        except PermissionError as error:
+            self.withdraw()
+            messagebox.showerror('ToDo — Licence',str(error),parent=self)
+            self.destroy()
+            return
 
         self.user = None
         self.current = None
