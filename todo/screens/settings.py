@@ -110,11 +110,25 @@ class CategoryEditor(tk.Toplevel):
 
 class SettingsFrame(ttk.Frame):
     def __init__(self,master,app):
-        super().__init__(master,padding=16);self.app=app
+        super().__init__(master,padding=0);self.app=app
         self.lang_ui=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang_ui=='ar' else fr
-        ttk.Label(self,text=self.tr('Paramètres','الإعدادات'),style='Title.TLabel').pack(anchor='w')
-        ttk.Label(self,text=self.tr('Configuration du magasin, impression, données et utilisateurs','إعدادات المتجر والطباعة والبيانات والمستخدمين'),foreground='#64748B',font=('Segoe UI',9)).pack(anchor='w',pady=(0,12))
-        f=ttk.LabelFrame(self,text=self.tr('Magasin et vente','المتجر والبيع'),padding=10);f.pack(fill="x")
+
+        # Paramètres contient de nombreux blocs; le canvas garde toute la page
+        # accessible sur tablette / petite fenêtre sans modifier les widgets.
+        self.settings_canvas=tk.Canvas(body,highlightthickness=0,borderwidth=0)
+        self.settings_scroll=ttk.Scrollbar(body,orient='vertical',command=self.settings_canvas.yview)
+        self.settings_canvas.configure(yscrollcommand=self.settings_scroll.set)
+        self.settings_scroll.pack(side='right',fill='y')
+        self.settings_canvas.pack(side='left',fill='both',expand=True)
+        body=ttk.Frame(self.settings_canvas,padding=16)
+        self.settings_window=self.settings_canvas.create_window((0,0),window=body,anchor='nw')
+        body.bind('<Configure>',lambda e:self.settings_canvas.configure(scrollregion=self.settings_canvas.bbox('all')))
+        self.settings_canvas.bind('<Configure>',lambda e:self.settings_canvas.itemconfigure(self.settings_window,width=e.width))
+        self.settings_canvas.bind('<MouseWheel>',self._settings_mousewheel)
+        body.bind('<MouseWheel>',self._settings_mousewheel)
+        ttk.Label(body,text=self.tr('Paramètres','الإعدادات'),style='Title.TLabel').pack(anchor='w')
+        ttk.Label(body,text=self.tr('Configuration du magasin, impression, données et utilisateurs','إعدادات المتجر والطباعة والبيانات والمستخدمين'),foreground='#64748B',font=('Segoe UI',9)).pack(anchor='w',pady=(0,12))
+        f=ttk.LabelFrame(body,text=self.tr('Magasin et vente','المتجر والبيع'),padding=10);f.pack(fill="x")
         self.shop=tk.StringVar(value=get_setting("shop_name","ToDo"));self.cur=tk.StringVar(value=get_setting("currency","DH"));self.workstation=tk.StringVar(value=get_setting("workstation_code","01"));self.neg=tk.BooleanVar(value=get_setting("allow_negative_stock","1")=="1")
         self.footer=tk.StringVar(value=get_setting("receipt_footer","Merci"))
         self.block_insufficient=tk.BooleanVar(value=get_setting('block_insufficient_stock','0')=='1')
@@ -149,20 +163,20 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(f,text=self.tr('Message bas du ticket','رسالة أسفل التذكرة')).grid(row=14,column=0,sticky="w",pady=5);ttk.Entry(f,textvariable=self.footer,width=34).grid(row=14,column=1,padx=8)
         ttk.Label(f,text=self.tr('Limite résultats recherche','حد نتائج البحث')).grid(row=15,column=0,sticky="w");ttk.Entry(f,textvariable=self.search_limit,width=10).grid(row=15,column=1,sticky="w",padx=8)
         ttk.Button(f,text=self.tr('Enregistrer','حفظ'),style='Primary.TButton',command=self.save).grid(row=16,column=0,pady=8,sticky='ew')
-        pg=ttk.LabelFrame(self,text=self.tr('Grilles de prix','لوائح الأثمان'),padding=10);pg.pack(fill="x",pady=10)
+        pg=ttk.LabelFrame(body,text=self.tr('Grilles de prix','لوائح الأثمان'),padding=10);pg.pack(fill="x",pady=10)
         ttk.Label(pg,text=self.tr('Créez les grilles ici, puis définissez le prix de chaque article dans sa fiche.','أنشئ لوائح الأثمان هنا، ثم حدد ثمن كل منتوج في بطاقته.')).pack(anchor="w")
         self.price_grids_frame=ttk.Frame(pg);self.price_grids_frame.pack(fill="x",pady=6)
         self.new_grid_name=tk.StringVar();row=ttk.Frame(pg);row.pack(fill="x")
         ttk.Entry(row,textvariable=self.new_grid_name,width=28).pack(side="left")
         ttk.Button(row,text=self.tr('+ Ajouter grille','+ إضافة لائحة'),style='Soft.TButton',command=self.add_price_grid).pack(side='left',padx=6)
         self.refresh_price_grids()
-        sellers=ttk.LabelFrame(self,text=self.tr('Vendeurs','البائعون'),padding=10);sellers.pack(fill="x",pady=10)
+        sellers=ttk.LabelFrame(body,text=self.tr('Vendeurs','البائعون'),padding=10);sellers.pack(fill="x",pady=10)
         self.sellers_frame=ttk.Frame(sellers);self.sellers_frame.pack(fill="x",pady=(0,6))
         self.new_seller_name=tk.StringVar();sr=ttk.Frame(sellers);sr.pack(fill="x")
         ttk.Entry(sr,textvariable=self.new_seller_name,width=28).pack(side="left")
         ttk.Button(sr,text=self.tr('+ Ajouter vendeur','+ إضافة بائع'),style='Soft.TButton',command=self.add_seller).pack(side='left',padx=6)
         self.refresh_sellers()
-        pm=ttk.LabelFrame(self,text=self.tr('Modes de paiement','طرق الأداء'),padding=10);pm.pack(fill='x',pady=10)
+        pm=ttk.LabelFrame(body,text=self.tr('Modes de paiement','طرق الأداء'),padding=10);pm.pack(fill='x',pady=10)
         self.payment_methods_frame=ttk.Frame(pm);self.payment_methods_frame.pack(fill='x',pady=(0,6))
         row_pm=ttk.Frame(pm);row_pm.pack(fill='x')
         self.new_payment_code=tk.StringVar();self.new_payment_fr=tk.StringVar();self.new_payment_ar=tk.StringVar();self.new_payment_icon=tk.StringVar()
@@ -172,7 +186,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Entry(row_pm,textvariable=self.new_payment_icon,width=6).pack(side='left',padx=4)
         ttk.Button(row_pm,text=self.tr('+ Ajouter mode','+ إضافة طريقة'),style='Soft.TButton',command=self.add_payment_method).pack(side='left',padx=6)
         self.refresh_payment_methods()
-        p=ttk.LabelFrame(self,text=self.tr('Impression','الطباعة'),padding=10);p.pack(fill="x",pady=10)
+        p=ttk.LabelFrame(body,text=self.tr('Impression','الطباعة'),padding=10);p.pack(fill="x",pady=10)
         self.printer=tk.StringVar(value=get_setting('printer_receipt_name',get_setting("printer_name","")))
         self.report_printer=tk.StringVar(value=get_setting('printer_report_name',''))
         self.addition_printer=tk.StringVar(value=get_setting('printer_addition_name',''))
@@ -192,7 +206,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(p,text=self.tr('Modèle ticket','قالب التذكرة')).grid(row=7,column=0,sticky='w')
         ttk.Combobox(p,textvariable=self.receipt_template,values=['FR_3C','FR_4C','FR_2L','AR_3C','AR_4C'],state='readonly',width=12).grid(row=7,column=1,sticky='w',padx=8)
         ttk.Label(p,text=self.tr('Après validation','بعد تأكيد البيع')).grid(row=8,column=0,sticky="w",pady=5)
-        suite=ttk.LabelFrame(self,text=self.tr('Configuration Suite — Ticket','إعدادات إضافية — التذكرة'),padding=10);suite.pack(fill='x',pady=10)
+        suite=ttk.LabelFrame(body,text=self.tr('Configuration Suite — Ticket','إعدادات إضافية — التذكرة'),padding=10);suite.pack(fill='x',pady=10)
         self.receipt_show_payment=tk.BooleanVar(value=get_setting('receipt_show_payment','1')=='1')
         self.receipt_show_ticket_no=tk.BooleanVar(value=get_setting('receipt_show_ticket_no','1')=='1')
         self.receipt_show_sale_mode=tk.BooleanVar(value=get_setting('receipt_show_sale_mode','1')=='1')
@@ -220,7 +234,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(p,text=self.tr('Connecteur tiroir','موصل درج النقود')).grid(row=12,column=0,sticky='w')
         ttk.Combobox(p,textvariable=self.drawer_pin,values=['0','1'],state='readonly',width=5).grid(row=12,column=1,sticky='w',padx=8)
         ttk.Button(p,text=self.tr('Enregistrer impression','حفظ إعدادات الطباعة'),command=self.save).grid(row=13,column=2)
-        scale=ttk.LabelFrame(self,text=self.tr('Balance électronique','الميزان الإلكتروني'),padding=10);scale.pack(fill='x',pady=10)
+        scale=ttk.LabelFrame(body,text=self.tr('Balance électronique','الميزان الإلكتروني'),padding=10);scale.pack(fill='x',pady=10)
         self.scale_enabled=tk.BooleanVar(value=get_setting('scale_enabled','0')=='1')
         self.scale_port=tk.StringVar(value=get_setting('scale_port',''))
         self.scale_baudrate=tk.StringVar(value=get_setting('scale_baudrate','9600'))
@@ -235,8 +249,8 @@ class SettingsFrame(ttk.Frame):
         ttk.Entry(scale,textvariable=self.scale_timeout,width=8).grid(row=2,column=3,sticky='w',padx=8)
         ttk.Button(scale,text=self.tr('Tester la balance','اختبار الميزان'),style='Soft.TButton',command=self.test_scale).grid(row=3,column=1,sticky='w',pady=6)
         self.refresh_scale_ports()
-        d=ttk.LabelFrame(self,text=self.tr('Écran client','شاشة الزبون'),padding=10);d.pack(fill="x",pady=10)
-        serial_display=ttk.LabelFrame(self,text=self.tr('Afficheur client série','شاشة الزبون التسلسلية'),padding=10);serial_display.pack(fill='x',pady=10)
+        d=ttk.LabelFrame(body,text=self.tr('Écran client','شاشة الزبون'),padding=10);d.pack(fill="x",pady=10)
+        serial_display=ttk.LabelFrame(body,text=self.tr('Afficheur client série','شاشة الزبون التسلسلية'),padding=10);serial_display.pack(fill='x',pady=10)
         self.customer_serial_enabled=tk.BooleanVar(value=get_setting('customer_serial_enabled','0')=='1')
         self.customer_serial_port=tk.StringVar(value=get_setting('customer_serial_port',''))
         self.customer_serial_baud=tk.StringVar(value=get_setting('customer_serial_baudrate','9600'))
@@ -272,7 +286,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(media_row,text=self.tr('Durée de chaque image (secondes)','مدة كل صورة (ثوانٍ)')).pack(side='left')
         ttk.Spinbox(media_row,from_=2,to=300,textvariable=self.customer_seconds,width=6).pack(side='left',padx=8)
         ttk.Label(media_row,text=self.tr('Dossier : customer_media · images + vidéos · format conseillé 16:9','المجلد: customer_media · صور + فيديوهات · القياس المقترح 16:9'),foreground="#475569").pack(side='left',padx=12)
-        rfid=ttk.LabelFrame(self,text=self.tr('RFID','RFID'),padding=10);rfid.pack(fill='x',pady=10)
+        rfid=ttk.LabelFrame(body,text=self.tr('RFID','RFID'),padding=10);rfid.pack(fill='x',pady=10)
         self.rfid_enabled=tk.BooleanVar(value=get_setting('rfid_enabled','0')=='1')
         self.rfid_mode=tk.StringVar(value=get_setting('rfid_mode','HID'))
         self.rfid_port=tk.StringVar(value=get_setting('rfid_port',''))
@@ -289,7 +303,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(rfid,text=self.tr('Timeout (ms)','مهلة القراءة')).grid(row=3,column=2,sticky='e');ttk.Entry(rfid,textvariable=self.rfid_timeout,width=8).grid(row=3,column=3,padx=8,sticky='w')
         ttk.Button(rfid,text=self.tr('Tester RFID série','اختبار RFID التسلسلي'),style='Soft.TButton',command=self.test_rfid).grid(row=4,column=1,sticky='w',pady=6)
         self.refresh_rfid_ports()
-        mail=ttk.LabelFrame(self,text=self.tr('E-mail / Gmail','البريد الإلكتروني / Gmail'),padding=10);mail.pack(fill='x',pady=10)
+        mail=ttk.LabelFrame(body,text=self.tr('E-mail / Gmail','البريد الإلكتروني / Gmail'),padding=10);mail.pack(fill='x',pady=10)
         self.email_enabled=tk.BooleanVar(value=get_setting('email_enabled','0')=='1')
         self.smtp_host=tk.StringVar(value=get_setting('smtp_host','smtp.gmail.com'));self.smtp_port=tk.StringVar(value=get_setting('smtp_port','587'))
         self.smtp_user=tk.StringVar(value=get_setting('smtp_user',''));self.smtp_password=tk.StringVar(value=get_setting('smtp_app_password',''))
@@ -301,7 +315,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(mail,text=self.tr('App Password','كلمة مرور التطبيق')).grid(row=3,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_password,width=32,show='•').grid(row=3,column=1,sticky='w',padx=8)
         ttk.Label(mail,text=self.tr('Nom expéditeur','اسم المرسل')).grid(row=4,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_from,width=24).grid(row=4,column=1,sticky='w',padx=8)
         ttk.Button(mail,text=self.tr('Tester e-mail','اختبار البريد'),style='Soft.TButton',command=self.test_email).grid(row=4,column=2,padx=6)
-        b=ttk.LabelFrame(self,text=self.tr('Données','البيانات'),padding=10);b.pack(fill="x",pady=10)
+        b=ttk.LabelFrame(body,text=self.tr('Données','البيانات'),padding=10);b.pack(fill="x",pady=10)
         ttk.Button(b,text=self.tr('Backup maintenant','نسخ احتياطي الآن'),style='Success.TButton',command=self.backup).pack(side='left',padx=4)
         self.auto_backup=tk.StringVar(value=get_setting("auto_backup_minutes","15"))
         ttk.Label(b,text=self.tr('Backup auto','نسخ احتياطي تلقائي')).pack(side="left",padx=(18,4))
@@ -311,7 +325,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Button(b,text=self.tr('Backup complet portable','نسخة كاملة للنقل'),style='Soft.TButton',command=self.full_backup).pack(side='left',padx=4)
         ttk.Button(b,text=self.tr('Restaurer backup complet','استرجاع النسخة الكاملة'),style='Soft.TButton',command=self.full_restore).pack(side='left',padx=4)
         ttk.Button(b,text=self.tr('Base de Données','قاعدة البيانات'),style='Primary.TButton',command=self.database_tools).pack(side='left',padx=8)
-        u=ttk.LabelFrame(self,text=self.tr('Utilisateurs','المستخدمون'),padding=10);u.pack(fill="x")
+        u=ttk.LabelFrame(body,text=self.tr('Utilisateurs','المستخدمون'),padding=10);u.pack(fill="x")
         ttk.Button(u,text=self.tr('Nouvel utilisateur','مستخدم جديد'),style='Primary.TButton',command=self.new_user).pack(side='left');ttk.Button(u,text=self.tr('Gérer utilisateurs','إدارة المستخدمين'),style='Soft.TButton',command=self.manage_users).pack(side='left',padx=8)
         ttk.Button(u,text=self.tr('Changer mon PIN','تغيير PIN'),command=self.change_pin).pack(side="left",padx=8)
         ttk.Button(u,text=self.tr('Journal des actions','سجل العمليات'),command=self.audit_log).pack(side="left",padx=8)
@@ -319,6 +333,14 @@ class SettingsFrame(ttk.Frame):
         ttk.Button(u,text=self.tr('Licence','الترخيص'),style='Soft.TButton',command=self.license_tools).pack(side='left',padx=8)
         ttk.Button(u,text=self.tr('Raccourcis personnalisés','اختصارات مخصصة'),style='Soft.TButton',command=self.shortcut_tools).pack(side='left',padx=8)
         ttk.Label(u,text=self.tr('Admin initial: admin / PIN 1234 — changez-le.','المدير الأولي: admin / PIN 1234 — غيّره.')).pack(side="left",padx=15)
+    def _settings_mousewheel(self,event):
+        if not self.settings_canvas.winfo_exists():
+            return
+        delta=getattr(event,'delta',0)
+        if delta:
+            self.settings_canvas.yview_scroll(-1 if delta>0 else 1,'units')
+            return 'break'
+
     def shortcut_tools(self):
         from services.shortcuts import ALLOWED_SHORTCUTS,get_shortcuts,save_shortcuts
         w=tk.Toplevel(self);w.title(self.tr('Raccourcis personnalisés','اختصارات مخصصة'));w.geometry('520x520');w.transient(self.winfo_toplevel());w.grab_set()
