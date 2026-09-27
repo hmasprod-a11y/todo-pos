@@ -73,7 +73,7 @@ class StockFrame(ttk.Frame):
             last=x["last"]
             if last:
                 parts=last.split("|",2);last=f"{self._movement_label(parts[0])} {parts[1]} @ {parts[2]}" if len(parts)==3 else last
-            self.t.insert("", "end",values=(
+            self.t.insert("", "end",iid=str(x['id']),values=(
                 x.get("code") or f"#{x['id']}",x["name"],x.get("families") or '—',
                 f"{x['purchase_price_cents']/100:.2f}",f"{x['sale_price_cents']/100:.2f}",
                 f"{x['stock_qty']:g}",f"{x['alert_qty']:g}",last
@@ -82,10 +82,7 @@ class StockFrame(ttk.Frame):
     def adjust(self):
         s=self.t.selection()
         if not s:return
-        code=self.t.item(s[0],"values")[0]
-        rows=[r for r in stock_products(self.q.get().strip(),self.family_map.get(self.family.get()),'all') if (r.get('code') or f"#{r['id']}")==code]
-        if not rows:return
-        pid=int(rows[0]['id']);q=simpledialog.askfloat(self.tr("Ajustement","تسوية المخزون"),self.tr("Variation (+/-):","التغيير (+/-):"),parent=self)
+        pid=int(s[0]);q=simpledialog.askfloat(self.tr("Ajustement","تسوية المخزون"),self.tr("Variation (+/-):","التغيير (+/-):"),parent=self)
         if q is None or q==0:return
         note=simpledialog.askstring(self.tr("Ajustement","تسوية المخزون"),self.tr("Raison obligatoire:","السبب إجباري:"),parent=self) or ""
         if not note.strip():return
@@ -180,7 +177,7 @@ class StockFrame(ttk.Frame):
     def ledger(self):
         selection=self.t.selection()
         if not selection:return
-        pid=int(self.t.item(selection[0],'values')[0])
+        pid=int(selection[0])
         w=tk.Toplevel(self);w.title(self.tr("Historique des mouvements","سجل حركات المخزون"));w.geometry('1050x550');w.transient(self)
         tree=ttk.Treeview(w,columns=('date','user','type','old','delta','new','document','reason'),show='headings')
         for key,label,width in [('date',self.tr('Date','التاريخ'),145),('user',self.tr('Utilisateur','المستخدم'),100),('type',self.tr('Type','النوع'),100),('old',self.tr('Avant','قبل'),70),('delta',self.tr('Variation','التغيير'),70),('new',self.tr('Après','بعد'),70),('document',self.tr('Document','الوثيقة'),100),('reason',self.tr('Raison','السبب'),220)]:
