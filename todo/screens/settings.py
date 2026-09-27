@@ -214,6 +214,24 @@ class SettingsFrame(ttk.Frame):
         ttk.Button(scale,text=self.tr('Tester la balance','اختبار الميزان'),style='Soft.TButton',command=self.test_scale).grid(row=3,column=1,sticky='w',pady=6)
         self.refresh_scale_ports()
         d=ttk.LabelFrame(self,text=self.tr('Écran client','شاشة الزبون'),padding=10);d.pack(fill="x",pady=10)
+        serial_display=ttk.LabelFrame(self,text=self.tr('Afficheur client série','شاشة الزبون التسلسلية'),padding=10);serial_display.pack(fill='x',pady=10)
+        self.customer_serial_enabled=tk.BooleanVar(value=get_setting('customer_serial_enabled','0')=='1')
+        self.customer_serial_port=tk.StringVar(value=get_setting('customer_serial_port',''))
+        self.customer_serial_baud=tk.StringVar(value=get_setting('customer_serial_baudrate','9600'))
+        self.customer_serial_timeout=tk.StringVar(value=get_setting('customer_serial_timeout_ms','500'))
+        self.customer_serial_width=tk.StringVar(value=get_setting('customer_serial_width','20'))
+        ttk.Checkbutton(serial_display,text=self.tr('Activer afficheur COM','تفعيل شاشة COM'),variable=self.customer_serial_enabled).grid(row=0,column=0,columnspan=2,sticky='w')
+        ttk.Label(serial_display,text='Port COM').grid(row=1,column=0,sticky='w')
+        self.customer_serial_port_box=ttk.Combobox(serial_display,textvariable=self.customer_serial_port,width=18);self.customer_serial_port_box.grid(row=1,column=1,sticky='w',padx=8)
+        ttk.Button(serial_display,text=self.tr('Actualiser ports','تحديث المنافذ'),command=self.refresh_customer_serial_ports).grid(row=1,column=2,padx=4)
+        ttk.Label(serial_display,text='BaudRate').grid(row=2,column=0,sticky='w')
+        ttk.Combobox(serial_display,textvariable=self.customer_serial_baud,values=['1200','2400','4800','9600','19200','38400'],state='readonly',width=12).grid(row=2,column=1,sticky='w',padx=8)
+        ttk.Label(serial_display,text=self.tr('Largeur caractères','عرض الحروف')).grid(row=2,column=2,sticky='e')
+        ttk.Combobox(serial_display,textvariable=self.customer_serial_width,values=['16','20','24','40'],state='readonly',width=6).grid(row=2,column=3,sticky='w',padx=8)
+        ttk.Label(serial_display,text=self.tr('Timeout (ms)','مهلة الاتصال')).grid(row=3,column=0,sticky='w')
+        ttk.Entry(serial_display,textvariable=self.customer_serial_timeout,width=8).grid(row=3,column=1,sticky='w',padx=8)
+        ttk.Button(serial_display,text=self.tr('Tester afficheur','اختبار الشاشة'),style='Soft.TButton',command=self.test_customer_serial).grid(row=3,column=2,padx=6)
+        self.refresh_customer_serial_ports()
         self.customer_enabled=tk.BooleanVar(value=get_setting('customer_display_enabled','0')=='1')
         self.customer_seconds=tk.StringVar(value=get_setting("customer_slide_seconds","6"))
         current_mode=get_setting('customer_display_mode','promotions')
@@ -398,6 +416,12 @@ class SettingsFrame(ttk.Frame):
             messagebox.showerror('ToDo',self.tr('Paramètres RFID invalides.','إعدادات RFID غير صالحة.'),parent=self);return
         set_setting('rfid_enabled','1' if self.rfid_enabled.get() else '0');set_setting('rfid_mode',self.rfid_mode.get());set_setting('rfid_port',self.rfid_port.get().strip());set_setting('rfid_baudrate',str(rfid_baud));set_setting('rfid_timeout_ms',str(rfid_timeout))
         set_setting('email_enabled','1' if self.email_enabled.get() else '0');set_setting('smtp_host',self.smtp_host.get().strip());set_setting('smtp_port',str(smtp_port));set_setting('smtp_user',self.smtp_user.get().strip());set_setting('smtp_app_password',self.smtp_password.get());set_setting('smtp_from_name',self.smtp_from.get().strip() or 'ToDo')
+        try:
+            customer_serial_baud=int(self.customer_serial_baud.get());customer_serial_timeout=int(self.customer_serial_timeout.get());customer_serial_width=int(self.customer_serial_width.get())
+            if customer_serial_baud<=0 or customer_serial_timeout<100 or customer_serial_timeout>10000 or customer_serial_width not in (16,20,24,40):raise ValueError()
+        except ValueError:
+            messagebox.showerror('ToDo',self.tr('Paramètres afficheur série invalides.','إعدادات الشاشة التسلسلية غير صالحة.'),parent=self);return
+        set_setting('customer_serial_enabled','1' if self.customer_serial_enabled.get() else '0');set_setting('customer_serial_port',self.customer_serial_port.get().strip());set_setting('customer_serial_baudrate',str(customer_serial_baud));set_setting('customer_serial_timeout_ms',str(customer_serial_timeout));set_setting('customer_serial_width',str(customer_serial_width))
         set_setting('customer_display_enabled','1' if self.customer_enabled.get() else '0')
         set_setting("customer_slide_seconds",str(seconds))
         mode=self.customer_mode_labels.get(self.customer_mode_box.get(),'promotions')
@@ -450,6 +474,21 @@ class SettingsFrame(ttk.Frame):
             messagebox.showinfo('ToDo',self.tr(f'Poids lu : {weight:.3f} kg',f'الوزن المقروء: {weight:.3f} كغ'),parent=self)
         except Exception as error:
             messagebox.showerror(self.tr('Balance','الميزان'),str(error),parent=self)
+
+
+    def refresh_customer_serial_ports(self):
+        try:
+            from services.customer_serial_display import serial_ports
+            ports=serial_ports();self.customer_serial_port_box['values']=ports
+            if not self.customer_serial_port.get() and ports:self.customer_serial_port.set(ports[0])
+        except Exception as error:messagebox.showerror('ToDo',str(error),parent=self)
+
+    def test_customer_serial(self):
+        try:
+            from services.customer_serial_display import write_lines
+            write_lines('TODO MARKET','TEST OK',self.customer_serial_port.get().strip(),int(self.customer_serial_baud.get()),int(self.customer_serial_timeout.get()),int(self.customer_serial_width.get()))
+            messagebox.showinfo('ToDo',self.tr('Test envoyé à l’afficheur.','تم إرسال الاختبار إلى الشاشة.'),parent=self)
+        except Exception as error:messagebox.showerror(self.tr('Afficheur client','شاشة الزبون'),str(error),parent=self)
 
     def toggle_customer_enabled(self):
         enabled=bool(self.customer_enabled.get())

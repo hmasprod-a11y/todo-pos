@@ -635,6 +635,12 @@ class ToDoApp(tk.Tk):
     def update_customer_display(self, cart, total):
         self.customer_cart=list(cart or [])
         self.customer_total=int(total or 0)
+        if get_setting('customer_serial_enabled','0')=='1':
+            try:
+                from services.customer_serial_display import show_sale
+                show_sale(self.customer_cart,self.customer_total)
+            except Exception:
+                pass
         if not (self.customer_window and self.customer_window.winfo_exists()):
             return
         if get_setting('customer_display_mode','promotions')=='prices':

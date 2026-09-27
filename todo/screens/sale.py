@@ -1061,6 +1061,12 @@ class SaleFrame(ttk.Frame):
                 f"DERNIÈRE VENTE  ·  FACTURE {fmt(total,self.currency)}  ·  PAYÉ {fmt(paid,self.currency)}  ·  RENDU {fmt(result['change_cents'],self.currency)}  ·  {labels.get(completed_payment,completed_payment)}",
                 f"آخر بيع  ·  الفاتورة {fmt(total,self.currency)}  ·  المؤدى {fmt(paid,self.currency)}  ·  الباقي {fmt(result['change_cents'],self.currency)}  ·  {labels.get(completed_payment,completed_payment)}"
             ))
+            if get_setting('customer_serial_enabled','0')=='1':
+                try:
+                    from services.customer_serial_display import show_payment
+                    show_payment(paid,result['change_cents'])
+                except Exception:
+                    pass
             try:
                 if print_ticket and mode!='never' and (mode=='always' or dialog_print):
                     print_receipt_windows(result['id'])

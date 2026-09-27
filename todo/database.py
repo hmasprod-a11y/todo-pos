@@ -502,7 +502,12 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('rfid_mode','HID'),
 ('rfid_port',''),
 ('rfid_baudrate','9600'),
-('rfid_timeout_ms','800');
+('rfid_timeout_ms','800'),
+('customer_serial_enabled','0'),
+('customer_serial_port',''),
+('customer_serial_baudrate','9600'),
+('customer_serial_timeout_ms','500'),
+('customer_serial_width','20');
 """
 
 class Connection(sqlite3.Connection):
