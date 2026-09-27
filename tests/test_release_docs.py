@@ -13,7 +13,8 @@ class ReleaseDocumentationTests(unittest.TestCase):
             self.assertIn(heading,ar)
     def test_technical_document_covers_required_delivery_topics(self):
         text=(ROOT/'docs'/'TECHNICAL_ARCHITECTURE.md').read_text(encoding='utf-8')
-        for term in ('Architecture générale','Dépendances principales','Base de données','Build Windows','Procédure d’installation'):
+        for term in ('Architecture générale','Dépendances principales','Base de données','Build Windows'):
             self.assertIn(term,text)
+        self.assertIn("Procédure d'installation",text)
 
 if __name__=='__main__':unittest.main()
