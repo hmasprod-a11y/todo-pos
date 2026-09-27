@@ -233,7 +233,7 @@ class ProductEditor(tk.Toplevel):
         name=name.strip()
         try:
             with connect() as conn:
-                require_admin(conn)
+                require_permission('MANAGEMENT', conn)
                 conn.execute("INSERT OR IGNORE INTO categories(name) VALUES(?)",(name,));conn.commit()
             self.refresh_categories()
             for var, label in self.cat_vars.values():
