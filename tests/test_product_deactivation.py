@@ -12,6 +12,9 @@ class ProductDeactivationTests(unittest.TestCase):
         database.DB_PATH=Path(self.tmp.name)/'db.sqlite';database.init_db();ensure_defaults()
         with database.connect() as c:
             self.uid=c.execute("SELECT id FROM users WHERE username='admin'").fetchone()[0]
+            self.manager=c.execute("INSERT INTO users(username,display_name,pin_hash,role) VALUES('manager','Manager','x','cashier')").lastrowid
+            c.execute("INSERT INTO user_permissions(user_id,permission,allowed) VALUES(?,?,1)",(self.manager,'MANAGEMENT'))
+            self.cashier=c.execute("INSERT INTO users(username,display_name,pin_hash,role) VALUES('cash','Cash','x','cashier')").lastrowid
             self.pid=c.execute("INSERT INTO products(name,sale_price_cents,stock_qty) VALUES('A désactiver',500,3)").lastrowid
         self.token=current_user.set(self.uid)
     def tearDown(self):
@@ -28,5 +31,13 @@ class ProductDeactivationTests(unittest.TestCase):
     def test_cannot_deactivate_twice(self):
         deactivate_product(self.pid)
         with self.assertRaises(ValueError):deactivate_product(self.pid)
+    def test_management_permission_can_deactivate(self):
+        current_user.set(self.manager)
+        deactivate_product(self.pid)
+        with database.connect() as c:
+            self.assertEqual(c.execute("SELECT active FROM products WHERE id=?",(self.pid,)).fetchone()['active'],0)
+    def test_without_management_permission_is_rejected(self):
+        current_user.set(self.cashier)
+        with self.assertRaises(PermissionError):deactivate_product(self.pid)
 
 if __name__=='__main__':unittest.main()

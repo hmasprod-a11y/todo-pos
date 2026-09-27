@@ -1,5 +1,5 @@
 from database import connect, get_setting
-from services.security import require_admin, audit
+from services.security import require_admin, require_permission, audit
 
 
 def search_products(query='', category=None, limit=None, images_only=False, offset=0):
@@ -163,7 +163,7 @@ def deactivate_product(product_id):
     pid=int(product_id)
     with connect() as conn:
         conn.execute('BEGIN IMMEDIATE')
-        require_admin(conn)
+        require_permission('MANAGEMENT', conn)
         row=conn.execute('SELECT id,name,active FROM products WHERE id=?',(pid,)).fetchone()
         if not row:
             raise ValueError('Article introuvable.')
