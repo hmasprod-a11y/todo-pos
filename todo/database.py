@@ -187,6 +187,26 @@ CREATE TABLE IF NOT EXISTS purchases (
     FOREIGN KEY(supplier_id) REFERENCES suppliers(id)
 );
 
+CREATE TABLE IF NOT EXISTS purchase_orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    supplier_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'OPEN',
+    notes TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    received_at TEXT,
+    FOREIGN KEY(supplier_id) REFERENCES suppliers(id)
+);
+
+CREATE TABLE IF NOT EXISTS purchase_order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    qty REAL NOT NULL,
+    unit_cost_cents INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY(order_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
+    FOREIGN KEY(product_id) REFERENCES products(id)
+);
+
 CREATE TABLE IF NOT EXISTS purchase_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     purchase_id INTEGER NOT NULL,

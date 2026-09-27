@@ -71,3 +71,66 @@ def receive_purchase(supplier_id, supplier_invoice, lines, notes="", paid_cents=
         audit(conn,"PURCHASE_RECEIVE",pid_purchase,str(total))
         conn.commit()
         return pid_purchase, total
+
+
+def create_purchase_order(supplier_id, lines, notes=''):
+    if not supplier_id or not lines:
+        raise ValueError("Fournisseur et lignes obligatoires")
+    with connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        require_admin(conn)
+        if not conn.execute("SELECT 1 FROM suppliers WHERE id=? AND active=1",(supplier_id,)).fetchone():
+            raise ValueError("Fournisseur introuvable")
+        normalized=[]
+        for x in lines:
+            pid=int(x["product_id"]);qty=float(x["qty"]);cost=int(x.get("unit_cost_cents") or 0)
+            if not math.isfinite(qty) or qty<=0 or cost<0:
+                raise ValueError("Ligne commande invalide")
+            p=conn.execute("SELECT allow_fraction FROM products WHERE id=? AND active=1",(pid,)).fetchone()
+            if not p:
+                raise ValueError("Article introuvable")
+            if not p["allow_fraction"] and not qty.is_integer():
+                raise ValueError("Quantité fractionnée interdite pour cet article")
+            normalized.append((pid,qty,cost))
+        oid=conn.execute("INSERT INTO purchase_orders(supplier_id,notes) VALUES(?,?)",(supplier_id,notes or "")).lastrowid
+        conn.executemany("INSERT INTO purchase_order_items(order_id,product_id,qty,unit_cost_cents) VALUES(?,?,?,?)",[(oid,*x) for x in normalized])
+        audit(conn,"PURCHASE_ORDER_CREATE",oid,str(len(normalized)))
+        conn.commit()
+        return oid
+
+def list_purchase_orders(status='OPEN'):
+    with connect() as conn:
+        return [dict(r) for r in conn.execute("""
+            SELECT po.id,po.supplier_id,po.status,po.created_at,po.received_at,po.notes,s.name supplier_name,
+                   COUNT(poi.id) lines,COALESCE(SUM(poi.qty*poi.unit_cost_cents),0) total_cents
+            FROM purchase_orders po JOIN suppliers s ON s.id=po.supplier_id
+            LEFT JOIN purchase_order_items poi ON poi.order_id=po.id
+            WHERE (?='' OR po.status=?)
+            GROUP BY po.id ORDER BY po.id DESC
+        """,(status,status)).fetchall()]
+
+def purchase_order_lines(order_id):
+    with connect() as conn:
+        return [dict(r) for r in conn.execute("""
+            SELECT poi.product_id,p.name,poi.qty,poi.unit_cost_cents
+            FROM purchase_order_items poi JOIN products p ON p.id=poi.product_id
+            WHERE poi.order_id=? ORDER BY poi.id
+        """,(order_id,)).fetchall()]
+
+def mark_purchase_order_received(order_id):
+    with connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        require_admin(conn)
+        if conn.execute("UPDATE purchase_orders SET status='RECEIVED',received_at=CURRENT_TIMESTAMP WHERE id=? AND status='OPEN'",(order_id,)).rowcount!=1:
+            raise ValueError("Commande introuvable ou déjà clôturée")
+        audit(conn,"PURCHASE_ORDER_RECEIVED",order_id)
+        conn.commit()
+
+def cancel_purchase_order(order_id):
+    with connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        require_admin(conn)
+        if conn.execute("UPDATE purchase_orders SET status='CANCELLED' WHERE id=? AND status='OPEN'",(order_id,)).rowcount!=1:
+            raise ValueError("Commande introuvable ou déjà clôturée")
+        audit(conn,"PURCHASE_ORDER_CANCEL",order_id)
+        conn.commit()

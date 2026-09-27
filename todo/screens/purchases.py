@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog
 from database import get_setting, connect
 from services.money import to_cents,fmt
-from services.purchases import receive_purchase
+from services.purchases import receive_purchase,create_purchase_order,list_purchase_orders,purchase_order_lines,mark_purchase_order_received,cancel_purchase_order
 from services.suppliers import list_suppliers, save_supplier
 from screens.suppliers import SupplierEditor
 
@@ -22,6 +22,7 @@ class PurchasesFrame(ttk.Frame):
         ttk.Button(top,text='+',width=3,command=lambda:SupplierEditor(self,on_saved=self.refresh_suppliers)).pack(side='left')
         self.refresh_suppliers()
         ttk.Entry(top,textvariable=self.invoice,width=18).pack(side="left",padx=(20,5));ttk.Label(top,text=self.tr('Facture','الفاتورة')).pack(side="left")
+        ttk.Button(top,text=self.tr('Commandes ouvertes','الطلبات المفتوحة'),style='Soft.TButton',command=self.orders_window).pack(side='right',padx=4)
         body=ttk.Panedwindow(self,orient="horizontal");body.pack(fill="both",expand=True,pady=8)
         p=ttk.Frame(body);body.add(p,weight=2)
         self.q=tk.StringVar();e=ttk.Entry(p,textvariable=self.q,style='Search.TEntry');e.pack(fill='x',pady=4);e.bind("<KeyRelease>",lambda x:self.search())
@@ -30,6 +31,7 @@ class PurchasesFrame(ttk.Frame):
         self.prod.pack(fill="both",expand=True);self.prod.bind("<Double-1>",lambda e:self.addline());self.prod.bind("<Return>",lambda e:self.addline());self.search()
         r=ttk.Frame(body);body.add(r,weight=3)
         ttk.Button(r,text=self.tr('✓  VALIDER réception','✓  تأكيد المشتريات'),style='Success.TButton',command=self.save).pack(side='bottom',fill='x',pady=6,ipady=6)
+        ttk.Button(r,text=self.tr('Enregistrer commande','حفظ الطلب'),style='Primary.TButton',command=self.save_order).pack(side='bottom',fill='x',pady=(0,4),ipady=4)
         self.lines_t=ttk.Treeview(r,columns=("name","qty","cost","total"),show="headings")
         for c,h,w in [("name",self.tr("Article","المنتوج"),230),("qty",self.tr("Qté","الكمية"),80),("cost",self.tr("Coût","التكلفة"),90),("total",self.tr("Total","المجموع"),100)]:self.lines_t.heading(c,text=h);self.lines_t.column(c,width=w,anchor="center")
         self.lines_t.pack(fill="both",expand=True)
@@ -106,6 +108,43 @@ class PurchasesFrame(ttk.Frame):
         i=self._selected_line_index()
         if i is None:return
         del self.lines[i];self.refresh_lines()
+    def save_order(self):
+        if not self.lines or not self.supplier_id:
+            messagebox.showinfo('ToDo',self.tr('Choisissez un fournisseur et ajoutez des articles.','اختر مورداً وأضف المنتجات.'),parent=self);return
+        try:
+            oid=create_purchase_order(self.supplier_id,self.lines)
+            messagebox.showinfo('ToDo',self.tr(f'Commande #{oid} enregistrée sans modifier le stock.',f'تم حفظ الطلب #{oid} دون تغيير المخزون.'),parent=self)
+            self.lines=[];self.refresh_lines()
+        except Exception as e:messagebox.showerror('ToDo',str(e),parent=self)
+
+    def orders_window(self):
+        w=tk.Toplevel(self);w.title(self.tr('Commandes fournisseurs','طلبات الموردين'));w.geometry('900x560');w.transient(self)
+        tree=ttk.Treeview(w,columns=('id','supplier','date','lines','total'),show='headings')
+        for key,label,width in [('id','ID',60),('supplier',self.tr('Fournisseur','المورد'),220),('date',self.tr('Date','التاريخ'),150),('lines',self.tr('Lignes','السطور'),80),('total',self.tr('Total estimé','المجموع المقدر'),120)]:
+            tree.heading(key,text=label);tree.column(key,width=width,anchor='center')
+        tree.pack(fill='both',expand=True,padx=12,pady=12)
+        def load():
+            tree.delete(*tree.get_children())
+            for r in list_purchase_orders('OPEN'):
+                tree.insert('','end',iid=str(r['id']),values=(r['id'],r['supplier_name'],r['created_at'],r['lines'],fmt(int(r['total_cents']),''))
+        def receive():
+            sel=tree.selection()
+            if not sel:return
+            oid=int(sel[0]); orders={r['id']:r for r in list_purchase_orders('OPEN')}; order=orders.get(oid)
+            if not order:return
+            self.refresh_suppliers(order['supplier_id'])
+            self.lines=[dict(product_id=r['product_id'],name=r['name'],qty=r['qty'],unit_cost_cents=r['unit_cost_cents']) for r in purchase_order_lines(oid)]
+            self.refresh_lines();self._pending_order_id=oid;w.destroy()
+        def cancel():
+            sel=tree.selection()
+            if not sel:return
+            try:cancel_purchase_order(int(sel[0]));load()
+            except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
+        buttons=ttk.Frame(w);buttons.pack(fill='x',padx=12,pady=(0,12))
+        ttk.Button(buttons,text=self.tr('Charger pour réception','تحميل للاستلام'),style='Primary.TButton',command=receive).pack(side='left')
+        ttk.Button(buttons,text=self.tr('Annuler commande','إلغاء الطلب'),style='Danger.TButton',command=cancel).pack(side='left',padx=6)
+        load()
+
     def save(self):
         if not self.lines:return
         supplier_id=self.supplier_id
@@ -120,5 +159,8 @@ class PurchasesFrame(ttk.Frame):
                 self.refresh_suppliers(supplier_id)
             paid=to_cents(self.paid.get() or "0")
             pid,total=receive_purchase(supplier_id,self.invoice.get().strip(),self.lines,paid_cents=paid,payment_method=self.payment_method.get())
+            order_id=getattr(self,'_pending_order_id',None)
+            if order_id:
+                mark_purchase_order_received(order_id);self._pending_order_id=None
             messagebox.showinfo("ToDo",f"{self.tr('Réception','استلام')} #{pid}\\n{self.tr('Total','المجموع')}: {fmt(total)}",parent=self);self.lines=[];self.paid.set("0");self.refresh_lines();self.search()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)

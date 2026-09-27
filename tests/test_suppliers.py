@@ -28,6 +28,17 @@ class SupplierTests(unittest.TestCase):
         database.DB_PATH = self.old
         self.temp.cleanup()
 
+    def test_purchase_order_does_not_touch_stock_until_received(self):
+        with database.connect() as conn:
+            stock_before=conn.execute("SELECT stock_qty FROM products WHERE id=?",(self.pid,)).fetchone()[0]
+        oid=create_purchase_order(self.sid,[dict(product_id=self.pid,qty=5,unit_cost_cents=250)])
+        self.assertEqual(list_purchase_orders('OPEN')[0]['id'],oid)
+        self.assertEqual(purchase_order_lines(oid)[0]['qty'],5)
+        with database.connect() as conn:
+            self.assertEqual(conn.execute("SELECT stock_qty FROM products WHERE id=?",(self.pid,)).fetchone()[0],stock_before)
+        mark_purchase_order_received(oid)
+        self.assertEqual(list_purchase_orders('OPEN'),[])
+
     def test_edit_preserves_purchase_identity_and_audits(self):
         sid = save_supplier(' Supplier ', '0600000000', 'Delivery Friday')
         with database.connect() as conn:
