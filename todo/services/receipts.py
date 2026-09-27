@@ -45,6 +45,8 @@ def build_receipt(sale_id):
         ticket_value=s['client_ticket_no'] if s['client_ticket_no'] is not None else s['sale_no']
         ticket_value=f"{int(ticket_value):06d}" if isinstance(ticket_value,int) else ticket_value
         lines.append(f"{tr('Ticket','التذكرة')}: {ticket_value}")
+        if s['client_ticket_no'] is not None:
+            lines.append(f"{tr('Réf.','المرجع')}: {s['sale_no']}")
     if get_setting('receipt_show_sale_mode','1')=='1':
         lines.append(f"{tr('Mode vente','نوع البيع')}: {tr('VENTE','بيع')}")
     lines.append(f"{tr('Caissier','الكاشير')}: {s['display_name']}")
