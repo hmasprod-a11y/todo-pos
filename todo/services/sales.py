@@ -70,9 +70,10 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
                 if not p['name'] or len(p['name'])>150:raise ValueError('Libellé Divers invalide')
             if not p['allow_fraction'] and not qty.is_integer():
                 raise ValueError('Cet article se vend en unités entières.')
+            stock_management=get_setting('stock_management_enabled','1',conn)=='1'
             block_stock=conn.execute("SELECT value FROM settings WHERE key='block_insufficient_stock'").fetchone()
             allow_negative=conn.execute("SELECT value FROM settings WHERE key='allow_negative_stock'").fetchone()
-            must_block=(block_stock and block_stock[0]=='1') or not (allow_negative and allow_negative[0]=='1')
+            must_block=stock_management and ((block_stock and block_stock[0]=='1') or not (allow_negative and allow_negative[0]=='1'))
             if must_block and not p['is_misc'] and qty>float(p['stock_qty']):
                 raise ValueError(f"Stock insuffisant pour {p['name']} (disponible: {p['stock_qty']:g}).")
             unit=line.get('unit_price_cents')
@@ -127,8 +128,9 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
         no=sale_number()
         client_ticket_no=next_client_ticket_number(conn)
         workstation=(session['workstation_code'] or '01').strip().upper()
-        sid=conn.execute('INSERT INTO sales(sale_no,session_id,cashier_user_id,subtotal_cents,discount_cents,total_cents,payment_method,paid_cents,change_cents,client_id,seller_id,client_ticket_no,workstation_code) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                         (no,session_id,user_id,subtotal,discount+loyalty_value,total,payment_method,paid,change,client_id,seller_id,client_ticket_no,workstation)).lastrowid
+        stock_tracked=get_setting('stock_management_enabled','1',conn)=='1'
+        sid=conn.execute('INSERT INTO sales(sale_no,session_id,cashier_user_id,subtotal_cents,discount_cents,total_cents,payment_method,paid_cents,change_cents,client_id,seller_id,client_ticket_no,workstation_code,stock_tracked) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                         (no,session_id,user_id,subtotal,discount+loyalty_value,total,payment_method,paid,change,client_id,seller_id,client_ticket_no,workstation,1 if stock_tracked else 0)).lastrowid
         if split is None:
             settled=paid-change if payment_method=='CASH' else paid
             conn.execute('INSERT INTO sale_payments(sale_id,payment_method,amount_cents) VALUES(?,?,?)',(sid,payment_method,settled))
@@ -139,7 +141,7 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
             pack=pricing and pricing['pricing_mode']=='PACK'
             conn.execute('INSERT INTO sale_items(sale_id,product_id,barcode_used,name_snapshot,qty,unit_price_cents,cost_price_cents,discount_cents,line_total_cents,net_total_cents,qty_multiplier,pricing_mode) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
                          (sid,p['id'],barcode,p['name'],qty,pricing['unit_price_cents'] if pack else rounded(unit),p['purchase_price_cents'],gross-net,gross,net,pricing['qty_multiplier'] if pricing else 1,'PACK' if pack else 'UNIT'))
-            if not p['is_misc']:
+            if stock_tracked and not p['is_misc']:
                 apply_stock_movement(conn,p['id'],-qty,'SALE',p['purchase_price_cents'],'sale',sid,no,user_id)
         if quotation_id is not None:
             quote=conn.execute("SELECT client_id,status FROM quotations WHERE id=?",(int(quotation_id),)).fetchone()
@@ -166,7 +168,7 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
         if held_id is not None:
             conn.execute('DELETE FROM held_sales WHERE id=?',(held_id,))
         audit(conn,'SALE',sid,no,user_id)
-        return dict(id=sid,sale_no=no,client_ticket_no=client_ticket_no,workstation_code=workstation,subtotal_cents=subtotal,discount_cents=discount+loyalty_value,total_cents=total,paid_cents=paid,change_cents=change,loyalty_points_used=loyalty_points,loyalty_value_cents=loyalty_value)
+        return dict(id=sid,sale_no=no,client_ticket_no=client_ticket_no,workstation_code=workstation,stock_tracked=stock_tracked,subtotal_cents=subtotal,discount_cents=discount+loyalty_value,total_cents=total,paid_cents=paid,change_cents=change,loyalty_points_used=loyalty_points,loyalty_value_cents=loyalty_value)
 
 def hold_sale(user_id,cart,label='',discount_cents=0,held_id=None,client_id=None,seller_id=None,price_grid_id=None,payment_method='CASH'):
     if not cart:raise ValueError('Ticket vide')
@@ -269,7 +271,7 @@ def create_return(sale_id,session_id,user_id,items,reason='',refund_method='CASH
         for si,qty,due in validated:
             conn.execute('INSERT INTO return_items(return_id,sale_item_id,product_id,qty,unit_price_cents,line_total_cents) VALUES(?,?,?,?,?,?)',(rid,si['id'],si['product_id'],qty,si['unit_price_cents'],due))
             misc=conn.execute('SELECT is_misc FROM products WHERE id=?',(si['product_id'],)).fetchone()[0]
-            if not misc:
+            if sale['stock_tracked'] and not misc:
                 apply_stock_movement(conn,si['product_id'],qty,'RETURN',si['cost_price_cents'],'return',rid,reason or no,user_id)
         audit(conn,'RETURN',rid,reason,user_id)
         refund_parts=[dict(payment_method=r['payment_method'],amount_cents=r['amount_cents']) for r in conn.execute('SELECT payment_method,amount_cents FROM return_payments WHERE return_id=? ORDER BY payment_method',(rid,))]
