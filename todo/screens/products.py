@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
 from database import connect, get_setting
 from services.inventory import apply_stock_movement
-from services.security import require_admin, audit
+from services.security import require_admin, require_permission, audit
 import math
 import os, tempfile
 from services.money import to_cents
@@ -329,7 +329,7 @@ class ProductEditor(tk.Toplevel):
             if self.img_source:img=import_image(self.img_source)
             with connect() as c:
                 c.execute("BEGIN IMMEDIATE")
-                require_admin(c)
+                require_permission('MANAGEMENT', c)
                 c.execute("INSERT OR IGNORE INTO categories(name) VALUES(?)",(cat,))
                 catid=c.execute("SELECT id FROM categories WHERE name=?",(cat,)).fetchone()["id"]
                 if self.pid:

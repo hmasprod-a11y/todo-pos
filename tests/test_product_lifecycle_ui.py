@@ -8,4 +8,11 @@ class ProductLifecycleUiTests(unittest.TestCase):
     def test_products_exposes_deactivate(self):
         text=(ROOT/'todo'/'screens'/'products.py').read_text(encoding='utf-8')
         self.assertIn("command=self.deactivate",text)
+    def test_product_editor_save_uses_management_permission(self):
+        text=(ROOT/'todo'/'screens'/'products.py').read_text(encoding='utf-8')
+        start=text.index('    def save(self):')
+        end=text.index('\nclass ProductsFrame',start)
+        save=text[start:end]
+        self.assertIn("require_permission('MANAGEMENT', c)",save)
+        self.assertNotIn('require_admin(c)',save)
 if __name__=='__main__':unittest.main()
