@@ -70,6 +70,7 @@ def close_session(session_id, actual_cash_cents):
         active_user=current_user.get()
         if active_user is not None and int(s["user_id"])!=int(active_user):
             raise PermissionError("هذه الكيس تخص مستخدما آخر.")
+        closer_id=int(active_user) if active_user is not None else int(s["user_id"])
         t = session_totals(conn, session_id)
         expected = int(s["opening_cash_cents"]) + t["cash_sales"] - t["cash_returns"] - t["expenses"] + t["cash_in"] - t["cash_out"]
         diff = int(actual_cash_cents) - expected
@@ -77,12 +78,12 @@ def close_session(session_id, actual_cash_cents):
             """
             UPDATE cash_sessions
             SET closed_at=CURRENT_TIMESTAMP, expected_cash_cents=?, actual_cash_cents=?,
-                difference_cents=?, status='CLOSED'
+                difference_cents=?, closed_by_user_id=?, status='CLOSED'
             WHERE id=?
             """,
-            (expected, int(actual_cash_cents), diff, session_id)
+            (expected, int(actual_cash_cents), diff, closer_id, session_id)
         )
-        audit(conn,'CASH_CLOSE',session_id,f'Expected={expected}; actual={actual_cash_cents}')
+        audit(conn,'CASH_CLOSE',session_id,f'Expected={expected}; actual={actual_cash_cents}',user_id=closer_id)
         return expected, diff, t
 
 

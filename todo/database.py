@@ -133,8 +133,10 @@ CREATE TABLE IF NOT EXISTS cash_sessions (
     workstation_code TEXT NOT NULL DEFAULT '01',
     actual_cash_cents INTEGER,
     difference_cents INTEGER,
+    closed_by_user_id INTEGER,
     status TEXT NOT NULL DEFAULT 'OPEN',
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(closed_by_user_id) REFERENCES users(id)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_one_open_session
 ON cash_sessions(status) WHERE status='OPEN';
@@ -603,7 +605,7 @@ def migrate(conn):
         'client_payments': {'session_id': 'INTEGER REFERENCES cash_sessions(id)', 'user_id': 'INTEGER REFERENCES users(id)', 'payment_method': "TEXT NOT NULL DEFAULT 'CASH'"},
         'supplier_payments': {'session_id': 'INTEGER REFERENCES cash_sessions(id)', 'user_id': 'INTEGER REFERENCES users(id)', 'payment_method': "TEXT NOT NULL DEFAULT 'CARD'"},
         'sales': {'client_id': 'INTEGER REFERENCES clients(id)', 'seller_id': 'INTEGER REFERENCES sellers(id)', 'client_ticket_no': 'INTEGER', 'workstation_code': "TEXT NOT NULL DEFAULT '01'", 'stock_tracked': 'INTEGER NOT NULL DEFAULT 1'},
-        'cash_sessions': {'workstation_code': "TEXT NOT NULL DEFAULT '01'"},
+        'cash_sessions': {'workstation_code': "TEXT NOT NULL DEFAULT '01'", 'closed_by_user_id': 'INTEGER REFERENCES users(id)'},
         'categories': {'color': "TEXT NOT NULL DEFAULT '#2563EB'", 'icon': "TEXT NOT NULL DEFAULT ''"},
     }
     for table, fields in additions.items():

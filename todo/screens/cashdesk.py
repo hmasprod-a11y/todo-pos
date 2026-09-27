@@ -99,18 +99,39 @@ Cash OUT       : {fmt(t['cash_out'])}
 
     def history(self):
         w=tk.Toplevel(self);w.title(self.tr('Historique des clôtures','سجل إغلاقات الصندوق'));w.geometry("1050x560");w.transient(self.winfo_toplevel())
-        cols=("id","user","opened","closed","opening","expected","actual","diff")
+        cols=("id","opened_by","closed_by","opened","closed","opening","expected","actual","diff")
         tree=ttk.Treeview(w,columns=cols,show="headings")
-        cfg=[("id",self.tr("Caisse","الصندوق"),65),("user",self.tr("Caissier","الكاشير"),130),("opened",self.tr("Ouverture","الفتح"),145),("closed",self.tr("Clôture","الإغلاق"),145),("opening",self.tr("Fond","الرصيد"),95),("expected",self.tr("Attendu","المتوقع"),95),("actual",self.tr("Réel","الفعلي"),95),("diff",self.tr("Écart","الفرق"),95)]
+        cfg=[
+            ("id",self.tr("Caisse","الصندوق"),60),
+            ("opened_by",self.tr("Ouvert par","فتح بواسطة"),120),
+            ("closed_by",self.tr("Clôturé par","أغلق بواسطة"),120),
+            ("opened",self.tr("Ouverture","الفتح"),135),
+            ("closed",self.tr("Clôture","الإغلاق"),135),
+            ("opening",self.tr("Fond","الرصيد"),85),
+            ("expected",self.tr("Attendu","المتوقع"),85),
+            ("actual",self.tr("Réel","الفعلي"),85),
+            ("diff",self.tr("Écart","الفرق"),85)
+        ]
         for key,title,width in cfg:tree.heading(key,text=title);tree.column(key,width=width,anchor="center")
         tree.tag_configure("bad",foreground="#DC2626");tree.tag_configure("ok",foreground="#15803D")
         tree.pack(fill="both",expand=True,padx=12,pady=12)
         with connect() as c:
-            rows=c.execute("""SELECT cs.*,COALESCE(u.display_name,'?') username FROM cash_sessions cs LEFT JOIN users u ON u.id=cs.user_id WHERE cs.status='CLOSED' ORDER BY cs.id DESC LIMIT 1000""").fetchall()
+            rows=c.execute("""SELECT cs.*,
+                       COALESCE(open_u.display_name,'?') opened_by_name,
+                       COALESCE(close_u.display_name,open_u.display_name,'?') closed_by_name
+                FROM cash_sessions cs
+                LEFT JOIN users open_u ON open_u.id=cs.user_id
+                LEFT JOIN users close_u ON close_u.id=cs.closed_by_user_id
+                WHERE cs.status='CLOSED'
+                ORDER BY cs.id DESC LIMIT 1000""").fetchall()
         total_diff=0
         for r in rows:
             diff=int(r["difference_cents"] or 0);total_diff+=diff;tag="ok" if diff==0 else "bad"
-            tree.insert("","end",values=(r["id"],r["username"],r["opened_at"],r["closed_at"],fmt(r["opening_cash_cents"],""),fmt(r["expected_cash_cents"],""),fmt(r["actual_cash_cents"] or 0,""),fmt(diff,"")),tags=(tag,))
+            tree.insert("","end",values=(
+                r["id"],r["opened_by_name"],r["closed_by_name"],r["opened_at"],r["closed_at"],
+                fmt(r["opening_cash_cents"],""),fmt(r["expected_cash_cents"],""),
+                fmt(r["actual_cash_cents"] or 0,""),fmt(diff,"")
+            ),tags=(tag,))
         ttk.Label(w,text=self.tr(f"{len(rows)} clôture(s) · Écart cumulé {fmt(total_diff)}",f"{len(rows)} إغلاق · الفرق التراكمي {fmt(total_diff)}"),font=("Segoe UI",11,"bold")).pack(anchor="e",padx=12,pady=(0,12))
 
     def _count_close_cash(self, expected):
