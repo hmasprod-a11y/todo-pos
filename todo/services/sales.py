@@ -201,6 +201,8 @@ def create_return(sale_id,session_id,user_id,items,reason='',refund_method='CASH
     if refund_method not in ('CASH','CARD','AUTO'):raise ValueError('Mode de remboursement invalide')
     with connect() as conn:
         conn.execute('BEGIN IMMEDIATE');validate_session(conn,session_id,user_id)
+        from services.security import require_permission
+        require_permission('RETURNS',conn)
         sale=conn.execute('SELECT * FROM sales WHERE id=?',(sale_id,)).fetchone()
         if not sale:raise ValueError('Vente introuvable')
         requested={}

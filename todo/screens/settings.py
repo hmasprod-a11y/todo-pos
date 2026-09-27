@@ -597,7 +597,28 @@ class SettingsFrame(ttk.Frame):
                 require_admin(conn);row=conn.execute("SELECT role FROM users WHERE id=?",(uid,)).fetchone();new="admin" if row["role"]!="admin" else "cashier"
                 conn.execute("UPDATE users SET role=? WHERE id=?",(new,uid));audit(conn,"USER_ROLE_CHANGE",uid,new);conn.commit()
             reload()
-        ttk.Button(bar,text=self.tr('Activer / Désactiver','تفعيل / تعطيل'),command=toggle).pack(side="left");ttk.Button(bar,text=self.tr('Admin ↔ Caissier','مدير ↔ كاشير'),command=role).pack(side="left",padx=8);reload()
+        def permissions():
+            uid=selected()
+            if uid is None:return
+            from services.security import PERMISSIONS,list_user_permissions,set_user_permission
+            values=list_user_permissions(uid)
+            pw=tk.Toplevel(w);pw.title(self.tr('Permissions utilisateur','صلاحيات المستخدم'));pw.transient(w);pw.grab_set()
+            vars={}
+            for i,(code,(fr,ar)) in enumerate(PERMISSIONS.items()):
+                var=tk.BooleanVar(value=values.get(code,False));vars[code]=var
+                ttk.Checkbutton(pw,text=self.tr(fr,ar),variable=var).grid(row=i,column=0,sticky='w',padx=18,pady=6)
+            def save_permissions():
+                try:
+                    with connect() as conn:
+                        conn.execute('BEGIN IMMEDIATE');require_admin(conn)
+                        for code,var in vars.items():set_user_permission(uid,code,var.get(),conn)
+                        conn.commit()
+                    pw.destroy()
+                except Exception as e:messagebox.showerror('ToDo',str(e),parent=pw)
+            ttk.Button(pw,text=self.tr('Enregistrer','حفظ'),style='Success.TButton',command=save_permissions).grid(row=len(vars),column=0,sticky='ew',padx=18,pady=12)
+        ttk.Button(bar,text=self.tr('Activer / Désactiver','تفعيل / تعطيل'),command=toggle).pack(side="left")
+        ttk.Button(bar,text=self.tr('Admin ↔ Caissier','مدير ↔ كاشير'),command=role).pack(side="left",padx=8)
+        ttk.Button(bar,text=self.tr('Permissions','الصلاحيات'),command=permissions).pack(side='left',padx=8);reload()
 
     def change_pin(self):
         pin=simpledialog.askstring('PIN',self.tr('Nouveau PIN (4 chiffres minimum):','PIN جديد (4 أرقام على الأقل):'),parent=self,show='*')

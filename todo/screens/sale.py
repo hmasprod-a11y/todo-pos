@@ -846,12 +846,18 @@ class SaleFrame(ttk.Frame):
         if index is not None:self.update_quantity(index,0)
 
     def discount(self):
+        from services.security import require_permission
+        try:require_permission('DISCOUNT')
+        except PermissionError as e:messagebox.showerror('ToDo',str(e),parent=self);return
         if not self.cart:return
         amount=simpledialog.askfloat(self.tr('Remise ticket','تخفيض التذكرة'),self.tr('Montant de la remise:','قيمة التخفيض:'),parent=self,minvalue=0,maxvalue=self.totals()[0]/100)
         if amount is not None:self.ticket_discount_cents=to_cents(amount);self.refresh()
         self.focus_search()
 
     def line_discount(self):
+        from services.security import require_permission
+        try:require_permission('DISCOUNT')
+        except PermissionError as e:messagebox.showerror('ToDo',str(e),parent=self);return
         index=self.selected()
         if index is None:return
         x=self.cart[index]
@@ -862,6 +868,9 @@ class SaleFrame(ttk.Frame):
         self.focus_search()
 
     def set_price(self):
+        from services.security import require_permission
+        try:require_permission('PRICE_EDIT')
+        except PermissionError as e:messagebox.showerror('ToDo',str(e),parent=self);return
         index=self.selected()
         if index is None:return
         line=self.cart[index]

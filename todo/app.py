@@ -242,8 +242,11 @@ class ToDoApp(tk.Tk):
         nav_ar=[("🛒 البيع","sale"),("📦 المخزون","stock"),("📋 السجل","journal"),("🗂 الإدارة","management"),("⚙ الإعدادات","settings"),("📊 الإحصائيات","statistics")]
         nav=nav_ar if lang=="ar" else nav_fr
         self.nav_buttons={}
+        from services.security import has_permission
+        nav_permissions={'settings':'SETTINGS','journal':'REPORTS','statistics':'REPORTS','management':'MANAGEMENT'}
         for txt,key in nav:
-            if self.user["role"]!="admin" and key in ("settings","journal","management","statistics"):continue
+            needed=nav_permissions.get(key)
+            if needed and not has_permission(needed,self.user['id']):continue
             b=tk.Button(bar,text=txt,bg="#0878C9",fg="white",activebackground="#075B96",activeforeground="white",relief="flat",bd=0,font=("Segoe UI",10,"bold"),padx=10,command=lambda k=key:self.show(k))
             b.pack(side="left",fill="y");self.nav_buttons[key]=b
         # Touch-friendly controls: explicit, large and high-contrast on POS tablets.
@@ -287,8 +290,18 @@ class ToDoApp(tk.Tk):
     def show(self, key):
         if self.lock_window and self.lock_window.winfo_exists():
             self.lock_window.lift();return
-        if self.user['role']!='admin' and key in ('products','purchases','suppliers','clients','settings','journal','management','statistics','inventory','sorties','supplier_payments','rendez_vous','promotions','inventory_sessions','loyalty','supplier_returns','customer_orders','quotations'):
-            messagebox.showerror('ToDo',('هذه العملية مخصصة للمدير.' if get_setting('language','fr')=='ar' else 'Action réservée à un administrateur.'));return
+        from services.security import has_permission
+        permission_routes={
+            'settings':'SETTINGS','journal':'REPORTS','statistics':'REPORTS',
+            'management':'MANAGEMENT','products':'MANAGEMENT','purchases':'MANAGEMENT','suppliers':'MANAGEMENT',
+            'clients':'MANAGEMENT','supplier_payments':'MANAGEMENT','rendez_vous':'MANAGEMENT',
+            'promotions':'MANAGEMENT','loyalty':'MANAGEMENT','supplier_returns':'MANAGEMENT',
+            'customer_orders':'MANAGEMENT','quotations':'MANAGEMENT','inventory':'STOCK_EDIT',
+            'sorties':'STOCK_EDIT','inventory_sessions':'STOCK_EDIT'
+        }
+        needed=permission_routes.get(key)
+        if needed and not has_permission(needed,self.user['id']):
+            messagebox.showerror('ToDo',('ليست لديك الصلاحية لهذه العملية.' if get_setting('language','fr')=='ar' else 'Permission insuffisante.'));return
         if self.current:
             if self.current is self.sale_frame:self.current.pack_forget()
             else:self.current.destroy()

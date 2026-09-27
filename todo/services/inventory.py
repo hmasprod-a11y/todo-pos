@@ -1,11 +1,11 @@
 import math
 from database import get_setting
-from services.security import current_user, require_admin, audit
+from services.security import current_user, require_permission, audit
 
 def apply_stock_movement(conn, product_id, qty_delta, movement_type,
                          unit_cost_cents=0, ref_type='', ref_id=None, note='', user_id=None):
     if movement_type in ('ADJUSTMENT','OPENING','INVENTORY'):
-        require_admin(conn)
+        require_permission('STOCK_EDIT',conn)
         if not note.strip():
             raise ValueError('La raison est obligatoire.')
     row=conn.execute('SELECT name,stock_qty FROM products WHERE id=?',(product_id,)).fetchone()
