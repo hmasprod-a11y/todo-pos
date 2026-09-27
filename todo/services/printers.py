@@ -105,3 +105,20 @@ def test_printer(printer=None, raw=None):
         job=str(path)
     with connect() as conn:audit(conn,'PRINTER_TEST',None,printer)
     return job
+
+
+def print_text_windows(text,purpose='addition',title='ToDo'):
+    """Print an arbitrary UTF-8 text document using the configured printer route."""
+    if os.name!='nt':raise OSError('Impression disponible sous Windows.')
+    printer=printer_for(purpose)
+    if not printer:
+        raise ValueError(f'Aucune imprimante configurée pour {purpose.upper()}.')
+    import tempfile
+    from pathlib import Path
+    from subprocess import list2cmdline
+    safe=''.join(ch for ch in str(purpose).lower() if ch.isalnum() or ch in '-_') or 'print'
+    path=Path(tempfile.gettempdir())/f'todo_{safe}.txt'
+    path.write_text(str(text),encoding='utf-8')
+    os.startfile(str(path),'printto',list2cmdline([printer]))
+    with connect() as conn:audit(conn,'PRINT_TEXT',None,f'{purpose}:{printer}:{title}')
+    return path

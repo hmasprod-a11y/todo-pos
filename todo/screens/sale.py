@@ -320,6 +320,11 @@ class SaleFrame(ttk.Frame):
                   (self.tr('Compter la caisse','حساب الصندوق'),self.cash_tools),
                   (self.tr('Dépenses','المصاريف'),lambda:self.cash_tools('expense')),
                   (self.tr('Rapport','التقارير'),lambda:self.app.show('journal')),
+                  (self.tr('Addition','الحساب قبل الأداء'),self.print_addition),
+                  (self.tr('C1 Préparation','C1 تحضير'),lambda:self.print_preparation('C1')),
+                  (self.tr('C2 Préparation','C2 تحضير'),lambda:self.print_preparation('C2')),
+                  (self.tr('C3 Préparation','C3 تحضير'),lambda:self.print_preparation('C3')),
+                  (self.tr('C4 Préparation','C4 تحضير'),lambda:self.print_preparation('C4')),
                   (self.tr('Raccourcis','الاختصارات'),self.show_shortcuts),
                   (self.tr('⌨ Clavier','⌨ لوحة المفاتيح'),self.toggle_keyboard),
                   (self.tr('Calculatrice','الحاسبة'),self.calculator),
@@ -496,6 +501,29 @@ class SaleFrame(ttk.Frame):
         window.bind('<Escape>',lambda e:window.destroy())
         if action in ('close','expense'):
             window.after_idle(getattr(frame,action))
+
+
+    def print_addition(self):
+        if not self.cart:
+            messagebox.showinfo('ToDo',self.tr('Ticket vide.','التذكرة فارغة.'),parent=self);return
+        try:
+            from services.order_slips import print_addition
+            print_addition(self.cart,self.ticket_discount_cents,self.currency)
+            self.status.config(text=self.tr('Addition envoyée à l’imprimante.','تم إرسال الحساب إلى الطابعة.'))
+        except Exception as error:
+            messagebox.showerror(self.tr('Addition','الحساب'),str(error),parent=self)
+        finally:self.focus_search()
+
+    def print_preparation(self,station):
+        if not self.cart:
+            messagebox.showinfo('ToDo',self.tr('Ticket vide.','التذكرة فارغة.'),parent=self);return
+        try:
+            from services.order_slips import print_preparation
+            print_preparation(self.cart,station)
+            self.status.config(text=self.tr(f'Bon {station} envoyé.',f'تم إرسال ورقة {station}.'))
+        except Exception as error:
+            messagebox.showerror(station,str(error),parent=self)
+        finally:self.focus_search()
 
     def show_shortcuts(self):
         messagebox.showinfo(self.tr('Raccourcis','الاختصارات'),
