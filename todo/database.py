@@ -314,6 +314,20 @@ CREATE TABLE IF NOT EXISTS clients (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS loyalty_movements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER NOT NULL,
+    points_delta INTEGER NOT NULL,
+    reason TEXT NOT NULL DEFAULT '',
+    ref_type TEXT NOT NULL DEFAULT '',
+    ref_id INTEGER,
+    user_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(client_id) REFERENCES clients(id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_loyalty_client ON loyalty_movements(client_id,id);
+
 CREATE TABLE IF NOT EXISTS client_payments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER NOT NULL,
@@ -357,7 +371,10 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('currency','DH'),
 ('allow_negative_stock','1'),
 ('receipt_footer','Merci pour votre visite'),
-('backup_on_close','1');
+('backup_on_close','1'),
+('loyalty_enabled','0'),
+('loyalty_earn_every_cents','1000'),
+('loyalty_point_value_cents','50');
 """
 
 class Connection(sqlite3.Connection):
