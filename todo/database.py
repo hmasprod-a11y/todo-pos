@@ -495,6 +495,7 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('manual_stock_edit_enabled','1'),
 ('stock_management_enabled','1'),
 ('receipt_footer','Merci pour votre visite'),
+('custom_shortcuts','calculator,held,drawer'),
 ('backup_on_close','1'),
 ('loyalty_enabled','0'),
 ('loyalty_earn_every_cents','1000'),

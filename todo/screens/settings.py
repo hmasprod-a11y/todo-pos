@@ -317,7 +317,44 @@ class SettingsFrame(ttk.Frame):
         ttk.Button(u,text=self.tr('Journal des actions','سجل العمليات'),command=self.audit_log).pack(side="left",padx=8)
         ttk.Button(u,text=self.tr('À propos - Aide','حول - مساعدة'),style='Soft.TButton',command=self.about_help).pack(side='left',padx=8)
         ttk.Button(u,text=self.tr('Licence','الترخيص'),style='Soft.TButton',command=self.license_tools).pack(side='left',padx=8)
+        ttk.Button(u,text=self.tr('Raccourcis personnalisés','اختصارات مخصصة'),style='Soft.TButton',command=self.shortcut_tools).pack(side='left',padx=8)
         ttk.Label(u,text=self.tr('Admin initial: admin / PIN 1234 — changez-le.','المدير الأولي: admin / PIN 1234 — غيّره.')).pack(side="left",padx=15)
+    def shortcut_tools(self):
+        from services.shortcuts import ALLOWED_SHORTCUTS,get_shortcuts,save_shortcuts
+        w=tk.Toplevel(self);w.title(self.tr('Raccourcis personnalisés','اختصارات مخصصة'));w.geometry('520x520');w.transient(self.winfo_toplevel());w.grab_set()
+        ttk.Label(w,text=self.tr('Choisissez jusqu’à 6 fonctions à afficher directement sur l’écran de vente.','اختر حتى 6 وظائف لتظهر مباشرة في شاشة البيع.'),wraplength=470).pack(anchor='w',padx=16,pady=(16,10))
+        labels={
+            'calculator':self.tr('Calculatrice','الحاسبة'),
+            'held':self.tr("Liste d’attente",'المعلقات'),
+            'drawer':self.tr('Tiroir','درج النقود'),
+            'duplicate':self.tr('Duplicata','نسخة التذكرة'),
+            'price_grid':self.tr('Grille de prix','لائحة الأثمان'),
+            'expense':self.tr('Dépenses','المصاريف'),
+            'report':self.tr('Rapport','التقارير'),
+            'closure':self.tr('Clôture','إغلاق الصندوق'),
+            'keyboard':self.tr('Clavier tactile','لوحة المفاتيح'),
+        }
+        selected=set(get_shortcuts());vars={}
+        body=ttk.Frame(w,padding=(16,4));body.pack(fill='both',expand=True)
+        for key in ALLOWED_SHORTCUTS:
+            var=tk.BooleanVar(value=key in selected);vars[key]=var
+            ttk.Checkbutton(body,text=labels[key],variable=var).pack(anchor='w',pady=5)
+        def save():
+            keys=[key for key in ALLOWED_SHORTCUTS if vars[key].get()]
+            if len(keys)>6:
+                messagebox.showerror('ToDo',self.tr('Maximum 6 raccourcis.','الحد الأقصى 6 اختصارات.'),parent=w);return
+            try:
+                save_shortcuts(keys)
+                try:
+                    frame=self.app.frames.get('sale') if hasattr(self.app,'frames') else None
+                    if frame and hasattr(frame,'build_custom_shortcuts'):frame.build_custom_shortcuts()
+                except Exception:pass
+                messagebox.showinfo('ToDo',self.tr('Raccourcis enregistrés.','تم حفظ الاختصارات.'),parent=w);w.destroy()
+            except Exception as error:messagebox.showerror('ToDo',str(error),parent=w)
+        bar=ttk.Frame(w);bar.pack(fill='x',padx=16,pady=16)
+        ttk.Button(bar,text=self.tr('Enregistrer','حفظ'),style='Primary.TButton',command=save).pack(side='right')
+        ttk.Button(bar,text=self.tr('Annuler','إلغاء'),command=w.destroy).pack(side='right',padx=6)
+
     def toggle_windows_startup(self):
         enabled=bool(self.start_with_windows.get())
         try:

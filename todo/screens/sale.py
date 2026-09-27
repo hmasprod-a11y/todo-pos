@@ -191,6 +191,9 @@ class SaleFrame(ttk.Frame):
         ]
         for label,command,style in footer_actions:
             ttk.Button(footer,text=label,style=style,command=command).pack(side='left',expand=True,fill='x',padx=3,ipady=3)
+        self.custom_shortcut_bar=ttk.Frame(self)
+        self.custom_shortcut_bar.pack(fill='x',pady=(6,0))
+        self.build_custom_shortcuts()
         status_bar=tk.Frame(self,bg='#E2E8F0',padx=10,pady=6)
         status_bar.pack(fill='x',pady=(8,0))
         self.status=tk.Label(status_bar,text=self.tr('● Scanner prêt   ·   Ctrl+F Rechercher   ·   Entrée Ajouter','● الماسح جاهز   ·   Ctrl+F بحث   ·   Enter إضافة'),
@@ -524,6 +527,25 @@ class SaleFrame(ttk.Frame):
         except Exception as error:
             messagebox.showerror(station,str(error),parent=self)
         finally:self.focus_search()
+
+    def build_custom_shortcuts(self):
+        from services.shortcuts import get_shortcuts
+        for child in self.custom_shortcut_bar.winfo_children():child.destroy()
+        actions={
+            'calculator':(self.tr('Calculatrice','الحاسبة'),self.calculator),
+            'held':(self.tr("Liste d’attente",'المعلقات'),self.show_held),
+            'drawer':(self.tr('Tiroir','درج النقود'),self.open_drawer),
+            'duplicate':(self.tr('Duplicata','نسخة التذكرة'),self.duplicate_receipt),
+            'price_grid':(self.tr('Grille de prix','لائحة الأثمان'),self.choose_price_grid),
+            'expense':(self.tr('Dépenses','المصاريف'),lambda:self.cash_tools('expense')),
+            'report':(self.tr('Rapport','التقارير'),lambda:self.app.show('journal')),
+            'closure':(self.tr('Clôture','إغلاق الصندوق'),lambda:self.cash_tools('close')),
+            'keyboard':(self.tr('⌨ Clavier','⌨ لوحة المفاتيح'),self.toggle_keyboard),
+        }
+        for key in get_shortcuts():
+            if key=='closure' and get_setting('closure_enabled','1')!='1':continue
+            label,command=actions[key]
+            ttk.Button(self.custom_shortcut_bar,text=label,style='Soft.TButton',command=command).pack(side='left',expand=True,fill='x',padx=2)
 
     def show_shortcuts(self):
         messagebox.showinfo(self.tr('Raccourcis','الاختصارات'),
