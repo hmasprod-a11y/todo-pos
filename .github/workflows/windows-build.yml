@@ -51,6 +51,7 @@ jobs:
             "dist/ToDo/docs/USER_GUIDE_AR.md",
             "dist/ToDo/docs/BACKUP_RESTORE.md",
             "dist/ToDo/docs/INSTALLATION_WINDOWS.md",
+            "dist/ToDo/docs/TECHNICAL_ARCHITECTURE.md",
             "dist/ToDo/docs/RELEASE_CHECKLIST.md"
           )
           foreach ($file in $required) { if (-not (Test-Path $file)) { throw "Missing release document: $file" } }
