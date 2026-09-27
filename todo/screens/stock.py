@@ -74,10 +74,10 @@ class StockFrame(ttk.Frame):
         w=tk.Toplevel(self);w.title(self.tr("Réapprovisionnement","إعادة الطلب"));w.geometry('1000x620');w.transient(self)
         ttk.Label(w,text=self.tr("Articles à commander — cible automatique = 2 × seuil d'alerte","منتجات لإعادة الطلب — الهدف التلقائي = ضعفي حد التنبيه"),
                   font=('Segoe UI',11,'bold')).pack(anchor='w',padx=12,pady=(12,4))
-        tree=ttk.Treeview(w,columns=('name','sku','supplier','stock','alert','target','order','cost'),show='headings')
+        tree=ttk.Treeview(w,columns=('name','supplier_name','sku','supplier','stock','alert','target','order','cost'),show='headings')
         for key,label,width,anchor_col in [
-            ('name',self.tr('Article','المنتوج'),250,'w'),('sku','SKU',100,'center'),
-            ('supplier',self.tr('Code fournisseur','كود المورد'),120,'center'),('stock',self.tr('Stock','المخزون'),80,'e'),
+            ('name',self.tr('Article','المنتوج'),220,'w'),('supplier_name',self.tr('Fournisseur','المورد'),160,'w'),('sku','SKU',90,'center'),
+            ('supplier',self.tr('Code fournisseur','كود المورد'),110,'center'),('stock',self.tr('Stock','المخزون'),70,'e'),
             ('alert',self.tr('Seuil','الحد'),80,'e'),('target',self.tr('Cible','الهدف'),80,'e'),
             ('order',self.tr('À commander','للطلب'),95,'e'),('cost',self.tr('Coût estimé','التكلفة المقدرة'),110,'e')]:
             tree.heading(key,text=label);tree.column(key,width=width,anchor=anchor_col)
@@ -85,7 +85,7 @@ class StockFrame(ttk.Frame):
         total=0
         for r in rows:
             total+=r['estimated_cost_cents']
-            tree.insert('','end',values=(r['name'],r['sku'] or '',r['supplier_code'] or '',f"{r['stock_qty']:g}",
+            tree.insert('','end',values=(r['name'],r['preferred_supplier_name'] or self.tr('Non assigné','غير محدد'),r['sku'] or '',r['supplier_code'] or '',f"{r['stock_qty']:g}",
                 f"{r['alert_qty']:g}",f"{r['target_qty']:g}",f"{r['suggested_qty']:g}",f"{r['estimated_cost_cents']/100:.2f}"))
         footer=ttk.Frame(w);footer.pack(fill='x',padx=12,pady=(0,12))
         ttk.Label(footer,text=self.tr(f"Coût total estimé: {total/100:.2f} DH",f"إجمالي التكلفة المقدرة: {total/100:.2f} درهم"),
@@ -96,9 +96,9 @@ class StockFrame(ttk.Frame):
             if not path:return
             with open(path,'w',newline='',encoding='utf-8-sig') as fh:
                 wr=csv.writer(fh)
-                wr.writerow(['Article','SKU','Code fournisseur','Stock','Seuil','Cible','Quantité à commander','Coût estimé cents'])
+                wr.writerow(['Article','Fournisseur','SKU','Code fournisseur','Stock','Seuil','Cible','Quantité à commander','Coût estimé cents'])
                 for r in rows:
-                    wr.writerow([r['name'],r['sku'],r['supplier_code'],r['stock_qty'],r['alert_qty'],r['target_qty'],r['suggested_qty'],r['estimated_cost_cents']])
+                    wr.writerow([r['name'],r['preferred_supplier_name'],r['sku'],r['supplier_code'],r['stock_qty'],r['alert_qty'],r['target_qty'],r['suggested_qty'],r['estimated_cost_cents']])
             messagebox.showinfo('ToDo',self.tr('Liste exportée.','تم تصدير اللائحة.'),parent=w)
         ttk.Button(footer,text=self.tr('Exporter CSV','تصدير CSV'),style='Primary.TButton',command=export_csv).pack(side='left')
 

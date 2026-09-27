@@ -54,9 +54,11 @@ def reorder_list():
     from database import connect
     with connect() as conn:
         rows=conn.execute("""
-            SELECT id,name,sku,supplier_code,stock_qty,alert_qty,purchase_price_cents,allow_fraction
-            FROM products
-            WHERE active=1 AND alert_qty>0 AND stock_qty<=alert_qty
+            SELECT p.id,p.name,p.sku,p.supplier_code,p.stock_qty,p.alert_qty,p.purchase_price_cents,p.allow_fraction,
+                   p.preferred_supplier_id,COALESCE(s.name,'') preferred_supplier_name
+            FROM products p
+            LEFT JOIN suppliers s ON s.id=p.preferred_supplier_id
+            WHERE p.active=1 AND p.alert_qty>0 AND p.stock_qty<=p.alert_qty
             ORDER BY (alert_qty-stock_qty) DESC,name COLLATE NOCASE
         """).fetchall()
     result=[]

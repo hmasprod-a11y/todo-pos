@@ -280,6 +280,12 @@ class CoreTests(unittest.TestCase):
    c.executemany("INSERT INTO product_barcodes(product_id,barcode) VALUES(?,'SHARED')",[(self.pid,),(second,)])
   for q in ['Olive','live','REF-123','بلدي','SUP-789']:self.assertIn(second,[r['id'] for r in search_products(q)])
   self.assertEqual(len(scan_barcode('SHARED')),2)
+ def test_reorder_list_includes_preferred_supplier(self):
+  with db.connect() as c:
+   sid=c.execute("INSERT INTO suppliers(name) VALUES('Preferred Supplier')").lastrowid
+   c.execute("UPDATE products SET stock_qty=1,alert_qty=4,purchase_price_cents=200,preferred_supplier_id=? WHERE id=?",(sid,self.pid))
+  row=reorder_list()[0]
+  self.assertEqual(row['preferred_supplier_id'],sid);self.assertEqual(row['preferred_supplier_name'],'Preferred Supplier')
  def test_reorder_list_targets_twice_alert_level_and_estimates_cost(self):
   with db.connect() as c:
    c.execute("UPDATE products SET stock_qty=2,alert_qty=5,purchase_price_cents=300,supplier_code='SUP-A' WHERE id=?",(self.pid,))

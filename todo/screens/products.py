@@ -30,7 +30,7 @@ class ProductEditor(tk.Toplevel):
         # virtual keyboard (another Toplevel) from receiving mouse/touch events.
         # The editor remains transient, while its own embedded keyboard works
         # entirely inside this window.
-        self.sku=tk.StringVar();self.alias=tk.StringVar();self.supplier_code=tk.StringVar();self.fraction=tk.BooleanVar();self.stock_note=tk.StringVar()
+        self.sku=tk.StringVar();self.alias=tk.StringVar();self.supplier_code=tk.StringVar();self.preferred_supplier=tk.StringVar();self.fraction=tk.BooleanVar();self.stock_note=tk.StringVar()
         self.bar=tk.StringVar();self.name=tk.StringVar();self.cat=tk.StringVar()
         self.barcode_rows=[]
         self.buy=tk.StringVar(value="0");self.sell=tk.StringVar(value="0");self.stock=tk.StringVar(value="0");self.alert=tk.StringVar(value="0")
@@ -285,6 +285,9 @@ class ProductEditor(tk.Toplevel):
             rs=c.execute("SELECT min_qty,unit_price_cents,pricing_mode FROM quantity_prices WHERE product_id=? ORDER BY min_qty",(self.pid,)).fetchall()
             gps=c.execute("SELECT grid_id,unit_price_cents FROM product_grid_prices WHERE product_id=?",(self.pid,)).fetchall()
         self.sku.set(p["sku"]);self.alias.set(p["alias"]);self.supplier_code.set(p["supplier_code"]);self.fraction.set(bool(p["allow_fraction"]))
+        supplier_id=p["preferred_supplier_id"] if "preferred_supplier_id" in p.keys() else None
+        supplier_label=next((f"{r['name']} · #{r['id']}" for r in self.supplier_rows if r['id']==supplier_id),'')
+        self.preferred_supplier.set(supplier_label)
         self.bar.set(b["barcode"] if b else "");self.name.set(p["name"]);self.cat.set(p["category"])
         for child in self.barcodes_frame.winfo_children():child.destroy()
         self.barcode_rows=[]
@@ -331,7 +334,12 @@ class ProductEditor(tk.Toplevel):
                 old=c.execute('SELECT stock_qty FROM products WHERE id=?',(pid,)).fetchone()[0]
                 if abs(stock-self.loaded_stock)>1e-9 and abs(stock-old)>1e-9:
                     apply_stock_movement(c,pid,stock-old,'ADJUSTMENT' if self.pid else 'OPENING',buy,'product',pid,self.stock_note.get().strip() or ('Correction depuis la fiche produit' if self.pid else 'Stock initial'))
-                c.execute('UPDATE products SET sku=?,alias=?,supplier_code=?,allow_fraction=? WHERE id=?',(self.sku.get().strip(),self.alias.get().strip(),self.supplier_code.get().strip(),int(self.fraction.get()),pid))
+                supplier_label=self.preferred_supplier.get().strip()
+                preferred_supplier_id=None
+                if supplier_label:
+                    try: preferred_supplier_id=int(supplier_label.rsplit('#',1)[1])
+                    except (ValueError,IndexError): raise ValueError(self.tr('Fournisseur invalide','مورد غير صالح'))
+                c.execute('UPDATE products SET sku=?,alias=?,supplier_code=?,preferred_supplier_id=?,allow_fraction=? WHERE id=?',(self.sku.get().strip(),self.alias.get().strip(),self.supplier_code.get().strip(),preferred_supplier_id,int(self.fraction.get()),pid))
                 audit(c,'PRODUCT_SAVE',pid)
                 # Auto-generated internal barcode for image-driven products that have no scanned code.
                 # Stable across edits because it is derived from the product id.
