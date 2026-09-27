@@ -156,3 +156,20 @@ def list_product_label_barcodes(product_id):
         return [dict(row) for row in conn.execute(
             "SELECT id,barcode,label,qty_multiplier,price_override_cents FROM product_barcodes WHERE product_id=? ORDER BY id",
             (product_id,)).fetchall()]
+
+
+def deactivate_product(product_id):
+    """Soft-delete an article while preserving sales, stock and audit history."""
+    pid=int(product_id)
+    with connect() as conn:
+        conn.execute('BEGIN IMMEDIATE')
+        require_admin(conn)
+        row=conn.execute('SELECT id,name,active FROM products WHERE id=?',(pid,)).fetchone()
+        if not row:
+            raise ValueError('Article introuvable.')
+        if not row['active']:
+            raise ValueError('Article déjà désactivé.')
+        conn.execute("UPDATE products SET active=0,updated_at=CURRENT_TIMESTAMP WHERE id=?",(pid,))
+        audit(conn,'PRODUCT_DEACTIVATE',pid,row['name'])
+        conn.commit()
+    return pid

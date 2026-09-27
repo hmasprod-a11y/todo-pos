@@ -12,6 +12,8 @@ class StockFrame(ttk.Frame):
         ttk.Label(top,text=self.tr('Stock','المخزون'),style="Title.TLabel").pack(side="left")
         ttk.Label(self,text=self.tr('Quantités, mouvements et inventaire — nom, prix et photo restent dans Articles.','الكميات والحركات والجرد — تعديل الاسم والثمن والصورة يبقى في المنتجات.'),foreground="#475569").pack(anchor="w",pady=(0,8))
         ttk.Button(top,text=self.tr('Ajustement','تسوية المخزون'),style="Primary.TButton",command=self.adjust).pack(side="right")
+        ttk.Button(top,text=self.tr('Désactiver','تعطيل'),style='Danger.TButton',command=self.deactivate_selected).pack(side='right',padx=4)
+        ttk.Button(top,text=self.tr('+ Nouveau','+ جديد'),style='Success.TButton',command=self.new_product).pack(side='right',padx=4)
         self.q=tk.StringVar();self.filter=tk.StringVar(value=self.tr('Tous','الكل'))
         self.search_entry=ttk.Entry(top,textvariable=self.q,width=22,style="Search.TEntry");self.search_entry.pack(side="left",padx=(20,8));self.search_entry.bind("<KeyRelease>",lambda e:self.refresh())
         box=ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل'),self.tr('Alertes stock','تنبيهات المخزون'),self.tr('Stock négatif','مخزون سالب')],state="readonly",width=14);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
@@ -79,6 +81,26 @@ class StockFrame(ttk.Frame):
                 f"{x['stock_qty']:g}",f"{x['alert_qty']:g}",last
             ),tags=tags)
         self.t.tag_configure('negative',background='#FEE2E2',foreground='#991B1B');self.t.tag_configure('alert',background='#FEF3C7',foreground='#92400E')
+    def new_product(self):
+        from screens.products import ProductEditor
+        ProductEditor(self,on_saved=self.refresh)
+
+    def deactivate_selected(self):
+        selection=self.t.selection()
+        if not selection:return
+        pid=int(selection[0])
+        values=self.t.item(selection[0],'values')
+        name=values[1] if len(values)>1 else f'#{pid}'
+        if not messagebox.askyesno(
+            self.tr('Désactiver article','تعطيل المنتوج'),
+            self.tr(f"Désactiver « {name} » ? L'historique sera conservé.",f'تعطيل « {name} »؟ سيتم الاحتفاظ بالسجل.'),
+            parent=self
+        ):return
+        try:
+            from services.catalog import deactivate_product
+            deactivate_product(pid);self.refresh()
+        except Exception as error:messagebox.showerror('ToDo',str(error),parent=self)
+
     def adjust(self):
         s=self.t.selection()
         if not s:return

@@ -388,6 +388,7 @@ class ProductsFrame(ttk.Frame):
         ttk.Button(top,text=self.tr('Exporter catalogue','تصدير الكتالوج'),style='Soft.TButton',command=self.export_catalogue).pack(side='right',padx=3)
         ttk.Button(top,text=self.tr('Étiquette PDF','ملصق PDF'),style='Soft.TButton',command=self.label_pdf).pack(side='right',padx=3)
         ttk.Button(top,text=self.tr('Modifier','تعديل'),style='Soft.TButton',command=self.edit).pack(side='right',padx=3)
+        ttk.Button(top,text=self.tr('Désactiver','تعطيل'),style='Danger.TButton',command=self.deactivate).pack(side='right',padx=3)
         cols=("id","barcode","name","cat","buy","sell","stock","alert","img")
         self.t=ttk.Treeview(self,columns=cols,show='headings',height=14)
         cfg=[("id","ID",50),("barcode",self.tr("Barcode","الباركود"),145),("name",self.tr("Article","المنتوج"),260),("cat",self.tr("Famille","العائلة"),130),("buy",self.tr("Achat","الشراء"),85),("sell",self.tr("Vente","البيع"),85),("stock",self.tr("Stock","المخزون"),80),("alert",self.tr("Alerte","التنبيه"),80),("img",self.tr("Img","صورة"),45)]
@@ -803,6 +804,17 @@ class ProductsFrame(ttk.Frame):
     def new(self):ProductEditor(self,on_saved=self.refresh)
     def edit(self):
         if self.sel():ProductEditor(self,self.sel(),self.refresh)
+    def deactivate(self):
+        pid=self.sel()
+        if not pid:return
+        values=self.t.item(self.t.selection()[0],'values')
+        name=values[2] if len(values)>2 else f'#{pid}'
+        if not messagebox.askyesno(self.tr('Désactiver article','تعطيل المنتوج'),
+            self.tr(f"Désactiver « {name} » ? L'historique sera conservé.",f'تعطيل « {name} »؟ سيتم الاحتفاظ بالسجل.'),parent=self):return
+        try:
+            from services.catalog import deactivate_product
+            deactivate_product(pid);self.refresh()
+        except Exception as error:messagebox.showerror('ToDo',str(error),parent=self)
     def add_barcode(self):
         pid=self.sel()
         if not pid:return
