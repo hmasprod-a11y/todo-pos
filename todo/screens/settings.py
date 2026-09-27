@@ -115,8 +115,8 @@ class SettingsFrame(ttk.Frame):
 
         # Paramètres contient de nombreux blocs; le canvas garde toute la page
         # accessible sur tablette / petite fenêtre sans modifier les widgets.
-        self.settings_canvas=tk.Canvas(body,highlightthickness=0,borderwidth=0)
-        self.settings_scroll=ttk.Scrollbar(body,orient='vertical',command=self.settings_canvas.yview)
+        self.settings_canvas=tk.Canvas(self,highlightthickness=0,borderwidth=0)
+        self.settings_scroll=ttk.Scrollbar(self,orient='vertical',command=self.settings_canvas.yview)
         self.settings_canvas.configure(yscrollcommand=self.settings_scroll.set)
         self.settings_scroll.pack(side='right',fill='y')
         self.settings_canvas.pack(side='left',fill='both',expand=True)

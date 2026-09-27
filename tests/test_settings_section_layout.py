@@ -24,7 +24,7 @@ class SettingsSectionLayoutTests(unittest.TestCase):
 
     def test_peripheral_and_mail_sections_have_no_row_16_placeholders(self):
         for start,end in [
-            ("p=ttk.LabelFrame(self,text=self.tr('Impression'","scale=ttk.LabelFrame"),
+            ("p=ttk.LabelFrame(body,text=self.tr('Impression'","scale=ttk.LabelFrame"),
             ("scale=ttk.LabelFrame","d=ttk.LabelFrame"),
             ("serial_display=ttk.LabelFrame","        self.refresh_customer_serial_ports()"),
             ("rfid=ttk.LabelFrame","        self.refresh_rfid_ports()"),
