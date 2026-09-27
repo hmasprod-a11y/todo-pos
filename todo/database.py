@@ -243,6 +243,32 @@ CREATE TABLE IF NOT EXISTS purchase_items (
     FOREIGN KEY(product_id) REFERENCES products(id)
 );
 
+CREATE TABLE IF NOT EXISTS supplier_returns (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    supplier_id INTEGER NOT NULL,
+    purchase_id INTEGER NOT NULL,
+    reason TEXT NOT NULL DEFAULT '',
+    total_cents INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER,
+    FOREIGN KEY(supplier_id) REFERENCES suppliers(id),
+    FOREIGN KEY(purchase_id) REFERENCES purchases(id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS supplier_return_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    supplier_return_id INTEGER NOT NULL,
+    purchase_item_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    qty REAL NOT NULL,
+    unit_cost_cents INTEGER NOT NULL,
+    line_total_cents INTEGER NOT NULL,
+    FOREIGN KEY(supplier_return_id) REFERENCES supplier_returns(id) ON DELETE CASCADE,
+    FOREIGN KEY(purchase_item_id) REFERENCES purchase_items(id),
+    FOREIGN KEY(product_id) REFERENCES products(id)
+);
+
 CREATE TABLE IF NOT EXISTS returns (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     return_no TEXT NOT NULL UNIQUE,

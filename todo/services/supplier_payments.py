@@ -26,12 +26,14 @@ def add_supplier_payment(supplier_id, amount_cents, note='', purchase_id=None, p
             purchase = conn.execute(
                 """SELECT p.id,p.total_cents,
                           COALESCE((SELECT SUM(amount_cents) FROM supplier_payments
-                                    WHERE purchase_id=p.id),0) paid
+                                    WHERE purchase_id=p.id),0) paid,
+                          COALESCE((SELECT SUM(total_cents) FROM supplier_returns
+                                    WHERE purchase_id=p.id),0) returned
                    FROM purchases p WHERE p.id=? AND p.supplier_id=?""",
                 (purchase_id, supplier_id)).fetchone()
             if not purchase:
                 raise ValueError("Facture fournisseur invalide.")
-            remaining = int(purchase['total_cents']) - int(purchase['paid'])
+            remaining = int(purchase['total_cents']) - int(purchase['paid']) - int(purchase['returned'])
             if amount > remaining:
                 raise ValueError("Le règlement dépasse le reste de la facture.")
             allocations = [(int(purchase_id), amount)]
@@ -39,12 +41,14 @@ def add_supplier_payment(supplier_id, amount_cents, note='', purchase_id=None, p
             rows = conn.execute(
                 """SELECT p.id,p.total_cents,
                           COALESCE((SELECT SUM(amount_cents) FROM supplier_payments
-                                    WHERE purchase_id=p.id),0) paid
+                                    WHERE purchase_id=p.id),0) paid,
+                          COALESCE((SELECT SUM(total_cents) FROM supplier_returns
+                                    WHERE purchase_id=p.id),0) returned
                    FROM purchases p
                    WHERE p.supplier_id=?
                    ORDER BY p.created_at,p.id""", (supplier_id,)).fetchall()
-            outstanding = [(int(r['id']), int(r['total_cents']) - int(r['paid']))
-                           for r in rows if int(r['total_cents']) > int(r['paid'])]
+            outstanding = [(int(r['id']), int(r['total_cents']) - int(r['paid']) - int(r['returned']))
+                           for r in rows if int(r['total_cents']) > int(r['paid']) + int(r['returned'])]
             if amount > sum(rest for _, rest in outstanding):
                 raise ValueError("Le règlement dépasse le solde dû au fournisseur.")
             left = amount
@@ -95,14 +99,17 @@ def supplier_credit_statement():
             SELECT s.id, s.name, s.phone,
                    COALESCE(b.billed, 0)  billed_cents,
                    COALESCE(p.paid,   0)  paid_cents,
-                   COALESCE(b.billed, 0) - COALESCE(p.paid, 0) balance_cents
+                   COALESCE(r.returned,0) returned_cents,
+                   COALESCE(b.billed, 0) - COALESCE(p.paid, 0) - COALESCE(r.returned,0) balance_cents
             FROM suppliers s
             LEFT JOIN (SELECT supplier_id, SUM(total_cents) billed
                        FROM purchases GROUP BY supplier_id) b ON b.supplier_id=s.id
             LEFT JOIN (SELECT supplier_id, SUM(amount_cents) paid
                        FROM supplier_payments GROUP BY supplier_id) p ON p.supplier_id=s.id
+            LEFT JOIN (SELECT supplier_id, SUM(total_cents) returned
+                       FROM supplier_returns GROUP BY supplier_id) r ON r.supplier_id=s.id
             WHERE s.active=1
-              AND (COALESCE(b.billed,0) - COALESCE(p.paid,0)) > 0
+              AND (COALESCE(b.billed,0) - COALESCE(p.paid,0) - COALESCE(r.returned,0)) > 0
             ORDER BY balance_cents DESC
         """)]
 
@@ -112,6 +119,8 @@ def supplier_purchases(supplier_id):
         return [dict(r) for r in conn.execute(
             """SELECT pu.id, pu.supplier_invoice, pu.total_cents, pu.created_at,
                       COALESCE((SELECT SUM(sp.amount_cents) FROM supplier_payments sp
-                                WHERE sp.purchase_id=pu.id), 0) paid
+                                WHERE sp.purchase_id=pu.id), 0) paid,
+                      COALESCE((SELECT SUM(sr.total_cents) FROM supplier_returns sr
+                                WHERE sr.purchase_id=pu.id), 0) returned
                FROM purchases pu WHERE pu.supplier_id=? ORDER BY pu.id DESC""",
             (supplier_id,))]
