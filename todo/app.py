@@ -669,18 +669,26 @@ class ToDoApp(tk.Tk):
     def on_close(self):
         if self.lock_window and self.lock_window.winfo_exists():
             self.lock_window.lift();return
+        lang=get_setting('language','fr')
+        title='الخروج' if lang=='ar' else 'Quitter ToDo'
+        message=('هل تريد فعلاً إغلاق البرنامج؟ سيتم حفظ التذكرة الحالية في الانتظار وإنشاء نسخة احتياطية قبل الإغلاق.'
+                 if lang=='ar' else
+                 'Voulez-vous vraiment quitter ? Le ticket en cours sera mis en attente et une sauvegarde sera créée avant la fermeture.')
+        if not messagebox.askyesno(title,message,parent=self):
+            if self.sale_frame:self.sale_frame.focus_search()
+            return
         if self.sale_frame and self.sale_frame.cart:
             from services.sales import hold_sale
             try:
                 hold_sale(self.user['id'],self.sale_frame.cart,'Reprise après fermeture',self.sale_frame.ticket_discount_cents,self.sale_frame.held_id,client_id=self.sale_frame.client_id)
                 self.sale_frame.cart=[]
             except Exception as e:
-                lang=get_setting('language','fr');messagebox.showerror('ToDo',(f'لم يتم حفظ التذكرة: {e}' if lang=='ar' else f'Ticket non sauvegardé : {e}'));return
+                messagebox.showerror('ToDo',(f'لم يتم حفظ التذكرة: {e}' if lang=='ar' else f'Ticket non sauvegardé : {e}'),parent=self);return
         try:
             if get_setting("backup_on_close", "1") == "1":
                 create_backup()
         except Exception as e:
-            lang=get_setting('language','fr');messagebox.showerror(('النسخ الاحتياطي' if lang=='ar' else 'Sauvegarde'),(f'فشل النسخ الاحتياطي: {e}\nسيبقى البرنامج مفتوحاً لإعادة المحاولة.' if lang=='ar' else f'Sauvegarde échouée : {e}\nLe programme reste ouvert pour réessayer.'));return
+            messagebox.showerror(('النسخ الاحتياطي' if lang=='ar' else 'Sauvegarde'),(f'فشل النسخ الاحتياطي: {e}\nسيبقى البرنامج مفتوحاً لإعادة المحاولة.' if lang=='ar' else f'Sauvegarde échouée : {e}\nLe programme reste ouvert pour réessayer.'),parent=self);return
         self.destroy()
 
 if __name__ == "__main__":
