@@ -9,6 +9,7 @@ from services.security import current_user
 from services.suppliers import save_supplier, list_suppliers
 from services.supplier_payments import add_supplier_payment, supplier_purchases
 from services.cash import open_session, close_session
+from services.purchases import create_purchase_order,list_purchase_orders,purchase_order_lines,mark_purchase_order_received
 
 
 class SupplierTests(unittest.TestCase):
