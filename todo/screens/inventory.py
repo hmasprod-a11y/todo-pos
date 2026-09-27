@@ -105,7 +105,7 @@ class InventaireFrame(ttk.Frame):
         n_adj = 0
         try:
             with connect() as conn:
-                require_permission('MANAGEMENT', conn)
+                require_permission('STOCK_EDIT', conn)
                 conn.execute('BEGIN IMMEDIATE')
                 for p in pending:
                     pid=p['id'];counted=diffs[pid]
@@ -215,7 +215,7 @@ class SortiesFrame(ttk.Frame):
         if not messagebox.askyesno(self.tr('Sorties','الإخراج'),self.tr(f'Enregistrer {len(entries)} sortie(s) en une seule opération ?',f'تسجيل {len(entries)} عمليات إخراج دفعة واحدة؟'),parent=self):return
         try:
             with connect() as conn:
-                require_permission('MANAGEMENT', conn)
+                require_permission('STOCK_EDIT', conn)
                 conn.execute('BEGIN IMMEDIATE')
                 for pid,qty in entries:apply_stock_movement(conn,pid,-qty,'OUT',note=reason)
                 conn.commit()
