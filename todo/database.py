@@ -73,6 +73,9 @@ CREATE TABLE IF NOT EXISTS product_barcodes (
     FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_barcodes_barcode ON product_barcodes(barcode);
+CREATE INDEX IF NOT EXISTS idx_barcodes_product ON product_barcodes(product_id);
+CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
+CREATE INDEX IF NOT EXISTS idx_products_active_name ON products(active,name,id);
 
 CREATE TABLE IF NOT EXISTS quantity_prices (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -462,6 +465,7 @@ CREATE TABLE IF NOT EXISTS product_categories (
     FOREIGN KEY(category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_product_categories_cat ON product_categories(category_id);
+CREATE INDEX IF NOT EXISTS idx_product_categories_product ON product_categories(product_id,category_id);
 
 
 CREATE TABLE IF NOT EXISTS supplier_payments (

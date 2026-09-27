@@ -29,7 +29,7 @@ def search_products(query='', category=None, limit=None, images_only=False, offs
 
         # Exact barcode / SKU first
         exact = conn.execute(f'''
-            SELECT DISTINCT p.* FROM products p NOT INDEXED
+            SELECT DISTINCT p.* FROM products p
             WHERE p.active=1 {cat_filter}
               AND p.id IN (SELECT id FROM products WHERE sku=?
                            UNION SELECT product_id FROM product_barcodes WHERE barcode=?)
@@ -42,7 +42,7 @@ def search_products(query='', category=None, limit=None, images_only=False, offs
         if fts and len(query) >= 3:
             match = '"' + query.replace('"', '""')+'"' 
             rows = conn.execute(f'''
-                SELECT p.* FROM products p NOT INDEXED
+                SELECT p.* FROM products p
                 WHERE p.active=1 {cat_filter}
                   AND p.id IN (
                       SELECT rowid FROM product_search WHERE product_search MATCH ?
