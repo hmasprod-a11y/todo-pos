@@ -72,6 +72,8 @@ class SaleFrame(ttk.Frame):
         self.quantity_entry.pack(side='left')
         self.quantity_entry.bind('<Return>',lambda e:self.focus_search())
         ttk.Button(searchbar,text='×2',style='Soft.TButton',command=self.double_scan_quantity).pack(side='left',padx=(8,0),ipadx=8,ipady=3)
+        if get_setting('scale_enabled','0')=='1':
+            ttk.Button(searchbar,text=self.tr('⚖ Poids','⚖ الوزن'),style='Soft.TButton',command=self.read_scale_weight).pack(side='left',padx=(8,0),ipadx=6,ipady=3)
         self.entry.bind('<Return>',self.confirm_search)
         self.entry.bind('<KeyRelease>',self.handle_scan_input)
         self.entry.bind('<Down>',self.focus_catalog)
@@ -202,6 +204,32 @@ class SaleFrame(ttk.Frame):
             binding=app.bind(sequence,lambda e,c=command:self.shortcut(e,c),add='+')
             self.bindings.append((sequence,binding))
         self.render_products();self.refresh();self.after_idle(self.focus_search)
+
+
+    def read_scale_weight(self):
+        try:
+            from services.scale import read_weight
+            weight=read_weight()
+            index=self.selected()
+            if index is not None:
+                line=self.cart[index]
+                allow=line.get('allow_fraction')
+                if allow is None:
+                    with connect() as conn:
+                        row=conn.execute('SELECT allow_fraction FROM products WHERE id=?',(line['product_id'],)).fetchone()
+                    allow=bool(row and row['allow_fraction'])
+                if not allow:
+                    raise ValueError(self.tr('Le produit sélectionné ne se vend pas au poids.','المنتوج المحدد لا يباع بالوزن.'))
+                self.update_quantity(index,weight)
+                self.status.config(text=self.tr(f'Poids appliqué : {weight:.3f} kg',f'تم تطبيق الوزن: {weight:.3f} كغ'))
+            else:
+                self.scan_quantity.set(f'{weight:.3f}')
+                self.quantity_entry.focus_set();self.quantity_entry.selection_range(0,'end')
+                self.status.config(text=self.tr(f'Poids lu : {weight:.3f} kg — choisissez/scannez un article.',f'تمت قراءة الوزن: {weight:.3f} كغ — اختر أو امسح منتوجاً.'))
+        except Exception as error:
+            messagebox.showerror(self.tr('Balance','الميزان'),str(error),parent=self)
+        finally:
+            if not self.quantity_entry.focus_get() is self.quantity_entry:self.focus_search()
 
     def double_scan_quantity(self):
         try:

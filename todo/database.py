@@ -479,7 +479,11 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('printer_kitchen_c2_name',''),
 ('printer_kitchen_c3_name',''),
 ('printer_kitchen_c4_name',''),
-('receipt_template','FR_3C');
+('receipt_template','FR_3C'),
+('scale_enabled','0'),
+('scale_port',''),
+('scale_baudrate','9600'),
+('scale_timeout_ms','800');
 """
 
 class Connection(sqlite3.Connection):

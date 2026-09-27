@@ -198,6 +198,21 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(p,text=self.tr('Connecteur tiroir','موصل درج النقود')).grid(row=12,column=0,sticky='w')
         ttk.Combobox(p,textvariable=self.drawer_pin,values=['0','1'],state='readonly',width=5).grid(row=12,column=1,sticky='w',padx=8)
         ttk.Button(p,text=self.tr('Enregistrer impression','حفظ إعدادات الطباعة'),command=self.save).grid(row=12,column=2)
+        scale=ttk.LabelFrame(self,text=self.tr('Balance électronique','الميزان الإلكتروني'),padding=10);scale.pack(fill='x',pady=10)
+        self.scale_enabled=tk.BooleanVar(value=get_setting('scale_enabled','0')=='1')
+        self.scale_port=tk.StringVar(value=get_setting('scale_port',''))
+        self.scale_baudrate=tk.StringVar(value=get_setting('scale_baudrate','9600'))
+        self.scale_timeout=tk.StringVar(value=get_setting('scale_timeout_ms','800'))
+        ttk.Checkbutton(scale,text=self.tr('Activer la balance série','تفعيل الميزان عبر المنفذ التسلسلي'),variable=self.scale_enabled).grid(row=0,column=0,columnspan=2,sticky='w')
+        ttk.Label(scale,text=self.tr('Port COM','منفذ COM')).grid(row=1,column=0,sticky='w',pady=4)
+        self.scale_port_box=ttk.Combobox(scale,textvariable=self.scale_port,width=18);self.scale_port_box.grid(row=1,column=1,sticky='w',padx=8)
+        ttk.Button(scale,text=self.tr('Actualiser ports','تحديث المنافذ'),command=self.refresh_scale_ports).grid(row=1,column=2,padx=4)
+        ttk.Label(scale,text='BaudRate').grid(row=2,column=0,sticky='w')
+        ttk.Combobox(scale,textvariable=self.scale_baudrate,values=['1200','2400','4800','9600','19200','38400','57600','115200'],width=12,state='readonly').grid(row=2,column=1,sticky='w',padx=8)
+        ttk.Label(scale,text=self.tr('Timeout (ms)','مهلة القراءة (ms)')).grid(row=2,column=2,sticky='e')
+        ttk.Entry(scale,textvariable=self.scale_timeout,width=8).grid(row=2,column=3,sticky='w',padx=8)
+        ttk.Button(scale,text=self.tr('Tester la balance','اختبار الميزان'),style='Soft.TButton',command=self.test_scale).grid(row=3,column=1,sticky='w',pady=6)
+        self.refresh_scale_ports()
         d=ttk.LabelFrame(self,text=self.tr('Écran client','شاشة الزبون'),padding=10);d.pack(fill="x",pady=10)
         self.customer_enabled=tk.BooleanVar(value=get_setting('customer_display_enabled','0')=='1')
         self.customer_seconds=tk.StringVar(value=get_setting("customer_slide_seconds","6"))
@@ -335,6 +350,13 @@ class SettingsFrame(ttk.Frame):
             if seconds<2 or seconds>300:raise ValueError()
         except ValueError:
             messagebox.showerror("ToDo",self.tr("Durée écran client entre 2 et 300 secondes.","مدة شاشة الزبون بين 2 و300 ثانية."),parent=self);return
+        try:
+            scale_timeout=int(self.scale_timeout.get())
+            scale_baud=int(self.scale_baudrate.get())
+            if scale_timeout<100 or scale_timeout>10000 or scale_baud<=0:raise ValueError()
+        except ValueError:
+            messagebox.showerror('ToDo',self.tr('Paramètres de balance invalides.','إعدادات الميزان غير صالحة.'),parent=self);return
+        set_setting('scale_enabled','1' if self.scale_enabled.get() else '0');set_setting('scale_port',self.scale_port.get().strip());set_setting('scale_baudrate',str(scale_baud));set_setting('scale_timeout_ms',str(scale_timeout))
         set_setting('customer_display_enabled','1' if self.customer_enabled.get() else '0')
         set_setting("customer_slide_seconds",str(seconds))
         mode=self.customer_mode_labels.get(self.customer_mode_box.get(),'promotions')
@@ -346,6 +368,23 @@ class SettingsFrame(ttk.Frame):
         set_setting("auto_backup_minutes",backup_minutes)
         self.app.schedule_auto_backup()
         messagebox.showinfo("ToDo",self.tr("Paramètres enregistrés.","تم حفظ الإعدادات."),parent=self)
+
+    def refresh_scale_ports(self):
+        try:
+            from services.scale import serial_ports
+            ports=serial_ports();self.scale_port_box['values']=ports
+            if not self.scale_port.get() and ports:self.scale_port.set(ports[0])
+        except Exception as error:
+            messagebox.showerror('ToDo',str(error),parent=self)
+
+    def test_scale(self):
+        try:
+            from services.scale import read_weight
+            weight=read_weight(self.scale_port.get().strip(),int(self.scale_baudrate.get()),int(self.scale_timeout.get()))
+            messagebox.showinfo('ToDo',self.tr(f'Poids lu : {weight:.3f} kg',f'الوزن المقروء: {weight:.3f} كغ'),parent=self)
+        except Exception as error:
+            messagebox.showerror(self.tr('Balance','الميزان'),str(error),parent=self)
+
     def toggle_customer_enabled(self):
         enabled=bool(self.customer_enabled.get())
         set_setting('customer_display_enabled','1' if enabled else '0')
