@@ -82,6 +82,11 @@ class ProductEditor(tk.Toplevel):
         for label,variable in [(self.tr('Référence','المرجع'),self.sku),(self.tr('Code fournisseur','رمز المورد'),self.supplier_code),(self.tr('Alias','اسم بديل'),self.alias)]:
             ttk.Label(fields,text=label).pack(anchor='w')
             ttk.Entry(fields,textvariable=variable,width=27).pack(fill='x',pady=(0,5))
+        ttk.Label(fields,text=self.tr('Fournisseur préféré','المورد المفضل')).pack(anchor='w')
+        with connect() as c:
+            self.supplier_rows=[dict(r) for r in c.execute("SELECT id,name FROM suppliers WHERE active=1 ORDER BY name COLLATE NOCASE")]
+        self.supplier_labels=['']+[f"{r['name']} · #{r['id']}" for r in self.supplier_rows]
+        ttk.Combobox(fields,textvariable=self.preferred_supplier,values=self.supplier_labels,state='readonly',width=27).pack(fill='x',pady=(0,5))
         ttk.Checkbutton(fields,text=self.tr('Vente au poids / fraction','البيع بالوزن / الكسر'),variable=self.fraction).pack(anchor='w',pady=5)
         ttk.Label(fields,text=self.tr('Note stock (facultatif)','ملاحظة المخزون (اختيارية)')).pack(anchor='w')
         ttk.Entry(fields,textvariable=self.stock_note).pack(fill='x')
