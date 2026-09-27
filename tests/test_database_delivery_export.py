@@ -16,8 +16,8 @@ class DatabaseDeliveryExportTests(unittest.TestCase):
     def test_schema_export_contains_application_tables_and_triggers(self):
         out=export_schema_sql(Path(self.tmp.name)/'schema.sql')
         text=out.read_text(encoding='utf-8')
-        self.assertIn('CREATE TABLE IF NOT EXISTS products',text)
-        self.assertIn('CREATE TABLE IF NOT EXISTS sales',text)
+        self.assertIn('CREATE TABLE products',text)
+        self.assertIn('CREATE TABLE sales',text)
         self.assertIn('PRAGMA foreign_keys=ON',text)
         self.assertNotIn('sqlite_sequence',text)
     def test_bundle_contains_manifest_schema_and_csv_data(self):
