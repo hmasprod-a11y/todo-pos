@@ -14,6 +14,14 @@ def sale_number():
 def return_number():
     return 'R-'+datetime.now().strftime('%Y%m%d-%H%M%S')+'-'+uuid4().hex[:12].upper()
 
+def next_client_ticket_number(conn):
+    row=conn.execute("SELECT value FROM settings WHERE key='receipt_next_client_ticket'").fetchone()
+    try:number=max(1,int(row['value'])) if row else 1
+    except (TypeError,ValueError):number=1
+    conn.execute("""INSERT INTO settings(key,value) VALUES('receipt_next_client_ticket',?)
+                    ON CONFLICT(key) DO UPDATE SET value=excluded.value""",(str(number+1),))
+    return number
+
 def validate_session(conn,session_id,user_id):
     session=conn.execute("SELECT id,user_id FROM cash_sessions WHERE id=? AND status='OPEN'",(session_id,)).fetchone()
     if not session:
@@ -116,8 +124,9 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
             raise ValueError('Acompte invalide.')
         change=max(0,paid-total)
         no=sale_number()
-        sid=conn.execute('INSERT INTO sales(sale_no,session_id,cashier_user_id,subtotal_cents,discount_cents,total_cents,payment_method,paid_cents,change_cents,client_id,seller_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-                         (no,session_id,user_id,subtotal,discount+loyalty_value,total,payment_method,paid,change,client_id,seller_id)).lastrowid
+        client_ticket_no=next_client_ticket_number(conn)
+        sid=conn.execute('INSERT INTO sales(sale_no,session_id,cashier_user_id,subtotal_cents,discount_cents,total_cents,payment_method,paid_cents,change_cents,client_id,seller_id,client_ticket_no) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                         (no,session_id,user_id,subtotal,discount+loyalty_value,total,payment_method,paid,change,client_id,seller_id,client_ticket_no)).lastrowid
         if split is None:
             settled=paid-change if payment_method=='CASH' else paid
             conn.execute('INSERT INTO sale_payments(sale_id,payment_method,amount_cents) VALUES(?,?,?)',(sid,payment_method,settled))
@@ -155,7 +164,7 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
         if held_id is not None:
             conn.execute('DELETE FROM held_sales WHERE id=?',(held_id,))
         audit(conn,'SALE',sid,no,user_id)
-        return dict(id=sid,sale_no=no,subtotal_cents=subtotal,discount_cents=discount+loyalty_value,total_cents=total,paid_cents=paid,change_cents=change,loyalty_points_used=loyalty_points,loyalty_value_cents=loyalty_value)
+        return dict(id=sid,sale_no=no,client_ticket_no=client_ticket_no,subtotal_cents=subtotal,discount_cents=discount+loyalty_value,total_cents=total,paid_cents=paid,change_cents=change,loyalty_points_used=loyalty_points,loyalty_value_cents=loyalty_value)
 
 def hold_sale(user_id,cart,label='',discount_cents=0,held_id=None,client_id=None,seller_id=None,price_grid_id=None,payment_method='CASH'):
     if not cart:raise ValueError('Ticket vide')

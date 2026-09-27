@@ -40,15 +40,19 @@ def build_receipt(sale_id):
     profile=_receipt_profile();lang=profile['lang'];ar=lang=='ar'
     tr=lambda fr,arabic: arabic if ar else fr
     cur=get_setting("currency","DH");width=profile['width'];rule="="*width;dash="-"*width
-    lines=[
-        get_setting("shop_name","ToDo"),
-        rule,
-        f"{tr('Ticket','التذكرة')}: {s['sale_no']}",
-        f"{tr('Caissier','الكاشير')}: {s['display_name']}",
-    ]
+    lines=[get_setting("shop_name","ToDo"),rule]
+    if get_setting('receipt_show_ticket_no','1')=='1':
+        ticket_value=s['client_ticket_no'] if s['client_ticket_no'] is not None else s['sale_no']
+        ticket_value=f"{int(ticket_value):06d}" if isinstance(ticket_value,int) else ticket_value
+        lines.append(f"{tr('Ticket','التذكرة')}: {ticket_value}")
+    if get_setting('receipt_show_sale_mode','1')=='1':
+        lines.append(f"{tr('Mode vente','نوع البيع')}: {tr('VENTE','بيع')}")
+    lines.append(f"{tr('Caissier','الكاشير')}: {s['display_name']}")
     if client:lines.append(f"{tr('Client','الزبون')}: {client['name']}")
     lines.append(dash)
     for i in items:
+        if get_setting('receipt_show_barcode','0')=='1' and i['barcode_used']:
+            lines.append(f"{tr('Code','الباركود')}: {i['barcode_used']}")
         if profile['layout']=='4C':
             lines.append(f"{i['name_snapshot']} | {i['qty']:g} | {fmt(i['unit_price_cents'],cur)} | {fmt(i['net_total_cents'],cur)}")
         elif profile['layout']=='2L':
@@ -61,9 +65,10 @@ def build_receipt(sale_id):
         dash,
         f"{tr('Remise ticket','تخفيض التذكرة')}: {fmt(s['discount_cents'],cur)}",
         f"{tr('TOTAL','المجموع')}: {fmt(s['total_cents'],cur)}",
-        f"{tr('Paiement','الأداء')}: {_payment_label(s['payment_method'])}",
     ]
-    if s['payment_method']=='MIXED':
+    if get_setting('receipt_show_payment','1')=='1':
+        lines.append(f"{tr('Paiement','الأداء')}: {_payment_label(s['payment_method'])}")
+    if get_setting('receipt_show_payment','1')=='1' and s['payment_method']=='MIXED':
         for p in payments:lines.append(f"  {_payment_label(p['payment_method'])}: {fmt(p['amount_cents'],cur)}")
     lines += [
         f"{tr('Reçu','المؤدى')}: {fmt(s['paid_cents'],cur)}",

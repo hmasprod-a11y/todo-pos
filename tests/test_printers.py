@@ -41,6 +41,21 @@ class PrinterTests(unittest.TestCase):
         text=receipts.build_receipt(sale_id)
         self.assertIn('التذكرة',text);self.assertIn('المجموع',text)
 
+    def test_receipt_suite_visibility_and_client_ticket_number(self):
+        database.set_setting('receipt_show_ticket_no','1');database.set_setting('receipt_show_payment','0')
+        database.set_setting('receipt_show_sale_mode','1');database.set_setting('receipt_show_barcode','1')
+        with database.connect() as c:
+            c.execute("INSERT INTO cash_sessions(user_id,opening_cash_cents,status) VALUES(?,0,'OPEN')",(current_user.get(),))
+            sid=c.execute("SELECT last_insert_rowid()").fetchone()[0]
+            c.execute("INSERT INTO sales(sale_no,session_id,cashier_user_id,subtotal_cents,total_cents,payment_method,paid_cents,client_ticket_no) VALUES('INT-1',?,?,1000,1000,'CASH',1000,12)",(sid,current_user.get()))
+            sale_id=c.execute("SELECT last_insert_rowid()").fetchone()[0]
+            c.execute("INSERT INTO products(name,sale_price_cents,stock_qty) VALUES('Milk',1000,1)")
+            pid=c.execute("SELECT last_insert_rowid()").fetchone()[0]
+            c.execute("INSERT INTO sale_items(sale_id,product_id,barcode_used,name_snapshot,qty,unit_price_cents,line_total_cents,net_total_cents,pricing_mode,qty_multiplier) VALUES(?,?,'611123','Milk',1,1000,1000,1000,'UNIT',1)",(sale_id,pid))
+        text=receipts.build_receipt(sale_id)
+        self.assertIn('Ticket: 000012',text);self.assertIn('Mode vente: VENTE',text);self.assertIn('Code: 611123',text)
+        self.assertNotIn('Paiement:',text)
+
     def test_drawer_payload_cleanup_and_audit(self):
         database.set_setting('drawer_enabled','1');database.set_setting('printer_receipt_name','Receipt Test')
         api=Mock();api.OpenPrinter.return_value=99;api.StartDocPrinter.return_value=7;api.WritePrinter.return_value=5

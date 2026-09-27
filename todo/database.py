@@ -155,6 +155,7 @@ CREATE TABLE IF NOT EXISTS sales (
     payment_method TEXT NOT NULL DEFAULT 'CASH',
     paid_cents INTEGER NOT NULL,
     change_cents INTEGER NOT NULL DEFAULT 0,
+    client_ticket_no INTEGER,
     status TEXT NOT NULL DEFAULT 'COMPLETED',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(session_id) REFERENCES cash_sessions(id),
@@ -519,7 +520,12 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('customer_serial_port',''),
 ('customer_serial_baudrate','9600'),
 ('customer_serial_timeout_ms','500'),
-('customer_serial_width','20');
+('customer_serial_width','20'),
+('receipt_show_payment','1'),
+('receipt_show_ticket_no','1'),
+('receipt_show_sale_mode','1'),
+('receipt_show_barcode','0'),
+('receipt_next_client_ticket','1');
 """
 
 class Connection(sqlite3.Connection):
@@ -586,7 +592,7 @@ def migrate(conn):
         'returns': {'refund_paid_cents': 'INTEGER'},
         'client_payments': {'session_id': 'INTEGER REFERENCES cash_sessions(id)', 'user_id': 'INTEGER REFERENCES users(id)', 'payment_method': "TEXT NOT NULL DEFAULT 'CASH'"},
         'supplier_payments': {'session_id': 'INTEGER REFERENCES cash_sessions(id)', 'user_id': 'INTEGER REFERENCES users(id)', 'payment_method': "TEXT NOT NULL DEFAULT 'CARD'"},
-        'sales': {'client_id': 'INTEGER REFERENCES clients(id)', 'seller_id': 'INTEGER REFERENCES sellers(id)'},
+        'sales': {'client_id': 'INTEGER REFERENCES clients(id)', 'seller_id': 'INTEGER REFERENCES sellers(id)', 'client_ticket_no': 'INTEGER'},
         'categories': {'color': "TEXT NOT NULL DEFAULT '#2563EB'", 'icon': "TEXT NOT NULL DEFAULT ''"},
     }
     for table, fields in additions.items():

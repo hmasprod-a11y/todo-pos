@@ -184,6 +184,20 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(p,text=self.tr('Modèle ticket','قالب التذكرة')).grid(row=7,column=0,sticky='w')
         ttk.Combobox(p,textvariable=self.receipt_template,values=['FR_3C','FR_4C','FR_2L','AR_3C','AR_4C'],state='readonly',width=12).grid(row=7,column=1,sticky='w',padx=8)
         ttk.Label(p,text=self.tr('Après validation','بعد تأكيد البيع')).grid(row=8,column=0,sticky="w",pady=5)
+        suite=ttk.LabelFrame(self,text=self.tr('Configuration Suite — Ticket','إعدادات إضافية — التذكرة'),padding=10);suite.pack(fill='x',pady=10)
+        self.receipt_show_payment=tk.BooleanVar(value=get_setting('receipt_show_payment','1')=='1')
+        self.receipt_show_ticket_no=tk.BooleanVar(value=get_setting('receipt_show_ticket_no','1')=='1')
+        self.receipt_show_sale_mode=tk.BooleanVar(value=get_setting('receipt_show_sale_mode','1')=='1')
+        self.receipt_show_barcode=tk.BooleanVar(value=get_setting('receipt_show_barcode','0')=='1')
+        self.next_client_ticket=tk.StringVar(value=get_setting('receipt_next_client_ticket','1'))
+        ttk.Checkbutton(suite,text=self.tr('Afficher Mode Paiement','إظهار طريقة الأداء'),variable=self.receipt_show_payment).grid(row=0,column=0,sticky='w',padx=6,pady=3)
+        ttk.Checkbutton(suite,text=self.tr('Afficher N° TICKET','إظهار رقم التذكرة'),variable=self.receipt_show_ticket_no).grid(row=1,column=0,sticky='w',padx=6,pady=3)
+        ttk.Checkbutton(suite,text=self.tr('Afficher Mode Vente','إظهار نوع البيع'),variable=self.receipt_show_sale_mode).grid(row=2,column=0,sticky='w',padx=6,pady=3)
+        ttk.Checkbutton(suite,text=self.tr('Afficher Code Barre','إظهار الباركود'),variable=self.receipt_show_barcode).grid(row=3,column=0,sticky='w',padx=6,pady=3)
+        ttk.Label(suite,text=self.tr('Prochain N° Ticket Client','رقم تذكرة الزبون التالي')).grid(row=0,column=1,sticky='e',padx=6)
+        ttk.Entry(suite,textvariable=self.next_client_ticket,width=12).grid(row=0,column=2,sticky='w',padx=6)
+        ttk.Button(suite,text=self.tr('Régénérer automatiquement','إعادة توليد تلقائياً'),style='Soft.TButton',command=self.regenerate_client_ticket_no).grid(row=1,column=1,columnspan=2,sticky='ew',padx=6,pady=4)
+
         self.print_mode_box=ttk.Combobox(p,state='readonly',width=18)
         self.print_mode_labels={self.tr('Demander','سؤال'):'ask',self.tr('Toujours imprimer','الطباعة دائماً'):'always',self.tr('Ne jamais imprimer','عدم الطباعة'):'never'}
         self.print_mode_box['values']=list(self.print_mode_labels);self.print_mode_box.set(next((k for k,v in self.print_mode_labels.items() if v==self.print_mode.get()),list(self.print_mode_labels)[0]));self.print_mode_box.bind('<<ComboboxSelected>>',lambda e:self.print_mode.set(self.print_mode_labels.get(self.print_mode_box.get(),'ask')));self.print_mode_box.grid(row=8,column=1,sticky='w',padx=8)
@@ -390,6 +404,11 @@ class SettingsFrame(ttk.Frame):
         for i,var in enumerate(self.kitchen_printers,1):set_setting(f'printer_kitchen_c{i}_name',var.get().strip())
         template=self.receipt_template.get().strip().upper()
         if template not in ('FR_3C','FR_4C','FR_2L','AR_3C','AR_4C'):template='FR_3C'
+        try:
+            next_ticket=max(1,int(self.next_client_ticket.get()))
+        except ValueError:
+            messagebox.showerror('ToDo',self.tr('N° Ticket Client invalide.','رقم تذكرة الزبون غير صالح.'),parent=self);return
+        set_setting('receipt_show_payment','1' if self.receipt_show_payment.get() else '0');set_setting('receipt_show_ticket_no','1' if self.receipt_show_ticket_no.get() else '0');set_setting('receipt_show_sale_mode','1' if self.receipt_show_sale_mode.get() else '0');set_setting('receipt_show_barcode','1' if self.receipt_show_barcode.get() else '0');set_setting('receipt_next_client_ticket',str(next_ticket))
         set_setting('receipt_template',template);set_setting("print_mode",print_mode)
         set_setting('thermal_raw','1' if self.thermal_raw.get() else '0');set_setting('receipt_chars',self.receipt_chars.get() if self.receipt_chars.get() in ('32','42','48') else '42');set_setting('drawer_enabled','1' if self.drawer_enabled.get() else '0');set_setting('drawer_pin',self.drawer_pin.get());set_setting('block_insufficient_stock','1' if self.block_insufficient.get() else '0');set_setting('credit_enabled','1' if self.credit_enabled.get() else '0');set_setting('closure_enabled','1' if self.closure_enabled.get() else '0');set_setting('sans_ticket_enabled','1' if self.sans_ticket_enabled.get() else '0');set_setting('payment_window_enabled','1' if self.payment_window_enabled.get() else '0');set_setting('require_client_on_sale','1' if self.require_client.get() else '0');set_setting('choose_seller_on_sale','1' if self.choose_seller.get() else '0');new_language=self.language.get();language_changed=new_language!=get_setting('language','fr');set_setting('language',new_language)
         try:
@@ -512,6 +531,17 @@ class SettingsFrame(ttk.Frame):
             messagebox.showinfo('ToDo',self.tr('Test envoyé à l’imprimante.','تم إرسال الاختبار إلى الطابعة.'),parent=self)
         except Exception as error:
             messagebox.showerror('ToDo',str(error),parent=self)
+
+
+    def regenerate_client_ticket_no(self):
+        try:
+            with connect() as conn:
+                row=conn.execute('SELECT COALESCE(MAX(client_ticket_no),0)+1 next_no FROM sales').fetchone()
+                value=max(1,int(row['next_no']))
+            self.next_client_ticket.set(str(value))
+            set_setting('receipt_next_client_ticket',str(value))
+            messagebox.showinfo('ToDo',self.tr(f'Prochain N° Ticket Client : {value}',f'رقم تذكرة الزبون التالي: {value}'),parent=self)
+        except Exception as error:messagebox.showerror('ToDo',str(error),parent=self)
 
     def refresh_printers(self):
         from services.printers import installed_printers
