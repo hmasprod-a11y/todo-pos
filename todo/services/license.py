@@ -42,12 +42,23 @@ def verify_license_document(document,public_key_b64,machine_id=None,today=None):
     if document['machine_id'].upper()!=current_machine:
         raise ValueError('Cette licence appartient à un autre poste.')
     try:
+        issued=date.fromisoformat(document['issued_at'])
+    except ValueError as exc:
+        raise ValueError("Date de lancement licence invalide.") from exc
+    try:
         expiry=date.fromisoformat(document['expires_at'])
     except ValueError as exc:
         raise ValueError("Date d'expiration licence invalide.") from exc
     current=today or date.today()
     if expiry<current:raise ValueError('Licence expirée.')
-    return {'valid':True,'customer':document['customer'],'expires_at':document['expires_at'],'machine_id':current_machine}
+    return {
+        'valid':True,
+        'customer':document['customer'],
+        'issued_at':document['issued_at'],
+        'expires_at':document['expires_at'],
+        'days_remaining':(expiry-current).days,
+        'machine_id':current_machine
+    }
 
 def load_installed_license():
     path=_license_path()
@@ -59,7 +70,7 @@ def license_status():
     enforced=get_setting('license_enforced','0')=='1'
     public_key=get_setting('license_public_key_b64','').strip()
     document=load_installed_license()
-    result={'enforced':enforced,'installed':bool(document),'valid':False,'machine_id':machine_fingerprint(),'customer':'','expires_at':'','error':''}
+    result={'enforced':enforced,'installed':bool(document),'valid':False,'machine_id':machine_fingerprint(),'customer':'','issued_at':'','expires_at':'','days_remaining':None,'error':''}
     if not document:
         if enforced:result['error']='Aucune licence installée.'
         return result

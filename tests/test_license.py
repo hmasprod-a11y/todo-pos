@@ -17,8 +17,22 @@ class LicenseTests(unittest.TestCase):
         return payload,base64.b64encode(public).decode()
     def test_valid_signed_machine_bound_license(self):
         doc,pub=self.make_doc()
-        result=verify_license_document(doc,pub,machine_id='ABC')
+        today=date.today()
+        result=verify_license_document(doc,pub,machine_id='ABC',today=today)
         self.assertTrue(result['valid']);self.assertEqual(result['customer'],'TODO MARKET')
+        self.assertEqual(result['issued_at'],str(today))
+        self.assertEqual(result['days_remaining'],30)
+    def test_invalid_issued_date_is_rejected(self):
+        doc,pub=self.make_doc()
+        bad=dict(doc);bad['issued_at']='not-a-date'
+        private=Ed25519PrivateKey.generate()
+        public=private.public_key().public_bytes(serialization.Encoding.Raw,serialization.PublicFormat.Raw)
+        payload={k:bad[k] for k in ('customer','machine_id','issued_at','expires_at')}
+        canonical=json.dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
+        bad['signature']=base64.b64encode(private.sign(canonical)).decode()
+        pub=base64.b64encode(public).decode()
+        with self.assertRaises(ValueError):verify_license_document(bad,pub,machine_id='ABC')
+
     def test_tamper_machine_and_expiry_are_rejected(self):
         doc,pub=self.make_doc()
         bad=dict(doc);bad['customer']='OTHER'

@@ -646,7 +646,9 @@ class SettingsFrame(ttk.Frame):
             (self.tr('Licence installée','الترخيص مثبت'),self.tr('Oui','نعم') if status['installed'] else self.tr('Non','لا')),
             (self.tr('Valide','صالح'),self.tr('Oui','نعم') if status['valid'] else self.tr('Non','لا')),
             (self.tr('Client','الزبون'),status.get('customer') or '—'),
+            (self.tr('Date de lancement','تاريخ البداية'),status.get('issued_at') or '—'),
             (self.tr('Expiration','الانتهاء'),status.get('expires_at') or '—'),
+            (self.tr('Jours restants','الأيام المتبقية'),str(status.get('days_remaining')) if status.get('days_remaining') is not None else '—'),
             (self.tr('Message','الرسالة'),status.get('error') or self.tr('OK','سليم')),
         ]
         for i,(label,value) in enumerate(rows):
