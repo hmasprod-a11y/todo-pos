@@ -2,7 +2,7 @@ import csv
 import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog,filedialog
 from database import connect, get_setting
-from services.inventory import apply_stock_movement, stock_activity, reorder_list, stock_summary
+from services.inventory import apply_stock_movement, stock_activity, reorder_list, stock_summary, stock_products
 
 class StockFrame(ttk.Frame):
     def __init__(self,master,app=None):
@@ -13,8 +13,15 @@ class StockFrame(ttk.Frame):
         ttk.Label(self,text=self.tr('Quantités, mouvements et inventaire — nom, prix et photo restent dans Articles.','الكميات والحركات والجرد — تعديل الاسم والثمن والصورة يبقى في المنتجات.'),foreground="#475569").pack(anchor="w",pady=(0,8))
         ttk.Button(top,text=self.tr('Ajustement','تسوية المخزون'),style="Primary.TButton",command=self.adjust).pack(side="right")
         self.q=tk.StringVar();self.filter=tk.StringVar(value=self.tr('Tous','الكل'))
-        self.search_entry=ttk.Entry(top,textvariable=self.q,width=26,style="Search.TEntry");self.search_entry.pack(side="left",padx=(20,8));self.search_entry.bind("<KeyRelease>",lambda e:self.refresh())
-        box=ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل'),self.tr('Alertes stock','تنبيهات المخزون'),self.tr('Stock négatif','مخزون سالب')],state="readonly",width=15);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
+        self.search_entry=ttk.Entry(top,textvariable=self.q,width=22,style="Search.TEntry");self.search_entry.pack(side="left",padx=(20,8));self.search_entry.bind("<KeyRelease>",lambda e:self.refresh())
+        box=ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل'),self.tr('Alertes stock','تنبيهات المخزون'),self.tr('Stock négatif','مخزون سالب')],state="readonly",width=14);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
+        with connect() as c:
+            category_rows=c.execute("SELECT id,name FROM categories WHERE active=1 ORDER BY sort_order,name COLLATE NOCASE").fetchall()
+        self.family_values=[(self.tr('Toutes familles','كل الفئات'),None)]+[(r['name'],r['id']) for r in category_rows]
+        self.family_map={label:cid for label,cid in self.family_values}
+        self.family=tk.StringVar(value=self.family_values[0][0])
+        family_box=ttk.Combobox(top,textvariable=self.family,values=[label for label,_ in self.family_values],state='readonly',width=18)
+        family_box.pack(side='left',padx=(6,0));family_box.bind('<<ComboboxSelected>>',lambda e:self.refresh())
         ttk.Button(top,text=self.tr('Réapprovisionnement','إعادة الطلب'),style="Soft.TButton",command=self.reorder_window).pack(side="right",padx=8)
         ttk.Button(top,text=self.tr('Journal global','السجل العام'),style="Soft.TButton",command=self.global_ledger).pack(side="right",padx=8)
         ttk.Button(top,text=self.tr('Historique','السجل'),style="Soft.TButton",command=self.ledger).pack(side="right",padx=8)
@@ -40,13 +47,11 @@ class StockFrame(ttk.Frame):
         return labels.get((value or '').lower(), value or '')
 
     def refresh(self):
-        q=f"%{self.q.get().strip()}%";extra=""
-        if self.filter.get()==self.tr("Alertes stock","تنبيهات المخزون"):extra=" AND p.stock_qty<=p.alert_qty"
-        elif self.filter.get()==self.tr("Stock négatif","مخزون سالب"):extra=" AND p.stock_qty<0"
-        with connect() as c:
-            r=c.execute("""SELECT p.id,p.name,p.stock_qty,p.alert_qty,
-                COALESCE((SELECT movement_type||'|'||qty_delta||'|'||created_at FROM stock_movements sm WHERE sm.product_id=p.id ORDER BY sm.id DESC LIMIT 1),'') last
-                FROM products p WHERE p.active=1 AND p.name LIKE ?"""+extra+""" ORDER BY p.name""",(q,)).fetchall()
+        status='all'
+        if self.filter.get()==self.tr("Alertes stock","تنبيهات المخزون"):status='alerts'
+        elif self.filter.get()==self.tr("Stock négatif","مخزون سالب"):status='negative'
+        category_id=self.family_map.get(self.family.get()) if hasattr(self,'family_map') else None
+        r=stock_products(self.q.get().strip(),category_id,status)
         summary=stock_summary()
         for label,value in zip(self.kpi_values,[
             summary['articles'],summary['alerts'],summary['negative'],summary['active_promotions'],

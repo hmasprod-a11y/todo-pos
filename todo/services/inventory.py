@@ -103,3 +103,33 @@ def stock_summary():
         'purchase_value_cents':int(round(row['purchase_value_cents'] or 0)),
         'sale_value_cents':int(round(row['sale_value_cents'] or 0)),
     }
+
+
+def stock_products(query='', category_id=None, status='all'):
+    """List active stock products with optional family and stock-state filters."""
+    from database import connect
+    q=(query or '').strip()
+    status=(status or 'all').lower()
+    if status not in ('all','alerts','negative'):
+        raise ValueError('Filtre stock invalide.')
+    where=["p.active=1","(?='' OR instr(lower(p.name),lower(?))>0)"]
+    params=[q,q]
+    if category_id is not None:
+        where.append("""EXISTS(
+            SELECT 1 FROM product_categories pc
+            WHERE pc.product_id=p.id AND pc.category_id=?
+        )""")
+        params.append(int(category_id))
+    if status=='alerts':
+        where.append('p.stock_qty<=p.alert_qty')
+    elif status=='negative':
+        where.append('p.stock_qty<0')
+    sql="""SELECT p.id,p.name,p.stock_qty,p.alert_qty,
+                  COALESCE((SELECT movement_type||'|'||qty_delta||'|'||created_at
+                            FROM stock_movements sm
+                            WHERE sm.product_id=p.id
+                            ORDER BY sm.id DESC LIMIT 1),'') last
+           FROM products p
+           WHERE """+' AND '.join(where)+""" ORDER BY p.name COLLATE NOCASE"""
+    with connect() as conn:
+        return [dict(r) for r in conn.execute(sql,params).fetchall()]
