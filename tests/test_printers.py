@@ -40,6 +40,8 @@ class PrinterTests(unittest.TestCase):
             c.execute("INSERT INTO sale_items(sale_id,product_id,name_snapshot,qty,unit_price_cents,line_total_cents,net_total_cents,pricing_mode,qty_multiplier) VALUES(?,?,'Test',1,1000,1000,1000,'UNIT',1)",(sale_id,pid))
         text=receipts.build_receipt(sale_id)
         self.assertIn('التذكرة',text);self.assertIn('المجموع',text)
+        self.assertIn('الأداء: نقداً',text)
+        self.assertNotIn('Espèces',text)
 
     def test_receipt_suite_visibility_and_client_ticket_number(self):
         database.set_setting('receipt_show_ticket_no','1');database.set_setting('receipt_show_payment','0')

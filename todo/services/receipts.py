@@ -25,9 +25,9 @@ def _receipt_width():
     return _receipt_profile()['width']
 
 
-def _payment_label(method):
+def _payment_label(method, lang):
     from services.payment_methods import payment_label
-    return payment_label(method,get_setting('language','fr'))
+    return payment_label(method,lang)
 
 
 def build_receipt(sale_id):
@@ -70,9 +70,9 @@ def build_receipt(sale_id):
         f"{tr('TOTAL','المجموع')}: {fmt(s['total_cents'],cur)}",
     ]
     if get_setting('receipt_show_payment','1')=='1':
-        lines.append(f"{tr('Paiement','الأداء')}: {_payment_label(s['payment_method'])}")
+        lines.append(f"{tr('Paiement','الأداء')}: {_payment_label(s['payment_method'],lang)}")
     if get_setting('receipt_show_payment','1')=='1' and s['payment_method']=='MIXED':
-        for p in payments:lines.append(f"  {_payment_label(p['payment_method'])}: {fmt(p['amount_cents'],cur)}")
+        for p in payments:lines.append(f"  {_payment_label(p['payment_method'],lang)}: {fmt(p['amount_cents'],cur)}")
     lines += [
         f"{tr('Reçu','المؤدى')}: {fmt(s['paid_cents'],cur)}",
         f"{tr('Monnaie','الباقي')}: {fmt(s['change_cents'],cur)}",
