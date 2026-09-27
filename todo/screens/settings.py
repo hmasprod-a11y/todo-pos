@@ -1,4 +1,6 @@
 from database import connect
+from pathlib import Path
+import os,sys
 import tkinter as tk
 from tkinter import ttk,messagebox,filedialog,simpledialog
 from database import get_setting,set_setting,connect
@@ -308,6 +310,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Button(u,text=self.tr('Nouvel utilisateur','مستخدم جديد'),style='Primary.TButton',command=self.new_user).pack(side='left');ttk.Button(u,text=self.tr('Gérer utilisateurs','إدارة المستخدمين'),style='Soft.TButton',command=self.manage_users).pack(side='left',padx=8)
         ttk.Button(u,text=self.tr('Changer mon PIN','تغيير PIN'),command=self.change_pin).pack(side="left",padx=8)
         ttk.Button(u,text=self.tr('Journal des actions','سجل العمليات'),command=self.audit_log).pack(side="left",padx=8)
+        ttk.Button(u,text=self.tr('À propos - Aide','حول - مساعدة'),style='Soft.TButton',command=self.about_help).pack(side='left',padx=8)
         ttk.Label(u,text=self.tr('Admin initial: admin / PIN 1234 — changez-le.','المدير الأولي: admin / PIN 1234 — غيّره.')).pack(side="left",padx=15)
     def toggle_windows_startup(self):
         enabled=bool(self.start_with_windows.get())
@@ -584,6 +587,56 @@ class SettingsFrame(ttk.Frame):
             messagebox.showinfo("ToDo",self.tr(f"Restauration complète terminée.\nCopie sécurité: {safety}\nToDo va se fermer.","تم الاسترجاع الكامل.\nنسخة الأمان: {safety}\nسيتم إغلاق ToDo."),parent=self)
             self.app.destroy()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
+
+
+    def about_help(self):
+        from services.support import diagnostics,diagnostic_text,documentation_paths,open_document
+        w=tk.Toplevel(self);w.title(self.tr('À propos - Aide','حول - مساعدة'));w.geometry('760x590');w.transient(self.winfo_toplevel())
+        try:d=diagnostics()
+        except Exception as error:
+            messagebox.showerror('ToDo',str(error),parent=w);w.destroy();return
+        ttk.Label(w,text=f"ToDo POS {d['version']}",style='Title.TLabel').pack(anchor='w',padx=18,pady=(16,4))
+        ttk.Label(w,text=self.tr('Centre d’aide et diagnostic local','مركز المساعدة والتشخيص المحلي'),foreground='#64748B').pack(anchor='w',padx=18,pady=(0,12))
+        info=ttk.LabelFrame(w,text=self.tr('Diagnostic','التشخيص'),padding=12);info.pack(fill='x',padx=18,pady=6)
+        entries=[
+            (self.tr('Magasin','المتجر'),d['shop']),
+            (self.tr('Poste','المحطة'),d['workstation']),
+            ('SQLite / schema',f"{d['sqlite_version']} / {d['schema_version']}"),
+            (self.tr('Intégrité','سلامة البيانات'),d['integrity']),
+            (self.tr('Tables','الجداول'),str(d['tables'])),
+            (self.tr('Taille base','حجم القاعدة'),f"{d['db_size_bytes']/1024/1024:.2f} MB"),
+            (self.tr('Base de données','قاعدة البيانات'),d['db_path']),
+            (self.tr('Dernier backup','آخر نسخة احتياطية'),d['last_backup'] or self.tr('Aucun trouvé','لا توجد')),
+        ]
+        for i,(label,value) in enumerate(entries):
+            ttk.Label(info,text=label+':',font=('Segoe UI',9,'bold')).grid(row=i,column=0,sticky='nw',pady=3)
+            ttk.Label(info,text=value,wraplength=520).grid(row=i,column=1,sticky='w',padx=10,pady=3)
+        docs=ttk.LabelFrame(w,text=self.tr('Documentation','الوثائق'),padding=12);docs.pack(fill='x',padx=18,pady=8)
+        labels=[
+            ('guide_fr',self.tr('Guide utilisateur FR','دليل المستخدم بالفرنسية')),
+            ('guide_ar',self.tr('Guide utilisateur AR','دليل المستخدم بالعربية')),
+            ('backup',self.tr('Backup / Restore','النسخ الاحتياطي / الاسترجاع')),
+            ('install',self.tr('Installation Windows','تثبيت Windows')),
+            ('checklist',self.tr('Checklist livraison','قائمة فحص التسليم')),
+        ]
+        paths=documentation_paths()
+        for i,(key,label) in enumerate(labels):
+            state='normal' if paths[key].is_file() else 'disabled'
+            ttk.Button(docs,text=label,state=state,command=lambda k=key:self.open_help_document(k,w)).grid(row=i//2,column=i%2,sticky='ew',padx=4,pady=4)
+        docs.columnconfigure(0,weight=1);docs.columnconfigure(1,weight=1)
+        def copy_diag():
+            text_value=diagnostic_text();w.clipboard_clear();w.clipboard_append(text_value)
+            messagebox.showinfo('ToDo',self.tr('Diagnostic copié.','تم نسخ التشخيص.'),parent=w)
+        bar=ttk.Frame(w);bar.pack(fill='x',padx=18,pady=12)
+        ttk.Button(bar,text=self.tr('Copier diagnostic','نسخ التشخيص'),style='Primary.TButton',command=copy_diag).pack(side='left')
+        ttk.Button(bar,text=self.tr('Base de Données','قاعدة البيانات'),command=lambda:(w.destroy(),self.database_tools())).pack(side='left',padx=6)
+        ttk.Button(bar,text=self.tr('Fermer','إغلاق'),command=w.destroy).pack(side='right')
+
+    def open_help_document(self,key,parent):
+        try:
+            from services.support import open_document
+            open_document(key)
+        except Exception as error:messagebox.showerror(self.tr('Aide','المساعدة'),str(error),parent=parent)
 
     def database_tools(self):
         from services.database_admin import table_inventory,export_table_csv,import_reference_csv,integrity_status
