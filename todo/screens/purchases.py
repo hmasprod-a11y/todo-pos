@@ -126,7 +126,7 @@ class PurchasesFrame(ttk.Frame):
         def load():
             tree.delete(*tree.get_children())
             for r in list_purchase_orders('OPEN'):
-                tree.insert('','end',iid=str(r['id']),values=(r['id'],r['supplier_name'],r['created_at'],r['lines'],fmt(int(r['total_cents']),''))
+                tree.insert('','end',iid=str(r['id']),values=(r['id'],r['supplier_name'],r['created_at'],r['lines'],fmt(int(r['total_cents']),'')))
         def receive():
             sel=tree.selection()
             if not sel:return

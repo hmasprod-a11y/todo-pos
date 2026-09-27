@@ -29,13 +29,15 @@ class SupplierTests(unittest.TestCase):
         self.temp.cleanup()
 
     def test_purchase_order_does_not_touch_stock_until_received(self):
+        sid=save_supplier('Order Supplier')
         with database.connect() as conn:
-            stock_before=conn.execute("SELECT stock_qty FROM products WHERE id=?",(self.pid,)).fetchone()[0]
-        oid=create_purchase_order(self.sid,[dict(product_id=self.pid,qty=5,unit_cost_cents=250)])
+            pid=conn.execute("INSERT INTO products(name,purchase_price_cents,stock_qty,active) VALUES('Order Item',250,3,1)").lastrowid
+            stock_before=conn.execute("SELECT stock_qty FROM products WHERE id=?",(pid,)).fetchone()[0]
+        oid=create_purchase_order(sid,[dict(product_id=pid,qty=5,unit_cost_cents=250)])
         self.assertEqual(list_purchase_orders('OPEN')[0]['id'],oid)
         self.assertEqual(purchase_order_lines(oid)[0]['qty'],5)
         with database.connect() as conn:
-            self.assertEqual(conn.execute("SELECT stock_qty FROM products WHERE id=?",(self.pid,)).fetchone()[0],stock_before)
+            self.assertEqual(conn.execute("SELECT stock_qty FROM products WHERE id=?",(pid,)).fetchone()[0],stock_before)
         mark_purchase_order_received(oid)
         self.assertEqual(list_purchase_orders('OPEN'),[])
 
