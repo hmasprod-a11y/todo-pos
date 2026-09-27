@@ -656,6 +656,15 @@ class SaleFrame(ttk.Frame):
         scanner_like=len(code)>=4 and not any(ch.isspace() for ch in code)
         if scanner_like:
             self._begin_new_sale()
+        from services.rfid import lookup_tag
+        tag=lookup_tag(code) if get_setting('rfid_enabled','0')=='1' else None
+        if tag and tag['target_type']=='PRODUCT':
+            self._begin_new_sale();self.add_product(tag['target_id']);self.query.set('');return 'break'
+        if tag and tag['target_type']=='CLIENT':
+            from services.clients import get_client
+            client=get_client(tag['target_id'])
+            if client and client.get('active',1):
+                self.client_id=tag['target_id'];self.update_client_label();self.query.set('');self.status.config(text=self.tr(f"Client RFID : {client['name']}",f"زبون RFID: {client['name']}"));self.focus_search();return 'break'
         rows=scan_barcode(code)
         if len(rows)==1:
             r=rows[0];self.add_product(r['id'],r['barcode_id'],r['qty_multiplier'],r['barcode'])

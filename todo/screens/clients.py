@@ -23,29 +23,33 @@ class ClientEditor(EmbeddedTouchKeyboard, tk.Toplevel):
         self.on_saved  = on_saved
         self.name  = tk.StringVar(value=(client or {}).get('name',  ''))
         self.phone = tk.StringVar(value=(client or {}).get('phone', ''))
+        from services.rfid import get_tag_for_target
+        self.rfid_tag=tk.StringVar(value=get_tag_for_target('CLIENT',self.client_id) if self.client_id else '')
         form = ttk.Frame(self, padding=20)
         form.pack(fill='both', expand=True)
         for row, (label, var) in enumerate([
             (self.tr('Nom','الاسم'), self.name),
             (self.tr('Téléphone','الهاتف'), self.phone),
+            ('RFID Tag', self.rfid_tag),
         ]):
             ttk.Label(form, text=label).grid(row=row, column=0, sticky='w', pady=8)
             entry=ttk.Entry(form, textvariable=var, width=36);entry.grid(row=row, column=1, padx=12)
             if row==0:self.first_entry=entry
-        ttk.Label(form, text=self.tr('Notes','ملاحظات')).grid(row=2, column=0, sticky='nw')
+        ttk.Label(form, text=self.tr('Notes','ملاحظات')).grid(row=3, column=0, sticky='nw')
         self.notes = tk.Text(form, width=36, height=4)
-        self.notes.grid(row=2, column=1, padx=12)
+        self.notes.grid(row=3, column=1, padx=12)
         self.notes.insert('1.0', (client or {}).get('notes', ''))
         ttk.Button(form, text=self.tr('Enregistrer','حفظ'), style='Primary.TButton',
-                   command=self.save).grid(row=3, column=1, sticky='ew', padx=12, pady=16)
-        ttk.Button(form, text=self.tr('Annuler','إلغاء'), style='Danger.TButton', command=self.destroy).grid(row=3, column=0)
-        ttk.Button(form,text=self.tr('⌨ Clavier','⌨ لوحة المفاتيح'),style='Primary.TButton',command=self.toggle_embedded_keyboard).grid(row=4,column=0,columnspan=2,pady=(0,8),sticky='ew')
+                   command=self.save).grid(row=4, column=1, sticky='ew', padx=12, pady=16)
+        ttk.Button(form, text=self.tr('Annuler','إلغاء'), style='Danger.TButton', command=self.destroy).grid(row=4, column=0)
+        ttk.Button(form,text=self.tr('⌨ Clavier','⌨ لوحة المفاتيح'),style='Primary.TButton',command=self.toggle_embedded_keyboard).grid(row=5,column=0,columnspan=2,pady=(0,8),sticky='ew')
         self.init_touch_keyboard(self.first_entry)
 
     def save(self):
         try:
-            cid = save_client(self.name.get(), self.phone.get(),
-                              self.notes.get('1.0', 'end-1c'), self.client_id)
+            cid = save_client(self.name.get(), self.phone.get(),self.notes.get('1.0', 'end-1c'), self.client_id)
+            from services.rfid import bind_tag
+            bind_tag(self.rfid_tag.get().strip(),'CLIENT',cid)
         except (ValueError, PermissionError) as e:
             messagebox.showerror(self.tr('Client','زبون'), str(e), parent=self); return
         self.destroy()

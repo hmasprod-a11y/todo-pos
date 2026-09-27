@@ -90,6 +90,14 @@ CREATE TABLE IF NOT EXISTS product_grid_prices (
     FOREIGN KEY(grid_id) REFERENCES price_grids(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS rfid_tags (
+    tag TEXT PRIMARY KEY,
+    target_type TEXT NOT NULL,
+    target_id INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_rfid_target ON rfid_tags(target_type,target_id);
+
 CREATE TABLE IF NOT EXISTS payment_methods (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     code TEXT NOT NULL UNIQUE,
@@ -489,7 +497,12 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('smtp_port','587'),
 ('smtp_user',''),
 ('smtp_app_password',''),
-('smtp_from_name','ToDo');
+('smtp_from_name','ToDo'),
+('rfid_enabled','0'),
+('rfid_mode','HID'),
+('rfid_port',''),
+('rfid_baudrate','9600'),
+('rfid_timeout_ms','800');
 """
 
 class Connection(sqlite3.Connection):

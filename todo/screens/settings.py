@@ -232,6 +232,23 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(media_row,text=self.tr('Durée de chaque image (secondes)','مدة كل صورة (ثوانٍ)')).pack(side='left')
         ttk.Spinbox(media_row,from_=2,to=300,textvariable=self.customer_seconds,width=6).pack(side='left',padx=8)
         ttk.Label(media_row,text=self.tr('Dossier : customer_media · images + vidéos · format conseillé 16:9','المجلد: customer_media · صور + فيديوهات · القياس المقترح 16:9'),foreground="#475569").pack(side='left',padx=12)
+        rfid=ttk.LabelFrame(self,text=self.tr('RFID','RFID'),padding=10);rfid.pack(fill='x',pady=10)
+        self.rfid_enabled=tk.BooleanVar(value=get_setting('rfid_enabled','0')=='1')
+        self.rfid_mode=tk.StringVar(value=get_setting('rfid_mode','HID'))
+        self.rfid_port=tk.StringVar(value=get_setting('rfid_port',''))
+        self.rfid_baud=tk.StringVar(value=get_setting('rfid_baudrate','9600'))
+        self.rfid_timeout=tk.StringVar(value=get_setting('rfid_timeout_ms','800'))
+        ttk.Checkbutton(rfid,text=self.tr('Activer RFID','تفعيل RFID'),variable=self.rfid_enabled).grid(row=0,column=0,columnspan=2,sticky='w')
+        ttk.Label(rfid,text=self.tr('Mode lecteur','وضع القارئ')).grid(row=1,column=0,sticky='w')
+        ttk.Combobox(rfid,textvariable=self.rfid_mode,values=['HID','SERIAL'],state='readonly',width=12).grid(row=1,column=1,sticky='w',padx=8)
+        ttk.Label(rfid,text='Port COM').grid(row=2,column=0,sticky='w')
+        self.rfid_port_box=ttk.Combobox(rfid,textvariable=self.rfid_port,width=18);self.rfid_port_box.grid(row=2,column=1,sticky='w',padx=8)
+        ttk.Button(rfid,text=self.tr('Actualiser ports','تحديث المنافذ'),command=self.refresh_rfid_ports).grid(row=2,column=2,padx=4)
+        ttk.Label(rfid,text='BaudRate').grid(row=3,column=0,sticky='w')
+        ttk.Combobox(rfid,textvariable=self.rfid_baud,values=['1200','2400','4800','9600','19200','38400','57600','115200'],state='readonly',width=12).grid(row=3,column=1,sticky='w',padx=8)
+        ttk.Label(rfid,text=self.tr('Timeout (ms)','مهلة القراءة')).grid(row=3,column=2,sticky='e');ttk.Entry(rfid,textvariable=self.rfid_timeout,width=8).grid(row=3,column=3,padx=8,sticky='w')
+        ttk.Button(rfid,text=self.tr('Tester RFID série','اختبار RFID التسلسلي'),style='Soft.TButton',command=self.test_rfid).grid(row=4,column=1,sticky='w',pady=6)
+        self.refresh_rfid_ports()
         mail=ttk.LabelFrame(self,text=self.tr('E-mail / Gmail','البريد الإلكتروني / Gmail'),padding=10);mail.pack(fill='x',pady=10)
         self.email_enabled=tk.BooleanVar(value=get_setting('email_enabled','0')=='1')
         self.smtp_host=tk.StringVar(value=get_setting('smtp_host','smtp.gmail.com'));self.smtp_port=tk.StringVar(value=get_setting('smtp_port','587'))
@@ -374,6 +391,12 @@ class SettingsFrame(ttk.Frame):
             messagebox.showerror('ToDo',self.tr('Port SMTP invalide.','منفذ SMTP غير صالح.'),parent=self);return
         if smtp_port<1 or smtp_port>65535:
             messagebox.showerror('ToDo',self.tr('Port SMTP invalide.','منفذ SMTP غير صالح.'),parent=self);return
+        try:
+            rfid_baud=int(self.rfid_baud.get());rfid_timeout=int(self.rfid_timeout.get())
+            if rfid_baud<=0 or rfid_timeout<100 or rfid_timeout>10000:raise ValueError()
+        except ValueError:
+            messagebox.showerror('ToDo',self.tr('Paramètres RFID invalides.','إعدادات RFID غير صالحة.'),parent=self);return
+        set_setting('rfid_enabled','1' if self.rfid_enabled.get() else '0');set_setting('rfid_mode',self.rfid_mode.get());set_setting('rfid_port',self.rfid_port.get().strip());set_setting('rfid_baudrate',str(rfid_baud));set_setting('rfid_timeout_ms',str(rfid_timeout))
         set_setting('email_enabled','1' if self.email_enabled.get() else '0');set_setting('smtp_host',self.smtp_host.get().strip());set_setting('smtp_port',str(smtp_port));set_setting('smtp_user',self.smtp_user.get().strip());set_setting('smtp_app_password',self.smtp_password.get());set_setting('smtp_from_name',self.smtp_from.get().strip() or 'ToDo')
         set_setting('customer_display_enabled','1' if self.customer_enabled.get() else '0')
         set_setting("customer_slide_seconds",str(seconds))
@@ -387,6 +410,21 @@ class SettingsFrame(ttk.Frame):
         self.app.schedule_auto_backup()
         messagebox.showinfo("ToDo",self.tr("Paramètres enregistrés.","تم حفظ الإعدادات."),parent=self)
 
+
+
+    def refresh_rfid_ports(self):
+        try:
+            from services.rfid import serial_ports
+            ports=serial_ports();self.rfid_port_box['values']=ports
+            if not self.rfid_port.get() and ports:self.rfid_port.set(ports[0])
+        except Exception as error:messagebox.showerror('ToDo',str(error),parent=self)
+
+    def test_rfid(self):
+        try:
+            from services.rfid import read_tag
+            tag=read_tag(self.rfid_port.get().strip(),int(self.rfid_baud.get()),int(self.rfid_timeout.get()))
+            messagebox.showinfo('ToDo',self.tr(f'Tag lu : {tag}',f'تمت قراءة الوسم: {tag}'),parent=self)
+        except Exception as error:messagebox.showerror('RFID',str(error),parent=self)
 
     def test_email(self):
         try:

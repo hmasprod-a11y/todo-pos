@@ -30,7 +30,7 @@ class ProductEditor(tk.Toplevel):
         # virtual keyboard (another Toplevel) from receiving mouse/touch events.
         # The editor remains transient, while its own embedded keyboard works
         # entirely inside this window.
-        self.sku=tk.StringVar();self.alias=tk.StringVar();self.supplier_code=tk.StringVar();self.preferred_supplier=tk.StringVar();self.fraction=tk.BooleanVar();self.stock_note=tk.StringVar()
+        self.sku=tk.StringVar();self.alias=tk.StringVar();self.supplier_code=tk.StringVar();self.preferred_supplier=tk.StringVar();self.fraction=tk.BooleanVar();self.stock_note=tk.StringVar();self.rfid_tag=tk.StringVar()
         self.bar=tk.StringVar();self.name=tk.StringVar();self.cat=tk.StringVar()
         self.barcode_rows=[]
         self.buy=tk.StringVar(value="0");self.sell=tk.StringVar(value="0");self.stock=tk.StringVar(value="0");self.alert=tk.StringVar(value="0")
@@ -82,6 +82,7 @@ class ProductEditor(tk.Toplevel):
         for label,variable in [(self.tr('Référence','المرجع'),self.sku),(self.tr('Code fournisseur','رمز المورد'),self.supplier_code),(self.tr('Alias','اسم بديل'),self.alias)]:
             ttk.Label(fields,text=label).pack(anchor='w')
             ttk.Entry(fields,textvariable=variable,width=27).pack(fill='x',pady=(0,5))
+        ttk.Label(fields,text='RFID Tag').pack(anchor='w');ttk.Entry(fields,textvariable=self.rfid_tag,width=27).pack(fill='x',pady=(0,5))
         ttk.Label(fields,text=self.tr('Fournisseur préféré','المورد المفضل')).pack(anchor='w')
         with connect() as c:
             self.supplier_rows=[dict(r) for r in c.execute("SELECT id,name FROM suppliers WHERE active=1 ORDER BY name COLLATE NOCASE")]
@@ -294,6 +295,8 @@ class ProductEditor(tk.Toplevel):
         supplier_label=next((f"{r['name']} · #{r['id']}" for r in self.supplier_rows if r['id']==supplier_id),'')
         self.preferred_supplier.set(supplier_label)
         self.bar.set(b["barcode"] if b else "");self.name.set(p["name"]);self.cat.set(p["category"])
+        from services.rfid import get_tag_for_target
+        self.rfid_tag.set(get_tag_for_target('PRODUCT',self.pid))
         for child in self.barcodes_frame.winfo_children():child.destroy()
         self.barcode_rows=[]
         for extra in bars[1:]:
@@ -345,6 +348,8 @@ class ProductEditor(tk.Toplevel):
                     try: preferred_supplier_id=int(supplier_label.rsplit('#',1)[1])
                     except (ValueError,IndexError): raise ValueError(self.tr('Fournisseur invalide','مورد غير صالح'))
                 c.execute('UPDATE products SET sku=?,alias=?,supplier_code=?,preferred_supplier_id=?,allow_fraction=? WHERE id=?',(self.sku.get().strip(),self.alias.get().strip(),self.supplier_code.get().strip(),preferred_supplier_id,int(self.fraction.get()),pid))
+                from services.rfid import bind_tag
+                bind_tag(self.rfid_tag.get().strip(),'PRODUCT',pid,c)
                 audit(c,'PRODUCT_SAVE',pid)
                 # Auto-generated internal barcode for image-driven products that have no scanned code.
                 # Stable across edits because it is derived from the product id.
