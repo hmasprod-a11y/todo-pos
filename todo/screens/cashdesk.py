@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog
-from services.cash import get_open_session,open_session,close_session,session_totals,record_cash
+from services.cash import get_open_session,open_session,close_session,session_totals,record_cash,cash_activity
 from services.money import to_cents,fmt
 from database import connect, get_setting
 
@@ -20,6 +20,7 @@ class CashFrame(ttk.Frame):
         ttk.Button(b,text=self.tr('Cash OUT','إخراج نقدي'),style='Soft.TButton',command=lambda:self.cashmove('OUT')).pack(side='left',padx=4)
         if get_setting('closure_enabled','1')=='1':
             ttk.Button(b,text=self.tr('Clôturer','إغلاق الصندوق'),style='Primary.TButton',command=self.close).pack(side='left',padx=4)
+        ttk.Button(b,text=self.tr('Journal caisse','سجل الصندوق'),style='Soft.TButton',command=self.cash_journal).pack(side='left',padx=4)
         ttk.Button(b,text=self.tr('Historique clôtures','سجل الإغلاقات'),style='Soft.TButton',command=self.history).pack(side='left',padx=4)
         self.details=tk.Text(self,height=16,font=("Consolas",11));self.details.pack(fill="x",pady=15);self.refresh()
     def refresh(self):
@@ -70,6 +71,32 @@ Cash OUT       : {fmt(t['cash_out'])}
         try:record_cash(s['id'],self.app.user['id'],to_cents(amount),typ,note)
         except Exception as e:messagebox.showerror('ToDo',str(e),parent=self);return
         self.refresh()
+    def cash_journal(self):
+        s=get_open_session()
+        if not s:
+            messagebox.showinfo('ToDo',self.tr('Aucune caisse ouverte','لا يوجد صندوق مفتوح'),parent=self);return
+        rows=cash_activity(s['id'])
+        w=tk.Toplevel(self);w.title(self.tr('Journal de caisse','سجل الصندوق'));w.geometry('900x560');w.transient(self.winfo_toplevel())
+        tree=ttk.Treeview(w,columns=('time','doc','type','amount','note'),show='headings')
+        for key,label,width,anchor in [
+            ('time',self.tr('Date','التاريخ'),150,'center'),('doc',self.tr('Document','الوثيقة'),140,'center'),
+            ('type',self.tr('Type','النوع'),150,'center'),('amount',self.tr('Mouvement cash','حركة النقد'),120,'e'),
+            ('note',self.tr('Détail','التفصيل'),280,'w')]:
+            tree.heading(key,text=label);tree.column(key,width=width,anchor=anchor)
+        tree.tag_configure('out',foreground='#DC2626');tree.tag_configure('in',foreground='#15803D')
+        tree.pack(fill='both',expand=True,padx=12,pady=12)
+        labels={'SALE':self.tr('Vente cash','بيع نقدي'),'CREDIT_DEPOSIT':self.tr('Acompte crédit','تسبيق دين'),
+                'RETURN':self.tr('Retour cash','مرتجع نقدي'),'EXPENSE':self.tr('Dépense','مصروف'),
+                'CASH_IN':self.tr('Cash IN','إدخال نقدي'),'CASH_OUT':self.tr('Cash OUT','إخراج نقدي'),
+                'CLIENT_PAYMENT':self.tr('Règlement client','تسديد زبون'),'SUPPLIER_PAYMENT':self.tr('Règlement fournisseur','تسديد مورد')}
+        net=0
+        for r in rows:
+            amount=int(r['amount_cents']);net+=amount
+            tree.insert('','end',values=(r['created_at'],r['document'],labels.get(r['kind'],r['kind']),fmt(amount,''),r['note'] or ''),
+                        tags=('in' if amount>=0 else 'out',))
+        ttk.Label(w,text=self.tr(f'Mouvement net hors fond de caisse: {fmt(net)}',f'صافي حركة النقد دون رصيد الافتتاح: {fmt(net)}'),
+                  font=('Segoe UI',11,'bold')).pack(anchor='e',padx=12,pady=(0,12))
+
     def history(self):
         w=tk.Toplevel(self);w.title(self.tr('Historique des clôtures','سجل إغلاقات الصندوق'));w.geometry("1050x560");w.transient(self.winfo_toplevel())
         cols=("id","user","opened","closed","opening","expected","actual","diff")

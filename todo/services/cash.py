@@ -102,3 +102,40 @@ def record_cash(session_id,user_id,amount_cents,kind,note):
         else:
             conn.execute('INSERT INTO cash_movements(session_id,user_id,movement_type,amount_cents,note) VALUES(?,?,?,?,?)',(session_id,user_id,kind,amount,note))
         audit(conn,'CASH_'+kind,session_id,f'{amount}: {note}',user_id)
+
+
+def cash_activity(session_id):
+    """All cash-affecting operations for one cash session, newest first."""
+    with connect() as conn:
+        rows=conn.execute("""
+            SELECT s.created_at created_at,s.sale_no document,
+                   CASE WHEN sp.payment_method='CREDIT' THEN 'CREDIT_DEPOSIT' ELSE 'SALE' END kind,
+                   sp.amount_cents amount_cents,'' note
+            FROM sale_payments sp JOIN sales s ON s.id=sp.sale_id
+            WHERE s.session_id=? AND s.status='COMPLETED' AND sp.payment_method IN ('CASH','CREDIT')
+            UNION ALL
+            SELECT r.created_at,r.return_no,'RETURN',-rp.amount_cents,r.reason
+            FROM return_payments rp JOIN returns r ON r.id=rp.return_id
+            WHERE r.session_id=? AND rp.payment_method='CASH'
+            UNION ALL
+            SELECT e.created_at,'DEP-'||e.id,'EXPENSE',-e.amount_cents,e.label
+            FROM expenses e WHERE e.session_id=?
+            UNION ALL
+            SELECT cm.created_at,'CASH-'||cm.id,
+                   CASE WHEN cm.movement_type='IN' THEN 'CASH_IN' ELSE 'CASH_OUT' END,
+                   CASE WHEN cm.movement_type='IN' THEN cm.amount_cents ELSE -cm.amount_cents END,
+                   cm.note
+            FROM cash_movements cm WHERE cm.session_id=?
+            UNION ALL
+            SELECT cp.created_at,'CLIENT-'||cp.id,'CLIENT_PAYMENT',cp.amount_cents,
+                   COALESCE(cl.name,'')||CASE WHEN cp.note<>'' THEN ' · '||cp.note ELSE '' END
+            FROM client_payments cp JOIN clients cl ON cl.id=cp.client_id
+            WHERE cp.session_id=? AND cp.payment_method='CASH'
+            UNION ALL
+            SELECT sp.created_at,'SUP-'||sp.id,'SUPPLIER_PAYMENT',-sp.amount_cents,
+                   COALESCE(sup.name,'')||CASE WHEN sp.note<>'' THEN ' · '||sp.note ELSE '' END
+            FROM supplier_payments sp JOIN suppliers sup ON sup.id=sp.supplier_id
+            WHERE sp.session_id=? AND sp.payment_method='CASH'
+            ORDER BY created_at DESC
+        """,(session_id,session_id,session_id,session_id,session_id,session_id)).fetchall()
+        return [dict(r) for r in rows]

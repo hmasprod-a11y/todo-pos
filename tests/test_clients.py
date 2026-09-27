@@ -5,7 +5,7 @@ import database
 from services.bootstrap import ensure_defaults
 from services.security import current_user
 from services.clients import save_client,get_client,add_payment,client_sales,credit_statement,list_payments
-from services.cash import open_session,session_totals,close_session
+from services.cash import open_session,session_totals,close_session,cash_activity
 from services.sales import complete_sale,create_return,hold_sale,resume_held
 from services.catalog import search_products,set_product_categories
 
@@ -79,6 +79,16 @@ class ClientWorkflowTests(unittest.TestCase):
         with database.connect() as c:set_product_categories(c,self.pid,[])
         database.init_db()
         self.assertEqual(search_products(category=self.cat),[])
+    def test_cash_activity_matches_cash_session_movements(self):
+        sale=self.sale(paid=200)
+        add_payment(self.cid,300,'client cash',sale['id'])
+        with database.connect() as conn:
+            conn.execute("INSERT INTO expenses(session_id,user_id,label,amount_cents) VALUES(?,?,?,?)",(self.session,self.uid,'Petite dépense',100))
+        rows=cash_activity(self.session)
+        kinds={r['kind'] for r in rows}
+        self.assertTrue({'CREDIT_DEPOSIT','CLIENT_PAYMENT','EXPENSE'}.issubset(kinds))
+        self.assertEqual(sum(r['amount_cents'] for r in rows),400)
+
     def test_card_credit_settlement_does_not_enter_cash_drawer(self):
         sale=self.sale()
         add_payment(self.cid,1000,'card settlement',sale['id'],'CARD')
