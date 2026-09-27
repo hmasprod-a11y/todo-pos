@@ -2,7 +2,7 @@ import csv
 import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog,filedialog
 from database import connect, get_setting
-from services.inventory import apply_stock_movement, stock_activity, reorder_list
+from services.inventory import apply_stock_movement, stock_activity, reorder_list, stock_summary
 
 class StockFrame(ttk.Frame):
     def __init__(self,master,app=None):
@@ -26,7 +26,7 @@ class StockFrame(ttk.Frame):
         self.t.pack(fill="both",expand=True)
         self.kpi=tk.Frame(self,bg="#F6F7FB");self.kpi.pack(fill="x",pady=(8,0))
         self.kpi_values=[]
-        for title,bg in [(self.tr("Articles","المنتجات"),"#2563EB"),(self.tr("Alertes","التنبيهات"),"#F59E0B"),(self.tr("Stock négatif","المخزون السالب"),"#DC2626"),(self.tr("Valeur achat","قيمة الشراء"),"#16A34A"),(self.tr("Valeur vente","قيمة البيع"),"#7C3AED")]:
+        for title,bg in [(self.tr("Articles","المنتجات"),"#2563EB"),(self.tr("Alertes","التنبيهات"),"#F59E0B"),(self.tr("Stock négatif","المخزون السالب"),"#DC2626"),(self.tr("Promotions actives","العروض النشطة"),"#BE185D"),(self.tr("Valeur achat","قيمة الشراء"),"#16A34A"),(self.tr("Valeur vente","قيمة البيع"),"#7C3AED")]:
             card=tk.Frame(self.kpi,bg=bg,height=62);card.pack(side="left",fill="x",expand=True,padx=3);card.pack_propagate(False)
             value=tk.Label(card,text="0",bg=bg,fg="white",font=("Segoe UI",15,"bold"));value.pack(anchor="w",padx=10,pady=(5,0));tk.Label(card,text=title,bg=bg,fg="white").pack(anchor="w",padx=10);self.kpi_values.append(value)
         self.refresh()
@@ -47,8 +47,11 @@ class StockFrame(ttk.Frame):
             r=c.execute("""SELECT p.id,p.name,p.stock_qty,p.alert_qty,
                 COALESCE((SELECT movement_type||'|'||qty_delta||'|'||created_at FROM stock_movements sm WHERE sm.product_id=p.id ORDER BY sm.id DESC LIMIT 1),'') last
                 FROM products p WHERE p.active=1 AND p.name LIKE ?"""+extra+""" ORDER BY p.name""",(q,)).fetchall()
-            st=c.execute("""SELECT COUNT(*),COALESCE(SUM(CASE WHEN stock_qty<=alert_qty THEN 1 ELSE 0 END),0),COALESCE(SUM(CASE WHEN stock_qty<0 THEN 1 ELSE 0 END),0),COALESCE(SUM(stock_qty*purchase_price_cents),0),COALESCE(SUM(stock_qty*sale_price_cents),0) FROM products WHERE active=1""").fetchone()
-        for label,value in zip(self.kpi_values,[st[0],st[1],st[2],f"{st[3]/100:.2f}",f"{st[4]/100:.2f}"]):label.config(text=str(value))
+        summary=stock_summary()
+        for label,value in zip(self.kpi_values,[
+            summary['articles'],summary['alerts'],summary['negative'],summary['active_promotions'],
+            f"{summary['purchase_value_cents']/100:.2f}",f"{summary['sale_value_cents']/100:.2f}"
+        ]):label.config(text=str(value))
         self.t.delete(*self.t.get_children())
         for x in r:
             tags=('negative',) if x['stock_qty']<0 else (('alert',) if x['stock_qty']<=x['alert_qty'] else ())

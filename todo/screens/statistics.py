@@ -262,7 +262,7 @@ class StatisticsFrame(ttk.Frame):
         self.cat_chart.pack(fill='both', expand=True)
 
         # Top products (bottom-left)
-        top_card = ttk.LabelFrame(charts, text=self.tr('Top 8 articles','أفضل 8 منتجات'), padding=4)
+        top_card = ttk.LabelFrame(charts, text=self.tr('Top 10 articles','أفضل 10 منتجات'), padding=4)
         top_card.grid(row=1, column=0, sticky='nsew', padx=(0, 6))
         self.top_chart = HBarChart(top_card, [], height=160)
         self.top_chart.pack(fill='both', expand=True)
@@ -416,7 +416,7 @@ class StatisticsFrame(ttk.Frame):
         self.evo_chart.update_data(labels, values)
 
     def _load_top_products(self):
-        rows = top_products(8, self._period, self._year if self._period=='year' else None)
+        rows = top_products(10, self._period, self._year if self._period=='year' else None)
         items = [(r['name'], r['revenue']) for r in rows]
         self.top_chart.update_data(items)
 

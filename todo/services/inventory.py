@@ -75,3 +75,31 @@ def reorder_list():
         r['estimated_cost_cents']=int(round(suggested*int(r['purchase_price_cents'])))
         result.append(r)
     return result
+
+
+def stock_summary():
+    """Stock footer indicators required by the operational stock screen."""
+    from database import connect
+    with connect() as conn:
+        row=conn.execute("""
+            SELECT COUNT(*) articles,
+                   COALESCE(SUM(CASE WHEN stock_qty<=alert_qty THEN 1 ELSE 0 END),0) alerts,
+                   COALESCE(SUM(CASE WHEN stock_qty<0 THEN 1 ELSE 0 END),0) negative,
+                   COALESCE(SUM(stock_qty*purchase_price_cents),0) purchase_value_cents,
+                   COALESCE(SUM(stock_qty*sale_price_cents),0) sale_value_cents
+            FROM products WHERE active=1
+        """).fetchone()
+        promotions=conn.execute("""
+            SELECT COUNT(*)
+            FROM quantity_prices qp
+            JOIN products p ON p.id=qp.product_id
+            WHERE qp.active=1 AND p.active=1
+        """).fetchone()[0]
+    return {
+        'articles':int(row['articles']),
+        'alerts':int(row['alerts']),
+        'negative':int(row['negative']),
+        'active_promotions':int(promotions),
+        'purchase_value_cents':int(round(row['purchase_value_cents'] or 0)),
+        'sale_value_cents':int(round(row['sale_value_cents'] or 0)),
+    }
