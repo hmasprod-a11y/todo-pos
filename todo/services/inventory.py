@@ -59,7 +59,7 @@ def reorder_list():
             FROM products p
             LEFT JOIN suppliers s ON s.id=p.preferred_supplier_id
             WHERE p.active=1 AND p.alert_qty>0 AND p.stock_qty<=p.alert_qty
-            ORDER BY (alert_qty-stock_qty) DESC,name COLLATE NOCASE
+            ORDER BY (p.alert_qty-p.stock_qty) DESC,p.name COLLATE NOCASE
         """).fetchall()
     result=[]
     for row in rows:
