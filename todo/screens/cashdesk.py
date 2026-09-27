@@ -11,7 +11,7 @@ class CashFrame(ttk.Frame):
         ttk.Label(self,text=self.tr('Caisse','الصندوق'),style='Title.TLabel').pack(anchor='w',pady=(0,8))
         self.info=ttk.Label(self,text="",font=("Segoe UI",12));self.info.pack(anchor="w",pady=8)
         self.kpis=ttk.Frame(self);self.kpis.pack(fill="x",pady=8);self.kpi_labels={}
-        for key,title in [("expected",self.tr("Cash attendu","النقد المتوقع")),("sales",self.tr("Ventes cash","المبيعات النقدية")),("expenses",self.tr("Dépenses","المصاريف")),("returns",self.tr("Retours cash","المرتجعات النقدية"))]:
+        for key,title in [("expected",self.tr("Cash attendu","النقد المتوقع")),("sales",self.tr("Ventes cash","المبيعات النقدية")),("card",self.tr("Ventes carte","مبيعات البطاقة")),("expenses",self.tr("Dépenses","المصاريف")),("returns",self.tr("Retours cash","المرتجعات النقدية"))]:
             card=ttk.LabelFrame(self.kpis,text=title,padding=8);card.pack(side="left",fill="x",expand=True,padx=3);lbl=ttk.Label(card,text="—",font=("Segoe UI",16,"bold"));lbl.pack();self.kpi_labels[key]=lbl
         b=ttk.Frame(self);b.pack(anchor="w",pady=8)
         ttk.Button(b,text=self.tr('Ouvrir caisse','فتح الصندوق'),style='Success.TButton',command=self.open).pack(side='left',padx=4)
@@ -31,16 +31,18 @@ class CashFrame(ttk.Frame):
             self.details.config(state="disabled");return
         with connect() as c:t=session_totals(c,s["id"])
         expected=int(s["opening_cash_cents"])+t["cash_sales"]-t["cash_returns"]-t["expenses"]+t["cash_in"]-t["cash_out"]
-        self.kpi_labels["expected"].config(text=fmt(expected));self.kpi_labels["sales"].config(text=fmt(t["cash_sales"]));self.kpi_labels["expenses"].config(text=fmt(t["expenses"]));self.kpi_labels["returns"].config(text=fmt(t["cash_returns"]))
+        self.kpi_labels["expected"].config(text=fmt(expected));self.kpi_labels["sales"].config(text=fmt(t["cash_sales"]));self.kpi_labels["card"].config(text=fmt(t["card_sales"]));self.kpi_labels["expenses"].config(text=fmt(t["expenses"]));self.kpi_labels["returns"].config(text=fmt(t["cash_returns"]))
         self.info.config(text=self.tr(f"Caisse #{s['id']} ouverte depuis {s['opened_at']}",f"الصندوق #{s['id']} مفتوح منذ {s['opened_at']}"))
         txt=self.tr(f"""Fond de caisse : {fmt(s['opening_cash_cents'])}
 Ventes cash    : {fmt(t['cash_sales'])}
+Ventes carte   : {fmt(t['card_sales'])}
 Retours cash   : {fmt(t['cash_returns'])}
 Dépenses       : {fmt(t['expenses'])}
 Cash IN        : {fmt(t['cash_in'])}
 Cash OUT       : {fmt(t['cash_out'])}
 """,f"""رصيد الافتتاح : {fmt(s['opening_cash_cents'])}
 المبيعات النقدية : {fmt(t['cash_sales'])}
+مبيعات البطاقة : {fmt(t['card_sales'])}
 المرتجعات النقدية : {fmt(t['cash_returns'])}
 المصاريف : {fmt(t['expenses'])}
 إدخال نقدي : {fmt(t['cash_in'])}

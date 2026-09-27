@@ -38,6 +38,12 @@ def session_totals(conn, session_id):
            WHERE s.session_id=? AND s.status='COMPLETED'""",
         (session_id,)
     ).fetchone()["v"]
+    card_sales = conn.execute(
+        """SELECT COALESCE(SUM(sp.amount_cents),0) v
+           FROM sale_payments sp JOIN sales s ON s.id=sp.sale_id
+           WHERE s.session_id=? AND s.status='COMPLETED' AND sp.payment_method='CARD'""",
+        (session_id,)
+    ).fetchone()["v"]
     cash_returns = conn.execute(
         """SELECT COALESCE(SUM(rp.amount_cents),0) v
            FROM return_payments rp JOIN returns r ON r.id=rp.return_id
@@ -58,7 +64,7 @@ def session_totals(conn, session_id):
     ).fetchone()["v"]
     cash_in += conn.execute("SELECT COALESCE(SUM(amount_cents),0) FROM client_payments WHERE session_id=? AND payment_method='CASH'",(session_id,)).fetchone()[0]
     cash_out += conn.execute("SELECT COALESCE(SUM(amount_cents),0) FROM supplier_payments WHERE session_id=? AND payment_method='CASH'",(session_id,)).fetchone()[0]
-    return dict(cash_sales=int(cash_sales), cash_returns=int(cash_returns),
+    return dict(cash_sales=int(cash_sales), card_sales=int(card_sales), cash_returns=int(cash_returns),
                 expenses=int(expenses), cash_in=int(cash_in), cash_out=int(cash_out))
 
 def close_session(session_id, actual_cash_cents):
