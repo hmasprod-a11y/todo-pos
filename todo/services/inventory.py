@@ -124,7 +124,12 @@ def stock_products(query='', category_id=None, status='all'):
         where.append('p.stock_qty<=p.alert_qty')
     elif status=='negative':
         where.append('p.stock_qty<0')
-    sql="""SELECT p.id,p.name,p.stock_qty,p.alert_qty,
+    sql="""SELECT p.id,p.sku,p.name,p.purchase_price_cents,p.sale_price_cents,p.stock_qty,p.alert_qty,
+                  COALESCE(NULLIF(p.sku,''),(SELECT pb.barcode FROM product_barcodes pb WHERE pb.product_id=p.id ORDER BY pb.id LIMIT 1),'') code,
+                  COALESCE((SELECT group_concat(c.name, ', ')
+                            FROM product_categories pc2
+                            JOIN categories c ON c.id=pc2.category_id
+                            WHERE pc2.product_id=p.id AND c.active=1),'') families,
                   COALESCE((SELECT movement_type||'|'||qty_delta||'|'||created_at
                             FROM stock_movements sm
                             WHERE sm.product_id=p.id

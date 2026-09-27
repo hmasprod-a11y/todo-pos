@@ -27,9 +27,19 @@ class StockFrame(ttk.Frame):
         ttk.Button(top,text=self.tr('Historique','السجل'),style="Soft.TButton",command=self.ledger).pack(side="right",padx=8)
         if app is not None:
             ttk.Button(top,text=self.tr('Articles','المنتجات'),style="Soft.TButton",command=lambda: app.show("products")).pack(side="right",padx=8)
-        cols=("id","name","stock","alert","last")
+        cols=("code","name","family","purchase","sale","stock","alert","last")
         self.t=ttk.Treeview(self,columns=cols,show="headings",height=14)
-        for c,h,w in [("id","ID",50),("name",self.tr("Article","المنتوج"),320),("stock",self.tr("Stock","المخزون"),100),("alert",self.tr("Alerte","التنبيه"),90),("last",self.tr("Dernier mouvement","آخر حركة"),220)]:self.t.heading(c,text=h);self.t.column(c,width=w,anchor="center")
+        for c,h,w,anchor in [
+            ("code",self.tr("Code","الكود"),120,"center"),
+            ("name",self.tr("Article","المنتوج"),230,"w"),
+            ("family",self.tr("Famille","الفئة"),170,"w"),
+            ("purchase",self.tr("PRIX_A","ثمن الشراء"),90,"e"),
+            ("sale",self.tr("PRIX_V","ثمن البيع"),90,"e"),
+            ("stock",self.tr("Stock","المخزون"),80,"e"),
+            ("alert",self.tr("Alerte","التنبيه"),75,"e"),
+            ("last",self.tr("Dernier mouvement","آخر حركة"),210,"w"),
+        ]:
+            self.t.heading(c,text=h);self.t.column(c,width=w,anchor=anchor)
         self.t.pack(fill="both",expand=True)
         self.kpi=tk.Frame(self,bg="#F6F7FB");self.kpi.pack(fill="x",pady=(8,0))
         self.kpi_values=[]
@@ -63,12 +73,19 @@ class StockFrame(ttk.Frame):
             last=x["last"]
             if last:
                 parts=last.split("|",2);last=f"{self._movement_label(parts[0])} {parts[1]} @ {parts[2]}" if len(parts)==3 else last
-            self.t.insert("", "end",values=(x["id"],x["name"],f"{x['stock_qty']:g}",f"{x['alert_qty']:g}",last),tags=tags)
+            self.t.insert("", "end",values=(
+                x.get("code") or f"#{x['id']}",x["name"],x.get("families") or '—',
+                f"{x['purchase_price_cents']/100:.2f}",f"{x['sale_price_cents']/100:.2f}",
+                f"{x['stock_qty']:g}",f"{x['alert_qty']:g}",last
+            ),tags=tags)
         self.t.tag_configure('negative',background='#FEE2E2',foreground='#991B1B');self.t.tag_configure('alert',background='#FEF3C7',foreground='#92400E')
     def adjust(self):
         s=self.t.selection()
         if not s:return
-        pid=int(self.t.item(s[0],"values")[0]);q=simpledialog.askfloat(self.tr("Ajustement","تسوية المخزون"),self.tr("Variation (+/-):","التغيير (+/-):"),parent=self)
+        code=self.t.item(s[0],"values")[0]
+        rows=[r for r in stock_products(self.q.get().strip(),self.family_map.get(self.family.get()),'all') if (r.get('code') or f"#{r['id']}")==code]
+        if not rows:return
+        pid=int(rows[0]['id']);q=simpledialog.askfloat(self.tr("Ajustement","تسوية المخزون"),self.tr("Variation (+/-):","التغيير (+/-):"),parent=self)
         if q is None or q==0:return
         note=simpledialog.askstring(self.tr("Ajustement","تسوية المخزون"),self.tr("Raison obligatoire:","السبب إجباري:"),parent=self) or ""
         if not note.strip():return
