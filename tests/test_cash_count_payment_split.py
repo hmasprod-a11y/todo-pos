@@ -14,7 +14,7 @@ class CashCountPaymentSplitTests(unittest.TestCase):
         self.token=current_user.set(self.uid)
         self.sid=open_session(self.uid,1000)
         with database.connect() as c:
-            c.execute("INSERT INTO sales(sale_no,session_id,cashier_user_id,total_cents,payment_method,paid_cents,status) VALUES('S1',?,?,3000,'MIXED',3000,'COMPLETED')",(self.sid,self.uid))
+            c.execute("INSERT INTO sales(sale_no,session_id,cashier_user_id,subtotal_cents,discount_cents,total_cents,payment_method,paid_cents,change_cents,status) VALUES('S1',?,?,3000,0,3000,'MIXED',3000,0,'COMPLETED')",(self.sid,self.uid))
             sale_id=c.execute("SELECT last_insert_rowid()").fetchone()[0]
             c.execute("INSERT INTO sale_payments(sale_id,payment_method,amount_cents) VALUES(?,?,?)",(sale_id,'CASH',1200))
             c.execute("INSERT INTO sale_payments(sale_id,payment_method,amount_cents) VALUES(?,?,?)",(sale_id,'CARD',1800))
