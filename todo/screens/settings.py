@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import ttk,messagebox,filedialog,simpledialog
 from database import get_setting,set_setting,connect
 from services.backup import create_backup,restore_backup,create_full_backup,restore_full_backup
-from services.security import hash_pin, require_admin, audit
+from services.security import hash_pin, require_admin, require_permission, audit
 
 
 
@@ -97,7 +97,7 @@ class CategoryEditor(tk.Toplevel):
             from tkinter import messagebox
             messagebox.showerror(self.tr('Famille','العائلة'), self.tr('Le nom est obligatoire.','الاسم إجباري.'), parent=self); return
         with connect() as conn:
-            require_admin(conn)
+            require_permission('MANAGEMENT', conn)
             if self.cat_id:
                 conn.execute('UPDATE categories SET name=?,color=?,icon=? WHERE id=?',
                              (name, color, icon, self.cat_id))
