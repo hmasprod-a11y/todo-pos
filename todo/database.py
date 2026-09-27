@@ -491,6 +491,7 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('shop_name','ToDo'),
 ('currency','DH'),
 ('allow_negative_stock','1'),
+('manual_stock_edit_enabled','1'),
 ('receipt_footer','Merci pour votre visite'),
 ('backup_on_close','1'),
 ('loyalty_enabled','0'),

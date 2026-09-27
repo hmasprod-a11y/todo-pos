@@ -6,6 +6,8 @@ def apply_stock_movement(conn, product_id, qty_delta, movement_type,
                          unit_cost_cents=0, ref_type='', ref_id=None, note='', user_id=None):
     if movement_type in ('ADJUSTMENT','OPENING','INVENTORY'):
         require_permission('STOCK_EDIT',conn)
+        if get_setting('manual_stock_edit_enabled','1',conn)!='1':
+            raise PermissionError('La modification manuelle du stock est désactivée.')
         if not note.strip():
             raise ValueError('La raison est obligatoire.')
     row=conn.execute('SELECT name,stock_qty FROM products WHERE id=?',(product_id,)).fetchone()
