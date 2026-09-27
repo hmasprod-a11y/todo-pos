@@ -156,27 +156,39 @@ class SettingsFrame(ttk.Frame):
         ttk.Button(sr,text=self.tr('+ Ajouter vendeur','+ إضافة بائع'),style='Soft.TButton',command=self.add_seller).pack(side='left',padx=6)
         self.refresh_sellers()
         p=ttk.LabelFrame(self,text=self.tr('Impression','الطباعة'),padding=10);p.pack(fill="x",pady=10)
-        self.printer=tk.StringVar(value=get_setting("printer_name",""));self.print_mode=tk.StringVar(value=get_setting("print_mode","ask"));self.thermal_raw=tk.BooleanVar(value=get_setting('thermal_raw','0')=='1');self.receipt_chars=tk.StringVar(value=get_setting('receipt_chars','42'))
-        ttk.Label(p,text=self.tr('Imprimante (optionnel)','الطابعة (اختياري)')).grid(row=0,column=0,sticky="w")
-        self.printer_choice=ttk.Combobox(p,textvariable=self.printer,width=34)
-        self.printer_choice.grid(row=0,column=1,padx=8)
+        self.printer=tk.StringVar(value=get_setting('printer_receipt_name',get_setting("printer_name","")))
+        self.report_printer=tk.StringVar(value=get_setting('printer_report_name',''))
+        self.addition_printer=tk.StringVar(value=get_setting('printer_addition_name',''))
+        self.kitchen_printers=[tk.StringVar(value=get_setting(f'printer_kitchen_c{i}_name','')) for i in range(1,5)]
+        self.receipt_template=tk.StringVar(value=get_setting('receipt_template','FR_3C'))
+        self.print_mode=tk.StringVar(value=get_setting("print_mode","ask"));self.thermal_raw=tk.BooleanVar(value=get_setting('thermal_raw','0')=='1');self.receipt_chars=tk.StringVar(value=get_setting('receipt_chars','42'))
+        ttk.Label(p,text=self.tr('Ticket / Solder','التذكرة / الأداء')).grid(row=0,column=0,sticky="w")
+        self.printer_choice=ttk.Combobox(p,textvariable=self.printer,width=34);self.printer_choice.grid(row=0,column=1,padx=8)
+        ttk.Label(p,text=self.tr('Rapports','التقارير')).grid(row=1,column=0,sticky="w");self.report_printer_choice=ttk.Combobox(p,textvariable=self.report_printer,width=34);self.report_printer_choice.grid(row=1,column=1,padx=8)
+        ttk.Label(p,text=self.tr('Addition','الحساب')).grid(row=2,column=0,sticky="w");self.addition_printer_choice=ttk.Combobox(p,textvariable=self.addition_printer,width=34);self.addition_printer_choice.grid(row=2,column=1,padx=8)
+        self.kitchen_printer_choices=[]
+        for i,var in enumerate(self.kitchen_printers,1):
+            ttk.Label(p,text=f'C{i}').grid(row=2+i,column=0,sticky='w')
+            cb=ttk.Combobox(p,textvariable=var,width=34);cb.grid(row=2+i,column=1,padx=8);self.kitchen_printer_choices.append(cb)
         ttk.Button(p,text=self.tr('Actualiser imprimantes','تحديث الطابعات'),command=self.refresh_printers).grid(row=0,column=2,padx=5)
-        ttk.Button(p,text=self.tr('Tester imprimante','اختبار الطابعة'),style='Soft.TButton',command=self.test_printer).grid(row=0,column=3,padx=5)
-        ttk.Label(p,text=self.tr('Après validation','بعد تأكيد البيع')).grid(row=1,column=0,sticky="w",pady=5)
+        ttk.Button(p,text=self.tr('Tester ticket','اختبار طابعة التذكرة'),style='Soft.TButton',command=self.test_printer).grid(row=0,column=3,padx=5)
+        ttk.Label(p,text=self.tr('Modèle ticket','قالب التذكرة')).grid(row=7,column=0,sticky='w')
+        ttk.Combobox(p,textvariable=self.receipt_template,values=['FR_3C','FR_4C','FR_2L','AR_3C','AR_4C'],state='readonly',width=12).grid(row=7,column=1,sticky='w',padx=8)
+        ttk.Label(p,text=self.tr('Après validation','بعد تأكيد البيع')).grid(row=8,column=0,sticky="w",pady=5)
         self.print_mode_box=ttk.Combobox(p,state='readonly',width=18)
         self.print_mode_labels={self.tr('Demander','سؤال'):'ask',self.tr('Toujours imprimer','الطباعة دائماً'):'always',self.tr('Ne jamais imprimer','عدم الطباعة'):'never'}
-        self.print_mode_box['values']=list(self.print_mode_labels);self.print_mode_box.set(next((k for k,v in self.print_mode_labels.items() if v==self.print_mode.get()),list(self.print_mode_labels)[0]));self.print_mode_box.bind('<<ComboboxSelected>>',lambda e:self.print_mode.set(self.print_mode_labels.get(self.print_mode_box.get(),'ask')));self.print_mode_box.grid(row=1,column=1,sticky='w',padx=8)
-        ttk.Label(p,text=self.tr('Comportement impression','سلوك الطباعة')).grid(row=2,column=0,sticky='w')
-        ttk.Label(p,text=self.tr('Demander / Toujours / Jamais','سؤال / دائماً / أبداً')).grid(row=2,column=1,columnspan=2,sticky='w')
-        ttk.Checkbutton(p,text=self.tr('Mode ticket thermique ESC/POS (RAW)','وضع التذكرة الحرارية ESC/POS (RAW)'),variable=self.thermal_raw).grid(row=3,column=0,columnspan=2,sticky='w')
-        ttk.Label(p,text=self.tr('Largeur ticket (caractères)','عرض التذكرة (حروف)')).grid(row=3,column=2,sticky='e')
-        ttk.Combobox(p,textvariable=self.receipt_chars,values=['32','42','48'],state='readonly',width=5).grid(row=3,column=3,sticky='w',padx=6)
+        self.print_mode_box['values']=list(self.print_mode_labels);self.print_mode_box.set(next((k for k,v in self.print_mode_labels.items() if v==self.print_mode.get()),list(self.print_mode_labels)[0]));self.print_mode_box.bind('<<ComboboxSelected>>',lambda e:self.print_mode.set(self.print_mode_labels.get(self.print_mode_box.get(),'ask')));self.print_mode_box.grid(row=8,column=1,sticky='w',padx=8)
+        ttk.Label(p,text=self.tr('Comportement impression','سلوك الطباعة')).grid(row=9,column=0,sticky='w')
+        ttk.Label(p,text=self.tr('Demander / Toujours / Jamais','سؤال / دائماً / أبداً')).grid(row=9,column=1,columnspan=2,sticky='w')
+        ttk.Checkbutton(p,text=self.tr('Mode ticket thermique ESC/POS (RAW)','وضع التذكرة الحرارية ESC/POS (RAW)'),variable=self.thermal_raw).grid(row=10,column=0,columnspan=2,sticky='w')
+        ttk.Label(p,text=self.tr('Largeur ticket (caractères)','عرض التذكرة (حروف)')).grid(row=10,column=2,sticky='e')
+        ttk.Combobox(p,textvariable=self.receipt_chars,values=['32','42','48'],state='readonly',width=5).grid(row=10,column=3,sticky='w',padx=6)
         self.drawer_enabled=tk.BooleanVar(value=get_setting('drawer_enabled','0')=='1')
         self.drawer_pin=tk.StringVar(value=get_setting('drawer_pin','0'))
-        ttk.Checkbutton(p,text=self.tr('Tiroir connecté à une imprimante ESC/POS','درج النقود متصل بطابعة ESC/POS'),variable=self.drawer_enabled).grid(row=4,column=0,columnspan=2,sticky='w')
-        ttk.Label(p,text=self.tr('Connecteur tiroir','موصل درج النقود')).grid(row=5,column=0,sticky='w')
-        ttk.Combobox(p,textvariable=self.drawer_pin,values=['0','1'],state='readonly',width=5).grid(row=5,column=1,sticky='w',padx=8)
-        ttk.Button(p,text=self.tr('Enregistrer impression','حفظ إعدادات الطباعة'),command=self.save).grid(row=5,column=2)
+        ttk.Checkbutton(p,text=self.tr('Tiroir connecté à une imprimante ESC/POS','درج النقود متصل بطابعة ESC/POS'),variable=self.drawer_enabled).grid(row=11,column=0,columnspan=2,sticky='w')
+        ttk.Label(p,text=self.tr('Connecteur tiroir','موصل درج النقود')).grid(row=12,column=0,sticky='w')
+        ttk.Combobox(p,textvariable=self.drawer_pin,values=['0','1'],state='readonly',width=5).grid(row=12,column=1,sticky='w',padx=8)
+        ttk.Button(p,text=self.tr('Enregistrer impression','حفظ إعدادات الطباعة'),command=self.save).grid(row=12,column=2)
         d=ttk.LabelFrame(self,text=self.tr('Écran client','شاشة الزبون'),padding=10);d.pack(fill="x",pady=10)
         self.customer_enabled=tk.BooleanVar(value=get_setting('customer_display_enabled','0')=='1')
         self.customer_seconds=tk.StringVar(value=get_setting("customer_slide_seconds","6"))
@@ -278,7 +290,11 @@ class SettingsFrame(ttk.Frame):
         set_setting("shop_name",self.shop.get().strip() or "ToDo");set_setting("currency",self.cur.get().strip() or "DH");set_setting("allow_negative_stock","1" if self.neg.get() else "0")
         print_mode=self.print_mode.get() or "ask"
         if print_mode not in ('ask','always','never'):print_mode='ask'
-        set_setting("receipt_footer",self.footer.get());set_setting("search_limit",limit);set_setting("printer_name",self.printer.get().strip());set_setting("print_mode",print_mode)
+        set_setting("receipt_footer",self.footer.get());set_setting("search_limit",limit);set_setting("printer_name",self.printer.get().strip());set_setting('printer_receipt_name',self.printer.get().strip());set_setting('printer_report_name',self.report_printer.get().strip());set_setting('printer_addition_name',self.addition_printer.get().strip())
+        for i,var in enumerate(self.kitchen_printers,1):set_setting(f'printer_kitchen_c{i}_name',var.get().strip())
+        template=self.receipt_template.get().strip().upper()
+        if template not in ('FR_3C','FR_4C','FR_2L','AR_3C','AR_4C'):template='FR_3C'
+        set_setting('receipt_template',template);set_setting("print_mode",print_mode)
         set_setting('thermal_raw','1' if self.thermal_raw.get() else '0');set_setting('receipt_chars',self.receipt_chars.get() if self.receipt_chars.get() in ('32','42','48') else '42');set_setting('drawer_enabled','1' if self.drawer_enabled.get() else '0');set_setting('drawer_pin',self.drawer_pin.get());set_setting('block_insufficient_stock','1' if self.block_insufficient.get() else '0');set_setting('credit_enabled','1' if self.credit_enabled.get() else '0');set_setting('closure_enabled','1' if self.closure_enabled.get() else '0');set_setting('sans_ticket_enabled','1' if self.sans_ticket_enabled.get() else '0');set_setting('payment_window_enabled','1' if self.payment_window_enabled.get() else '0');set_setting('require_client_on_sale','1' if self.require_client.get() else '0');set_setting('choose_seller_on_sale','1' if self.choose_seller.get() else '0');new_language=self.language.get();language_changed=new_language!=get_setting('language','fr');set_setting('language',new_language)
         try:
             seconds=int(self.customer_seconds.get())
@@ -321,7 +337,10 @@ class SettingsFrame(ttk.Frame):
 
     def refresh_printers(self):
         from services.printers import installed_printers
-        try:self.printer_choice['values']=installed_printers()
+        try:
+            values=installed_printers()
+            self.printer_choice['values']=values;self.report_printer_choice['values']=values;self.addition_printer_choice['values']=values
+            for cb in self.kitchen_printer_choices:cb['values']=values
         except Exception as error:messagebox.showerror(self.tr('Imprimantes','الطابعات'),str(error),parent=self)
 
     def backup(self):

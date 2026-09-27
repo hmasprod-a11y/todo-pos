@@ -4,12 +4,25 @@ from database import connect, get_setting
 from services.money import fmt
 
 
+RECEIPT_TEMPLATES={
+    'FR_3C': {'lang':'fr','width':42,'layout':'3C'},
+    'FR_4C': {'lang':'fr','width':48,'layout':'4C'},
+    'FR_2L': {'lang':'fr','width':32,'layout':'2L'},
+    'AR_3C': {'lang':'ar','width':42,'layout':'3C'},
+    'AR_4C': {'lang':'ar','width':48,'layout':'4C'},
+}
+
+def _receipt_profile():
+    name=get_setting('receipt_template','').strip().upper()
+    if name in RECEIPT_TEMPLATES:
+        profile=dict(RECEIPT_TEMPLATES[name]);profile['name']=name;return profile
+    try:width=int(get_setting('receipt_chars','42'))
+    except (TypeError,ValueError):width=42
+    lang=get_setting('language','fr')
+    return {'name':'LEGACY','lang':lang,'width':max(32,min(width,64)),'layout':'3C'}
+
 def _receipt_width():
-    try:
-        width=int(get_setting('receipt_chars','42'))
-    except (TypeError,ValueError):
-        width=42
-    return max(32,min(width,64))
+    return _receipt_profile()['width']
 
 
 def _payment_label(method):
@@ -31,9 +44,9 @@ def build_receipt(sale_id):
         payments=conn.execute("SELECT payment_method,amount_cents FROM sale_payments WHERE sale_id=? ORDER BY id",(sale_id,)).fetchall()
         client=conn.execute('SELECT name FROM clients WHERE id=?',(s['client_id'],)).fetchone() if s and s['client_id'] is not None else None
     if not s: raise ValueError("Vente introuvable")
-    lang=get_setting('language','fr');ar=lang=='ar'
+    profile=_receipt_profile();lang=profile['lang'];ar=lang=='ar'
     tr=lambda fr,arabic: arabic if ar else fr
-    cur=get_setting("currency","DH");width=_receipt_width();rule="="*width;dash="-"*width
+    cur=get_setting("currency","DH");width=profile['width'];rule="="*width;dash="-"*width
     lines=[
         get_setting("shop_name","ToDo"),
         rule,
@@ -43,10 +56,12 @@ def build_receipt(sale_id):
     if client:lines.append(f"{tr('Client','الزبون')}: {client['name']}")
     lines.append(dash)
     for i in items:
-        lines += [
-            i["name_snapshot"],
-            f"  {tr('Qté','الكمية')} {i['qty']:g} | {tr('Brut','الإجمالي')} {fmt(i['line_total_cents'],cur)} | {tr('Net','الصافي')} {fmt(i['net_total_cents'],cur)}",
-        ]
+        if profile['layout']=='4C':
+            lines.append(f"{i['name_snapshot']} | {i['qty']:g} | {fmt(i['unit_price_cents'],cur)} | {fmt(i['net_total_cents'],cur)}")
+        elif profile['layout']=='2L':
+            lines += [i["name_snapshot"],f"{i['qty']:g} x {fmt(i['unit_price_cents'],cur)} = {fmt(i['net_total_cents'],cur)}"]
+        else:
+            lines += [i["name_snapshot"],f"  {tr('Qté','الكمية')} {i['qty']:g} | {tr('Brut','الإجمالي')} {fmt(i['line_total_cents'],cur)} | {tr('Net','الصافي')} {fmt(i['net_total_cents'],cur)}"]
         if i['pricing_mode']=='PACK':
             lines.append(f"  {i['qty']/i['qty_multiplier']:g} {tr('pack(s)','علبة')} x {fmt(i['unit_price_cents'],cur)} ({i['qty_multiplier']:g} {tr('unités','وحدات')})")
     lines += [
@@ -105,7 +120,8 @@ def _send_raw_windows(printer, payload, title):
 
 
 def print_receipt_windows(sale_id):
-    printer=get_setting('printer_name','').strip()
+    from services.printers import printer_for
+    printer=printer_for('receipt')
     raw=get_setting('thermal_raw','0')=='1'
     if raw:
         if not printer:raise ValueError('Sélectionnez une imprimante de ticket dans les paramètres.')

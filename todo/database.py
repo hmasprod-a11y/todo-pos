@@ -458,7 +458,15 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('backup_on_close','1'),
 ('loyalty_enabled','0'),
 ('loyalty_earn_every_cents','1000'),
-('loyalty_point_value_cents','50');
+('loyalty_point_value_cents','50'),
+('printer_receipt_name',''),
+('printer_report_name',''),
+('printer_addition_name',''),
+('printer_kitchen_c1_name',''),
+('printer_kitchen_c2_name',''),
+('printer_kitchen_c3_name',''),
+('printer_kitchen_c4_name',''),
+('receipt_template','FR_3C');
 """
 
 class Connection(sqlite3.Connection):

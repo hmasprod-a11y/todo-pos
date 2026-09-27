@@ -225,7 +225,9 @@ class JournalFrame(ttk.Frame):
             table=Table(data,repeatRows=1,colWidths=[125,125,110,110,90,90]);table.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#2563EB")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("GRID",(0,0),(-1,-1),0.3,colors.grey),("FONTSIZE",(0,0),(-1,-1),8)]))
             styles=getSampleStyleSheet();doc.build([Paragraph(self.tr("Rapport Journal","تقرير السجل"),styles["Title"]),Spacer(1,8),Paragraph(f"{self.date_from.get()} - {self.date_to.get()}",styles["Heading3"]),Spacer(1,8),table])
             import os
-            if os.name=="nt":os.startfile(p,"print")
+            if os.name=="nt":
+                from services.printers import print_file_windows
+                print_file_windows(p,'report')
             else:messagebox.showinfo("ToDo",self.tr("PDF prêt pour impression.","ملف PDF جاهز للطباعة."),parent=self)
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
 

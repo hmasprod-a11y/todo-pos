@@ -3,15 +3,46 @@ import os
 from database import connect,get_setting
 from services.security import audit
 
+PURPOSE_KEYS={
+    'receipt':'printer_receipt_name',
+    'report':'printer_report_name',
+    'addition':'printer_addition_name',
+    'c1':'printer_kitchen_c1_name',
+    'c2':'printer_kitchen_c2_name',
+    'c3':'printer_kitchen_c3_name',
+    'c4':'printer_kitchen_c4_name',
+}
+
 def installed_printers():
     if os.name!='nt':return []
     import win32print
     return sorted({row[2] for row in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL|win32print.PRINTER_ENUM_CONNECTIONS)})
 
+def printer_for(purpose='receipt'):
+    key=PURPOSE_KEYS.get(str(purpose).lower())
+    if not key:raise ValueError('Usage imprimante invalide.')
+    configured=get_setting(key,'').strip()
+    if configured:return configured
+    # Legacy installs had a single printer_name. Keep them working.
+    if purpose in ('receipt','report','addition'):
+        return get_setting('printer_name','').strip()
+    return ''
+
+def print_file_windows(path,purpose='report'):
+    if os.name!='nt':raise OSError('Impression disponible sous Windows.')
+    printer=printer_for(purpose)
+    if printer:
+        from subprocess import list2cmdline
+        os.startfile(str(path),'printto',list2cmdline([printer]))
+    else:
+        os.startfile(str(path),'print')
+    with connect() as conn:audit(conn,'PRINT_FILE',None,f'{purpose}:{printer or "DEFAULT"}')
+    return path
+
 def open_drawer():
     if get_setting('drawer_enabled','0')!='1':
         raise ValueError('Activez le tiroir compatible ESC/POS dans Paramètres > Impression.')
-    printer=get_setting('printer_name','').strip()
+    printer=printer_for('receipt')
     if not printer:raise ValueError('Sélectionnez une imprimante de ticket dans les paramètres.')
     pin=get_setting('drawer_pin','0')
     if pin not in ('0','1'):raise ValueError('Connecteur tiroir invalide.')

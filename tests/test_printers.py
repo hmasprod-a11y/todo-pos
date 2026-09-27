@@ -20,8 +20,29 @@ class PrinterTests(unittest.TestCase):
         with patch.dict(sys.modules,win32print=api):
             with self.assertRaises(ValueError):printers.open_drawer()
             api.OpenPrinter.assert_not_called()
+    def test_printer_routes_prefer_dedicated_settings_and_keep_legacy_fallback(self):
+        database.set_setting('printer_name','Legacy')
+        self.assertEqual(printers.printer_for('receipt'),'Legacy')
+        database.set_setting('printer_receipt_name','Receipt Dedicated')
+        database.set_setting('printer_report_name','Report Dedicated')
+        self.assertEqual(printers.printer_for('receipt'),'Receipt Dedicated')
+        self.assertEqual(printers.printer_for('report'),'Report Dedicated')
+
+    def test_receipt_template_can_use_arabic_independently_from_ui_language(self):
+        database.set_setting('language','fr');database.set_setting('receipt_template','AR_3C')
+        with database.connect() as c:
+            c.execute("INSERT INTO cash_sessions(user_id,opening_cash_cents,status) VALUES(?,0,'OPEN')",(current_user.get(),))
+            sid=c.execute("SELECT last_insert_rowid()").fetchone()[0]
+            c.execute("INSERT INTO sales(sale_no,session_id,cashier_user_id,subtotal_cents,discount_cents,total_cents,payment_method,paid_cents,change_cents) VALUES('T-AR',?,?,1000,0,1000,'CASH',1000,0)",(sid,current_user.get()))
+            sale_id=c.execute("SELECT last_insert_rowid()").fetchone()[0]
+            c.execute("INSERT INTO products(name,sale_price_cents,stock_qty) VALUES('Test',1000,1)")
+            pid=c.execute("SELECT last_insert_rowid()").fetchone()[0]
+            c.execute("INSERT INTO sale_items(sale_id,product_id,name_snapshot,qty,unit_price_cents,line_total_cents,net_total_cents,pricing_mode,qty_multiplier) VALUES(?,?,'Test',1,1000,1000,1000,'UNIT',1)",(sale_id,pid))
+        text=receipts.build_receipt(sale_id)
+        self.assertIn('التذكرة',text);self.assertIn('المجموع',text)
+
     def test_drawer_payload_cleanup_and_audit(self):
-        database.set_setting('drawer_enabled','1');database.set_setting('printer_name','Receipt Test')
+        database.set_setting('drawer_enabled','1');database.set_setting('printer_receipt_name','Receipt Test')
         api=Mock();api.OpenPrinter.return_value=99;api.StartDocPrinter.return_value=7;api.WritePrinter.return_value=5
         with patch.dict(sys.modules,win32print=api),patch.object(printers.os,'name','nt'):
             self.assertEqual(printers.open_drawer(),7)
