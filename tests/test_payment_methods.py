@@ -8,7 +8,7 @@ from services.security import current_user
 from services.cash import open_session
 from services.sales import complete_sale
 from services.inventory import apply_stock_movement
-from services.payment_methods import save_payment_method,set_payment_method_active,list_payment_methods
+from services.payment_methods import save_payment_method,set_payment_method_active,list_payment_methods,payment_icon
 
 class PaymentMethodTests(unittest.TestCase):
     def setUp(self):
@@ -25,12 +25,16 @@ class PaymentMethodTests(unittest.TestCase):
     def tearDown(self):
         current_user.reset(self.token);database.DB_PATH=self.old;self.tmp.cleanup()
     def test_custom_method_is_real_checkout_method(self):
-        mid=save_payment_method('CHEQUE','Chèque','شيك')
-        self.assertTrue(any(r['code']=='CHEQUE' for r in list_payment_methods(True)))
+        mid=save_payment_method('CHEQUE','Chèque','شيك','📝')
+        cheque=next(r for r in list_payment_methods(True) if r['code']=='CHEQUE')
+        self.assertEqual(cheque['icon'],'📝')
+        self.assertEqual(payment_icon('CHEQUE'),'📝')
         result=complete_sale(self.session,self.uid,[dict(product_id=self.pid,qty=1,unit_price_cents=1000)],'CHEQUE',0)
         with database.connect() as c:
             row=c.execute("SELECT payment_method,amount_cents FROM sale_payments WHERE sale_id=?",(result['id'],)).fetchone()
         self.assertEqual((row['payment_method'],row['amount_cents']),('CHEQUE',1000))
+        save_payment_method('CHEQUE','Chèque bancaire','شيك بنكي','🏦',method_id=mid)
+        self.assertEqual(payment_icon('CHEQUE'),'🏦')
         set_payment_method_active(mid,False)
         with self.assertRaises(ValueError):
             complete_sale(self.session,self.uid,[dict(product_id=self.pid,qty=1,unit_price_cents=1000)],'CHEQUE',0)

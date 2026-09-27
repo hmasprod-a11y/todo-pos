@@ -1,5 +1,5 @@
 from database import get_setting
-from services.payment_methods import list_payment_methods,payment_label
+from services.payment_methods import list_payment_methods,payment_label,payment_icon
 import tkinter as tk
 from tkinter import ttk
 from services.money import fmt, to_cents
@@ -42,9 +42,12 @@ class PaymentDialog(tk.Toplevel):
         choices=[]
         for row in list_payment_methods(True):
             prefix='F2 ' if row['code']=='CASH' else ('F3 ' if row['code']=='CARD' else '')
-            choices.append((prefix+payment_label(row['code'],self.lang),row['code']))
-        choices.append((self.tr('Mixte','مختلط'),'MIXED'))
-        if client_name and get_setting('credit_enabled','1')=='1':choices.append((self.tr('Crédit','دين'),'CREDIT'))
+            icon=(row.get('icon') or '').strip()
+            label=(icon+' ' if icon else '')+payment_label(row['code'],self.lang)
+            choices.append((prefix+label,row['code']))
+        choices.append(((payment_icon('MIXED')+' ' if payment_icon('MIXED') else '')+self.tr('Mixte','مختلط'),'MIXED'))
+        if client_name and get_setting('credit_enabled','1')=='1':
+            choices.append(((payment_icon('CREDIT')+' ' if payment_icon('CREDIT') else '')+self.tr('Crédit','دين'),'CREDIT'))
         if method not in {code for _,code in choices}:method='CASH'
         if client_name:ttk.Label(body,text=self.tr('Client : ','الزبون: ')+client_name).pack(anchor='w')
         for label, value in choices:

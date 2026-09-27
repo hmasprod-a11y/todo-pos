@@ -14,20 +14,20 @@ def payment_method(code,conn=None):
     row=conn.execute("SELECT * FROM payment_methods WHERE code=?",(code,)).fetchone()
     return dict(row) if row else None
 
-def save_payment_method(code,name_fr,name_ar='',method_id=None):
+def save_payment_method(code,name_fr,name_ar='',icon='',method_id=None):
     code=re.sub(r'[^A-Z0-9_]+','_',str(code or '').upper().strip()).strip('_')
-    name_fr=(name_fr or '').strip();name_ar=(name_ar or '').strip()
+    name_fr=(name_fr or '').strip();name_ar=(name_ar or '').strip();icon=(icon or '').strip()[:8]
     if not code or len(code)>24 or not name_fr:raise ValueError('Mode de paiement invalide')
     if code in ('CREDIT','MIXED','AUTO'):raise ValueError('Code réservé')
     with connect() as conn:
         conn.execute('BEGIN IMMEDIATE');require_admin(conn)
         if method_id is None:
-            mid=conn.execute("INSERT INTO payment_methods(code,name_fr,name_ar,active,system) VALUES(?,?,?,1,0)",(code,name_fr,name_ar)).lastrowid
+            mid=conn.execute("INSERT INTO payment_methods(code,name_fr,name_ar,icon,active,system) VALUES(?,?,?,?,1,0)",(code,name_fr,name_ar,icon)).lastrowid
         else:
             row=conn.execute("SELECT code,system FROM payment_methods WHERE id=?",(int(method_id),)).fetchone()
             if not row:raise ValueError('Mode introuvable')
             if row['system']:code=row['code']
-            conn.execute("UPDATE payment_methods SET code=?,name_fr=?,name_ar=? WHERE id=?",(code,name_fr,name_ar,int(method_id)));mid=int(method_id)
+            conn.execute("UPDATE payment_methods SET code=?,name_fr=?,name_ar=?,icon=? WHERE id=?",(code,name_fr,name_ar,icon,int(method_id)));mid=int(method_id)
         audit(conn,'PAYMENT_METHOD_SAVE',mid,code);conn.commit();return mid
 
 def set_payment_method_active(method_id,active):
@@ -46,3 +46,11 @@ def payment_label(code,lang='fr',conn=None):
     row=payment_method(code,conn)
     if not row:return code
     return (row['name_ar'] or row['name_fr']) if lang=='ar' else row['name_fr']
+
+
+def payment_icon(code,conn=None):
+    code=str(code or '').upper()
+    if code=='CREDIT':return '🧾'
+    if code=='MIXED':return '🔀'
+    row=payment_method(code,conn)
+    return (row.get('icon') or '') if row else ''

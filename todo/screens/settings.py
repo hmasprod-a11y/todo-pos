@@ -161,10 +161,11 @@ class SettingsFrame(ttk.Frame):
         pm=ttk.LabelFrame(self,text=self.tr('Modes de paiement','طرق الأداء'),padding=10);pm.pack(fill='x',pady=10)
         self.payment_methods_frame=ttk.Frame(pm);self.payment_methods_frame.pack(fill='x',pady=(0,6))
         row_pm=ttk.Frame(pm);row_pm.pack(fill='x')
-        self.new_payment_code=tk.StringVar();self.new_payment_fr=tk.StringVar();self.new_payment_ar=tk.StringVar()
+        self.new_payment_code=tk.StringVar();self.new_payment_fr=tk.StringVar();self.new_payment_ar=tk.StringVar();self.new_payment_icon=tk.StringVar()
         ttk.Entry(row_pm,textvariable=self.new_payment_code,width=12).pack(side='left')
         ttk.Entry(row_pm,textvariable=self.new_payment_fr,width=20).pack(side='left',padx=4)
         ttk.Entry(row_pm,textvariable=self.new_payment_ar,width=20).pack(side='left',padx=4)
+        ttk.Entry(row_pm,textvariable=self.new_payment_icon,width=6).pack(side='left',padx=4)
         ttk.Button(row_pm,text=self.tr('+ Ajouter mode','+ إضافة طريقة'),style='Soft.TButton',command=self.add_payment_method).pack(side='left',padx=6)
         self.refresh_payment_methods()
         p=ttk.LabelFrame(self,text=self.tr('Impression','الطباعة'),padding=10);p.pack(fill="x",pady=10)
@@ -358,6 +359,7 @@ class SettingsFrame(ttk.Frame):
         for w in self.payment_methods_frame.winfo_children():w.destroy()
         for r in list_payment_methods():
             line=ttk.Frame(self.payment_methods_frame);line.pack(fill='x',pady=2)
+            ttk.Label(line,text=r.get('icon') or '·',width=4).pack(side='left')
             ttk.Label(line,text=r['code'],width=12).pack(side='left')
             ttk.Label(line,text=r['name_fr'],width=22).pack(side='left')
             ttk.Label(line,text=r['name_ar'] or '—',width=18).pack(side='left')
@@ -369,8 +371,8 @@ class SettingsFrame(ttk.Frame):
     def add_payment_method(self):
         from services.payment_methods import save_payment_method
         try:
-            save_payment_method(self.new_payment_code.get(),self.new_payment_fr.get(),self.new_payment_ar.get())
-            self.new_payment_code.set('');self.new_payment_fr.set('');self.new_payment_ar.set('');self.refresh_payment_methods()
+            save_payment_method(self.new_payment_code.get(),self.new_payment_fr.get(),self.new_payment_ar.get(),self.new_payment_icon.get())
+            self.new_payment_code.set('');self.new_payment_fr.set('');self.new_payment_ar.set('');self.new_payment_icon.set('');self.refresh_payment_methods()
         except Exception as e:messagebox.showerror('ToDo',str(e),parent=self)
 
     def toggle_payment_method(self,method_id,active):

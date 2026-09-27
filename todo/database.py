@@ -114,13 +114,14 @@ CREATE TABLE IF NOT EXISTS payment_methods (
     code TEXT NOT NULL UNIQUE,
     name_fr TEXT NOT NULL,
     name_ar TEXT NOT NULL DEFAULT '',
+    icon TEXT NOT NULL DEFAULT '',
     active INTEGER NOT NULL DEFAULT 1,
     system INTEGER NOT NULL DEFAULT 0,
     sort_order INTEGER NOT NULL DEFAULT 0
 );
-INSERT OR IGNORE INTO payment_methods(code,name_fr,name_ar,active,system,sort_order) VALUES
-('CASH','Espèces','نقداً',1,1,10),
-('CARD','Carte','بطاقة',1,1,20);
+INSERT OR IGNORE INTO payment_methods(code,name_fr,name_ar,icon,active,system,sort_order) VALUES
+('CASH','Espèces','نقداً','💵',1,1,10),
+('CARD','Carte','بطاقة','💳',1,1,20);
 
 CREATE TABLE IF NOT EXISTS cash_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
