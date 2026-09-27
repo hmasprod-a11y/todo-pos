@@ -1,6 +1,7 @@
 from pathlib import Path
 import os,sqlite3,sys,subprocess
-from database import DB_PATH,BASE_DIR,connect,get_setting
+import database
+from database import connect,get_setting
 
 APP_VERSION='1.1.0'
 
@@ -24,14 +25,14 @@ def documentation_paths():
 
 def latest_backup():
     candidates=[]
-    for folder in (BASE_DIR/'backups',_app_root()/'todo'/'backups',_app_root()/'backups'):
+    for folder in (database.BASE_DIR/'backups',_app_root()/'todo'/'backups',_app_root()/'backups'):
         if folder.exists():
             candidates.extend([p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in ('.db','.todozip')])
     if not candidates:return None
     return max(candidates,key=lambda p:p.stat().st_mtime)
 
 def diagnostics():
-    db_path=Path(DB_PATH)
+    db_path=Path(database.DB_PATH)
     with connect() as conn:
         integrity=conn.execute('PRAGMA integrity_check').fetchone()[0]
         schema=conn.execute('PRAGMA user_version').fetchone()[0]
