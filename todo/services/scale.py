@@ -30,9 +30,10 @@ def parse_weight(payload):
     return kg
 
 def read_weight(port=None,baudrate=None,timeout_ms=None):
-    if get_setting('scale_enabled','0')!='1' and port is None:
+    explicit=port is not None
+    if not explicit and get_setting('scale_enabled','0')!='1':
         raise ValueError('Activez la balance dans Paramètres.')
-    port=(port if port is not None else get_setting('scale_port','')).strip()
+    port=(port if explicit else get_setting('scale_port','')).strip()
     if not port:raise ValueError('Sélectionnez le port COM de la balance.')
     try:baud=int(baudrate if baudrate is not None else get_setting('scale_baudrate','9600'))
     except (TypeError,ValueError):raise ValueError('BaudRate invalide')
