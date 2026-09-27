@@ -25,7 +25,7 @@ class CustomerOrderTests(unittest.TestCase):
         with database.connect() as c:self.assertEqual(c.execute("SELECT stock_qty FROM products WHERE id=?",(self.pid,)).fetchone()[0],10)
         set_customer_order_status(oid,'READY');payload=order_cart(oid);self.assertEqual(payload['order']['status'],'READY')
         session=open_session(self.uid,0)
-        result=complete_sale(session['id'],self.uid,payload['cart'],'CASH',2400,client_id=self.cid,customer_order_id=oid)
+        result=complete_sale(session,self.uid,payload['cart'],'CASH',2400,client_id=self.cid,customer_order_id=oid)
         self.assertEqual(result['total_cents'],2400)
         row=list_customer_orders()[0];self.assertEqual(row['status'],'COMPLETED');self.assertEqual(row['sale_id'],result['id'])
         with database.connect() as c:self.assertEqual(c.execute("SELECT stock_qty FROM products WHERE id=?",(self.pid,)).fetchone()[0],8)
