@@ -25,7 +25,7 @@ def validate_session(conn,session_id,user_id):
     if current_user.get() is not None and current_user.get()!=user_id:
         raise PermissionError('Utilisateur incompatible')
 
-def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cents=0,held_id=None,client_id=None,payments=None,seller_id=None,loyalty_points=0,customer_order_id=None):
+def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cents=0,held_id=None,client_id=None,payments=None,seller_id=None,loyalty_points=0,customer_order_id=None,quotation_id=None):
     if not cart:
         raise ValueError('Ticket vide')
     if payments is None and payment_method not in ('CASH','CARD','CREDIT'):
@@ -126,6 +126,14 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
                          (sid,p['id'],barcode,p['name'],qty,pricing['unit_price_cents'] if pack else rounded(unit),p['purchase_price_cents'],gross-net,gross,net,pricing['qty_multiplier'] if pricing else 1,'PACK' if pack else 'UNIT'))
             if not p['is_misc']:
                 apply_stock_movement(conn,p['id'],-qty,'SALE',p['purchase_price_cents'],'sale',sid,no,user_id)
+        if quotation_id is not None:
+            quote=conn.execute("SELECT client_id,status FROM quotations WHERE id=?",(int(quotation_id),)).fetchone()
+            if not quote or quote['status']!='OPEN':
+                raise ValueError('Devis indisponible.')
+            if quote['client_id'] is not None and (client_id is None or int(quote['client_id'])!=int(client_id)):
+                raise ValueError('Client incompatible avec le devis.')
+            conn.execute("UPDATE quotations SET status='CONVERTED',sale_id=?,converted_at=CURRENT_TIMESTAMP WHERE id=?",(sid,int(quotation_id)))
+            audit(conn,'QUOTATION_CONVERT',quotation_id,no,user_id)
         if customer_order_id is not None:
             order=conn.execute("SELECT client_id,status FROM customer_orders WHERE id=?",(int(customer_order_id),)).fetchone()
             if not order or order['status'] not in ('OPEN','READY'):

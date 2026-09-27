@@ -30,6 +30,7 @@ from screens.inventory_sessions import InventorySessionsFrame
 from screens.loyalty import LoyaltyFrame
 from screens.supplier_returns import SupplierReturnsFrame
 from screens.customer_orders import CustomerOrdersFrame
+from screens.quotations import QuotationsFrame
 
 class ToDoApp(tk.Tk):
     def __init__(self):
@@ -286,7 +287,7 @@ class ToDoApp(tk.Tk):
     def show(self, key):
         if self.lock_window and self.lock_window.winfo_exists():
             self.lock_window.lift();return
-        if self.user['role']!='admin' and key in ('products','purchases','suppliers','clients','settings','journal','management','statistics','inventory','sorties','supplier_payments','rendez_vous','promotions','inventory_sessions','loyalty','supplier_returns','customer_orders'):
+        if self.user['role']!='admin' and key in ('products','purchases','suppliers','clients','settings','journal','management','statistics','inventory','sorties','supplier_payments','rendez_vous','promotions','inventory_sessions','loyalty','supplier_returns','customer_orders','quotations'):
             messagebox.showerror('ToDo',('هذه العملية مخصصة للمدير.' if get_setting('language','fr')=='ar' else 'Action réservée à un administrateur.'));return
         if self.current:
             if self.current is self.sale_frame:self.current.pack_forget()
@@ -321,6 +322,7 @@ class ToDoApp(tk.Tk):
             "loyalty": lambda: LoyaltyFrame(self.content, self),
             "supplier_returns": lambda: SupplierReturnsFrame(self.content, self),
             "customer_orders": lambda: CustomerOrdersFrame(self.content, self),
+            "quotations": lambda: QuotationsFrame(self.content, self),
         }
 
         self.current = makers[key]()

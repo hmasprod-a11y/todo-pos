@@ -153,6 +153,35 @@ CREATE TABLE IF NOT EXISTS sale_items (
     FOREIGN KEY(product_id) REFERENCES products(id)
 );
 
+CREATE TABLE IF NOT EXISTS quotations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER,
+    status TEXT NOT NULL DEFAULT 'OPEN',
+    valid_until TEXT,
+    notes TEXT NOT NULL DEFAULT '',
+    total_cents INTEGER NOT NULL DEFAULT 0,
+    sale_id INTEGER,
+    created_by INTEGER,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    converted_at TEXT,
+    FOREIGN KEY(client_id) REFERENCES clients(id),
+    FOREIGN KEY(sale_id) REFERENCES sales(id),
+    FOREIGN KEY(created_by) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS quotation_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    quotation_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    name_snapshot TEXT NOT NULL,
+    qty REAL NOT NULL,
+    unit_price_cents INTEGER NOT NULL,
+    line_total_cents INTEGER NOT NULL,
+    FOREIGN KEY(quotation_id) REFERENCES quotations(id) ON DELETE CASCADE,
+    FOREIGN KEY(product_id) REFERENCES products(id)
+);
+CREATE INDEX IF NOT EXISTS idx_quotations_status ON quotations(status,id);
+
 CREATE TABLE IF NOT EXISTS customer_orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER NOT NULL,

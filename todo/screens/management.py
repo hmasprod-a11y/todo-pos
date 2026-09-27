@@ -25,6 +25,7 @@ GROUPS = [
         ("📈", "État crédits clients","clients_credits", "#DC2626", "#fff"),
         ("⭐", "Fidélité clients",    "loyalty",         "#A16207", "#fff"),
         ("🧺", "Commandes clients",   "customer_orders", "#0F766E", "#fff"),
+        ("🧾", "Devis",               "quotations",      "#475569", "#fff"),
     ],
     [
         ("💸", "Dépenses",    "cash", "#D97706", "#fff"),
@@ -76,7 +77,7 @@ class ManagementFrame(ttk.Frame):
             row = tk.Frame(area, bg="#F6F7FB")
             row.pack(anchor="center", pady=8)
             for emoji, label, key, bg, fg in group:
-                self._card(row, emoji, self.tr(label, dict({'Réceptions':'الاستلامات','Sorties':'الإخراجات','Inventaire':'الجرد','Mouvements de stock':'حركات المخزون','Fournisseurs':'الموردون','Règlements fournisseurs':'دفعات الموردين','État crédits fournisseurs':'ديون الموردين','Clients':'الزبائن','Règlements clients':'دفعات الزبائن','État crédits clients':'ديون الزبائن','Dépenses':'المصاريف','Rendez-vous':'المواعيد','Promotions':'العروض','Inventaires enregistrés':'سجلات الجرد','Fidélité clients':'وفاء الزبائن','Retours fournisseurs':'إرجاع للمورد','Commandes clients':'طلبات الزبائن'}).get(label,label)), key, bg, fg)
+                self._card(row, emoji, self.tr(label, dict({'Réceptions':'الاستلامات','Sorties':'الإخراجات','Inventaire':'الجرد','Mouvements de stock':'حركات المخزون','Fournisseurs':'الموردون','Règlements fournisseurs':'دفعات الموردين','État crédits fournisseurs':'ديون الموردين','Clients':'الزبائن','Règlements clients':'دفعات الزبائن','État crédits clients':'ديون الزبائن','Dépenses':'المصاريف','Rendez-vous':'المواعيد','Promotions':'العروض','Inventaires enregistrés':'سجلات الجرد','Fidélité clients':'وفاء الزبائن','Retours fournisseurs':'إرجاع للمورد','Commandes clients':'طلبات الزبائن','Devis':'عروض الأسعار'}).get(label,label)), key, bg, fg)
 
     def _card(self, parent, emoji, label, key, bg, fg):
         is_placeholder = key is None

@@ -41,6 +41,7 @@ class SaleFrame(ttk.Frame):
         self.busy=False
         self.last_sale_snapshot=None
         self.customer_order_id=None
+        self.quotation_id=None
         self.bindings=[]
         top=ttk.Frame(self)
         top.pack(fill='x',pady=(0,12))
@@ -886,6 +887,14 @@ class SaleFrame(ttk.Frame):
         name=get_client(self.client_id)['name'] if self.client_id is not None else self.tr('passage','عابر')
         self.client_button.configure(text=self.tr('F6 Client : ','F6 الزبون: ')+name[:30])
 
+    def load_quotation(self,payload):
+        if self.cart:
+            raise ValueError(self.tr('Videz ou mettez en attente le ticket actuel avant de charger un devis.','أفرغ أو علّق التذكرة الحالية قبل تحميل عرض السعر.'))
+        quote=payload['quotation'];self.quotation_id=int(quote['id']);self.client_id=quote['client_id']
+        self.cart=[dict(product_id=int(x['product_id']),name=x['name'],qty=float(x['qty']),unit_price_cents=str(int(x['unit_price_cents'])),
+                        base_price_cents=int(x['unit_price_cents']),discount_cents=0,allow_fraction=1,barcode_id=None,barcode='') for x in payload['cart']]
+        self.update_client_label();self.refresh();self.status.config(text=self.tr(f"Devis #{quote['id']} chargé.",f"تم تحميل عرض السعر #{quote['id']}."));self.focus_search()
+
     def load_customer_order(self,payload):
         if self.cart:
             raise ValueError(self.tr('Videz ou mettez en attente le ticket actuel avant de charger une commande.','أفرغ أو علّق التذكرة الحالية قبل تحميل الطلب.'))
@@ -906,7 +915,7 @@ class SaleFrame(ttk.Frame):
 
     def clear(self,preserve_last_sale=False):
         self._cancel_pending_input_jobs()
-        self.cart=[];self.ticket_discount_cents=0;self.held_id=None;self.client_id=None;self.customer_order_id=None;self.seller_id=None;self.price_grid_id=None;self.price_grid_name=self.tr('Normal','عادي');self.payment='CASH';self.query.set('');self.scan_quantity.set('1');self.payment_label.config(text=self.tr('Paiement : Espèces','الأداء: نقداً'),bg='#DCFCE7',fg='#166534');self.update_client_label();self.update_seller_label()
+        self.cart=[];self.ticket_discount_cents=0;self.held_id=None;self.client_id=None;self.customer_order_id=None;self.quotation_id=None;self.seller_id=None;self.price_grid_id=None;self.price_grid_name=self.tr('Normal','عادي');self.payment='CASH';self.query.set('');self.scan_quantity.set('1');self.payment_label.config(text=self.tr('Paiement : Espèces','الأداء: نقداً'),bg='#DCFCE7',fg='#166534');self.update_client_label();self.update_seller_label()
         if not preserve_last_sale:
             self.last_sale_snapshot=None;self.last_sale_discount_cents=0
         self.refresh();self.focus_search()
@@ -1002,7 +1011,7 @@ class SaleFrame(ttk.Frame):
                     dialog_print=(print_ticket and mode=='always')
                 payments=None
             completed_payment=self.payment
-            result=complete_sale(session['id'],self.app.user['id'],self.cart,self.payment,paid,self.ticket_discount_cents,self.held_id,client_id=self.client_id,payments=payments,seller_id=self.seller_id,loyalty_points=loyalty_points_used,customer_order_id=self.customer_order_id)
+            result=complete_sale(session['id'],self.app.user['id'],self.cart,self.payment,paid,self.ticket_discount_cents,self.held_id,client_id=self.client_id,payments=payments,seller_id=self.seller_id,loyalty_points=loyalty_points_used,customer_order_id=self.customer_order_id,quotation_id=self.quotation_id)
             # The completed ticket stays visible until the first item of the next sale.
             # Business cart state is cleared immediately so the completed sale cannot be submitted twice.
             self.last_sale_snapshot=[dict(line) for line in self.cart]
