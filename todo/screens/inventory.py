@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 from database import connect, get_setting
 from services.inventory import apply_stock_movement
+from services.security import require_admin
 from services.money import fmt
 
 

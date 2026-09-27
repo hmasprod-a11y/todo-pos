@@ -11,11 +11,13 @@ from services.security import current_user
 from services.inventory import apply_stock_movement
 from screens.products import ProductEditor
 from screens.payment import PaymentDialog
+from screens import inventory as inventory_screen
 from tkinter import messagebox
 def unexpected_dialog(title,message,**kwargs):
  raise AssertionError(f'{title}: {message}')
 messagebox.showerror=unexpected_dialog
 messagebox.showwarning=unexpected_dialog
+assert callable(inventory_screen.require_admin)
 app=ToDoApp()
 app.withdraw()
 assert app.customer_video is None and app.customer_video_delay==33
