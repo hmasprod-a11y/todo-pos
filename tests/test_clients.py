@@ -8,6 +8,7 @@ from services.clients import save_client,get_client,add_payment,client_sales,cre
 from services.cash import open_session,session_totals,close_session,cash_activity
 from services.sales import complete_sale,create_return,hold_sale,resume_held
 from services.catalog import search_products,set_product_categories
+from services.loyalty import client_points
 
 class ClientWorkflowTests(unittest.TestCase):
     def setUp(self):
@@ -24,6 +25,16 @@ class ClientWorkflowTests(unittest.TestCase):
         current_user.reset(self.token);database.DB_PATH=self.old;self.tmp.cleanup()
     def sale(self,method='CREDIT',paid=0):
         return complete_sale(self.session,self.uid,self.cart,method,paid,client_id=self.cid)
+    def test_sale_redeems_and_awards_loyalty_points_atomically(self):
+        from database import set_setting
+        set_setting('loyalty_enabled','1');set_setting('loyalty_earn_every_cents','1000');set_setting('loyalty_point_value_cents','50')
+        with database.connect() as c:
+            c.execute("INSERT INTO loyalty_movements(client_id,points_delta,reason,ref_type,user_id) VALUES(?,10,'Seed','MANUAL',?)",(self.cid,self.uid))
+        result=complete_sale(self.session,self.uid,self.cart,'CASH',900,client_id=self.cid,loyalty_points=2)
+        self.assertEqual(result['total_cents'],900)
+        self.assertEqual(result['loyalty_value_cents'],100)
+        self.assertEqual(client_points(self.cid),8)
+
     def test_cash_and_card_are_not_debts(self):
         self.sale('CASH',1500);self.sale('CARD',1000)
         self.assertEqual(get_client(self.cid)['balance_cents'],0)

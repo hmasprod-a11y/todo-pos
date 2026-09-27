@@ -25,7 +25,7 @@ def validate_session(conn,session_id,user_id):
     if current_user.get() is not None and current_user.get()!=user_id:
         raise PermissionError('Utilisateur incompatible')
 
-def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cents=0,held_id=None,client_id=None,payments=None,seller_id=None):
+def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cents=0,held_id=None,client_id=None,payments=None,seller_id=None,loyalty_points=0):
     if not cart:
         raise ValueError('Ticket vide')
     if payments is None and payment_method not in ('CASH','CARD','CREDIT'):
@@ -81,7 +81,21 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
         subtotal=sum(weights);discount=int(discount_cents)
         if discount<0 or discount>subtotal:
             raise ValueError('La remise dépasse le montant du ticket.')
-        total=subtotal-discount;paid=int(paid_cents)
+        loyalty_points=int(loyalty_points or 0)
+        loyalty_value=0
+        if loyalty_points:
+            if client_id is None:
+                raise ValueError('Choisissez un client pour utiliser les points.')
+            from services.loyalty import client_points, loyalty_settings
+            cfg=loyalty_settings(conn)
+            if not cfg['enabled']:
+                raise ValueError('La fidélité est désactivée.')
+            if loyalty_points>client_points(client_id,conn):
+                raise ValueError('Solde de points insuffisant.')
+            loyalty_value=loyalty_points*cfg['point_value_cents']
+            if loyalty_value>subtotal-discount:
+                raise ValueError('La valeur des points dépasse le total du ticket.')
+        total=subtotal-discount-loyalty_value;paid=int(paid_cents)
         split=None
         if payments is not None:
             split=[(str(method).upper(),int(amount)) for method,amount in payments if int(amount)>0]
@@ -99,7 +113,7 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
         change=max(0,paid-total)
         no=sale_number()
         sid=conn.execute('INSERT INTO sales(sale_no,session_id,cashier_user_id,subtotal_cents,discount_cents,total_cents,payment_method,paid_cents,change_cents,client_id,seller_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-                         (no,session_id,user_id,subtotal,discount,total,payment_method,paid,change,client_id,seller_id)).lastrowid
+                         (no,session_id,user_id,subtotal,discount+loyalty_value,total,payment_method,paid,change,client_id,seller_id)).lastrowid
         if split is None:
             settled=paid-change if payment_method=='CASH' else paid
             conn.execute('INSERT INTO sale_payments(sale_id,payment_method,amount_cents) VALUES(?,?,?)',(sid,payment_method,settled))
@@ -112,10 +126,16 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
                          (sid,p['id'],barcode,p['name'],qty,pricing['unit_price_cents'] if pack else rounded(unit),p['purchase_price_cents'],gross-net,gross,net,pricing['qty_multiplier'] if pricing else 1,'PACK' if pack else 'UNIT'))
             if not p['is_misc']:
                 apply_stock_movement(conn,p['id'],-qty,'SALE',p['purchase_price_cents'],'sale',sid,no,user_id)
+        if loyalty_points:
+            from services.loyalty import redeem_points
+            redeem_points(conn,client_id,loyalty_points,sid,user_id)
+        if client_id is not None:
+            from services.loyalty import award_sale_points
+            award_sale_points(conn,client_id,sid,total,user_id)
         if held_id is not None:
             conn.execute('DELETE FROM held_sales WHERE id=?',(held_id,))
         audit(conn,'SALE',sid,no,user_id)
-        return dict(id=sid,sale_no=no,subtotal_cents=subtotal,discount_cents=discount,total_cents=total,paid_cents=paid,change_cents=change)
+        return dict(id=sid,sale_no=no,subtotal_cents=subtotal,discount_cents=discount+loyalty_value,total_cents=total,paid_cents=paid,change_cents=change,loyalty_points_used=loyalty_points,loyalty_value_cents=loyalty_value)
 
 def hold_sale(user_id,cart,label='',discount_cents=0,held_id=None,client_id=None,seller_id=None,price_grid_id=None,payment_method='CASH'):
     if not cart:raise ValueError('Ticket vide')

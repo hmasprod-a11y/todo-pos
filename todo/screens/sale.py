@@ -954,8 +954,24 @@ class SaleFrame(ttk.Frame):
         self.last_sale_snapshot=None
         try:
             total=self.totals()[1]
+            loyalty_points_used=0
             from services.clients import get_client
             client_name=get_client(self.client_id)['name'] if self.client_id is not None else None
+            if self.client_id is not None:
+                from services.loyalty import client_points,loyalty_settings
+                cfg=loyalty_settings()
+                balance=client_points(self.client_id)
+                if cfg['enabled'] and balance>0:
+                    max_points=min(balance,total//cfg['point_value_cents'])
+                    if max_points>0 and messagebox.askyesno('ToDo',self.tr(
+                        f"Ce client a {balance} point(s). Utiliser des points sur ce ticket ?",
+                        f"لدى هذا الزبون {balance} نقطة. هل تريد استعمال النقاط في هذه الفاتورة؟"),parent=self):
+                        pts=simpledialog.askinteger(self.tr('Points fidélité','نقاط الوفاء'),self.tr(
+                            f"Points à utiliser (max {max_points}) :",f"عدد النقاط المستعملة (الأقصى {max_points}):"),
+                            parent=self,minvalue=1,maxvalue=max_points)
+                        if pts:
+                            loyalty_points_used=pts
+                            total-=pts*cfg['point_value_cents']
             mode=get_setting('print_mode','ask')
             use_payment_window=get_setting('payment_window_enabled','1')=='1' or self.payment in ('MIXED','CREDIT')
             if use_payment_window:
@@ -977,7 +993,7 @@ class SaleFrame(ttk.Frame):
                     dialog_print=(print_ticket and mode=='always')
                 payments=None
             completed_payment=self.payment
-            result=complete_sale(session['id'],self.app.user['id'],self.cart,self.payment,paid,self.ticket_discount_cents,self.held_id,client_id=self.client_id,payments=payments,seller_id=self.seller_id)
+            result=complete_sale(session['id'],self.app.user['id'],self.cart,self.payment,paid,self.ticket_discount_cents,self.held_id,client_id=self.client_id,payments=payments,seller_id=self.seller_id,loyalty_points=loyalty_points_used)
             # The completed ticket stays visible until the first item of the next sale.
             # Business cart state is cleared immediately so the completed sale cannot be submitted twice.
             self.last_sale_snapshot=[dict(line) for line in self.cart]

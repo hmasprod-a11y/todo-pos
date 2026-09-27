@@ -1,11 +1,11 @@
 from database import connect,get_setting
 from services.security import current_user,require_admin,audit
 
-def loyalty_settings():
+def loyalty_settings(conn=None):
     return {
-        'enabled': get_setting('loyalty_enabled','0')=='1',
-        'earn_every_cents': max(1,int(get_setting('loyalty_earn_every_cents','1000') or 1000)),
-        'point_value_cents': max(1,int(get_setting('loyalty_point_value_cents','50') or 50)),
+        'enabled': get_setting('loyalty_enabled','0',conn)=='1',
+        'earn_every_cents': max(1,int(get_setting('loyalty_earn_every_cents','1000',conn) or 1000)),
+        'point_value_cents': max(1,int(get_setting('loyalty_point_value_cents','50',conn) or 50)),
     }
 
 def client_points(client_id, conn=None):
@@ -53,7 +53,7 @@ def adjust_points(client_id, points_delta, reason):
 
 def award_sale_points(conn, client_id, sale_id, sale_total_cents, user_id=None):
     if client_id is None:return 0
-    settings=loyalty_settings()
+    settings=loyalty_settings(conn)
     if not settings['enabled']:return 0
     if conn.execute("SELECT 1 FROM loyalty_movements WHERE client_id=? AND ref_type='SALE' AND ref_id=?",(int(client_id),int(sale_id))).fetchone():
         return 0
@@ -67,7 +67,7 @@ def redeem_points(conn, client_id, points, sale_id=None, user_id=None):
     pts=int(points)
     if pts<=0: raise ValueError("Points invalides")
     if client_points(client_id,conn)<pts: raise ValueError("Solde de points insuffisant")
-    value=pts*loyalty_settings()['point_value_cents']
+    value=pts*loyalty_settings(conn)['point_value_cents']
     conn.execute("""INSERT INTO loyalty_movements(client_id,points_delta,reason,ref_type,ref_id,user_id)
                     VALUES(?,?,?,'REDEEM',?,?)""",(int(client_id),-pts,'Utilisation points',sale_id,user_id))
     return value
