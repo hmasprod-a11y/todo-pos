@@ -1,9 +1,51 @@
 from pathlib import Path
-import os, sqlite3, sys
+import os, shutil, sqlite3, sys
 
-BASE_DIR = Path(sys.executable).resolve().parent / 'todo' if getattr(sys,'frozen',False) else Path(__file__).resolve().parent
+def runtime_base_dir(frozen=None, executable=None, environ=None):
+    """Writable application-data root.
+
+    Installed/frozen Windows builds keep mutable shop data out of Program Files.
+    Source/development runs keep the historical repository-local layout.
+    """
+    if frozen is None:frozen=getattr(sys,'frozen',False)
+    if not frozen:return Path(__file__).resolve().parent
+    env=os.environ if environ is None else environ
+    root=env.get('PROGRAMDATA') or env.get('LOCALAPPDATA')
+    if root:return Path(root)/'ToDo POS'
+    return Path(executable or sys.executable).resolve().parent/'todo'
+
+BASE_DIR = runtime_base_dir()
 DEFAULT_DB = BASE_DIR / "data" / "todo.db"
 DB_PATH = Path(os.environ.get("TODO_DB_PATH", str(DEFAULT_DB)))
+
+def _copy_missing_tree(source, destination):
+    source=Path(source);destination=Path(destination)
+    if not source.exists():return
+    for item in source.rglob('*'):
+        relative=item.relative_to(source);target=destination/relative
+        if item.is_dir():
+            target.mkdir(parents=True,exist_ok=True)
+        elif not target.exists():
+            target.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copy2(item,target)
+
+def migrate_legacy_frozen_data(legacy_base=None,target_base=None,force=False):
+    """Copy legacy <exe>/todo data once into the writable Windows data root.
+
+    Existing target databases always win; migration never merges two shops.
+    """
+    if not force:
+        if not getattr(sys,'frozen',False) or os.environ.get('TODO_DB_PATH'):return False
+    legacy=Path(legacy_base) if legacy_base is not None else Path(sys.executable).resolve().parent/'todo'
+    target=Path(target_base) if target_base is not None else BASE_DIR
+    legacy_db=legacy/'data'/'todo.db';target_db=target/'data'/'todo.db'
+    if target_db.exists() or not legacy_db.exists() or legacy.resolve()==target.resolve():return False
+    target.mkdir(parents=True,exist_ok=True)
+    for relative in ('data','assets/products','customer_media','backups'):
+        _copy_missing_tree(legacy/relative,target/relative)
+    return target_db.exists()
+
+migrate_legacy_frozen_data()
 
 SCHEMA = r"""
 PRAGMA foreign_keys = ON;

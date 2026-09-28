@@ -15,6 +15,9 @@ ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
 UninstallDisplayName=ToDo POS
 
+[Dirs]
+Name: "{commonappdata}\ToDo POS"; Permissions: users-modify
+
 [Files]
 Source: "dist\ToDo\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 

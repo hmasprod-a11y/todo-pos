@@ -47,4 +47,14 @@ class ReleaseDocumentationTests(unittest.TestCase):
         self.assertIn(f'ToDo-POS-{version}-Windows',readme)
         self.assertIn(f'## {version} —',changelog)
 
+    def test_windows_install_uses_writable_programdata_and_keeps_program_files_code_only(self):
+        database=(ROOT/'todo'/'database.py').read_text(encoding='utf-8')
+        installer=(ROOT/'installer.iss').read_text(encoding='utf-8')
+        install_doc=(ROOT/'docs'/'INSTALLATION_WINDOWS.md').read_text(encoding='utf-8')
+        self.assertIn("env.get('PROGRAMDATA')",database)
+        self.assertIn("migrate_legacy_frozen_data()",database)
+        self.assertIn('Name: "{commonappdata}\\ToDo POS"; Permissions: users-modify',installer)
+        self.assertIn('%ProgramData%\\ToDo POS',install_doc)
+        self.assertIn('ne supprime pas automatiquement',install_doc)
+
 if __name__=='__main__':unittest.main()
