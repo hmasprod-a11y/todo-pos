@@ -35,6 +35,8 @@ from screens.quotations import QuotationsFrame
 class ToDoApp(tk.Tk):
     def __init__(self):
         super().__init__()
+        from services.error_logging import install_exception_handlers
+        install_exception_handlers(self)
         init_db()
         ensure_defaults()
         try:

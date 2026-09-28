@@ -12,7 +12,9 @@ try:
     app.protocol("WM_DELETE_WINDOW", app.on_close)
     app.mainloop()
 except Exception:
-    log = ROOT / "launch_error.txt"
+    data_root = Path(os.environ.get("PROGRAMDATA") or os.environ.get("LOCALAPPDATA") or ROOT) / "ToDo POS"
+    log = data_root / "logs" / "launch_error.txt"
+    log.parent.mkdir(parents=True, exist_ok=True)
     log.write_text(traceback.format_exc(), encoding="utf-8")
     try:
         import tkinter as tk
