@@ -211,23 +211,37 @@ class ToDoApp(tk.Tk):
             messagebox.showerror('ToDo',('الرمز السري غير صحيح.' if get_setting('language','fr')=='ar' else 'PIN incorrect.'));return
         if row['role']=='admin' and verify_pin('1234',row['pin_hash']):
             from tkinter import simpledialog
-            new_pin=simpledialog.askstring('ToDo',('أدخل PIN جديدا للمدير (4 أرقام على الأقل):' if get_setting('language','fr')=='ar' else 'Nouveau PIN administrateur (4 chiffres minimum) :'),parent=self,show='*')
+            lang=get_setting('language','fr')
+            new_pin=simpledialog.askstring(
+                'ToDo',
+                'أدخل PIN جديدا للمدير (4 أرقام على الأقل):' if lang=='ar' else 'Nouveau PIN administrateur (4 chiffres minimum) :',
+                parent=self,show='*'
+            )
             if new_pin is None:return
-            confirm=simpledialog.askstring('ToDo',('أكد PIN الجديد:' if get_setting('language','fr')=='ar' else 'Confirmez le nouveau PIN :'),parent=self,show='*')
+            confirm=simpledialog.askstring(
+                'ToDo',
+                'أكد PIN الجديد:' if lang=='ar' else 'Confirmez le nouveau PIN :',
+                parent=self,show='*'
+            )
             if not new_pin.isdigit() or len(new_pin)<4:
-                messagebox.showerror('ToDo',('PIN جديد غير صالح.' if get_setting('language','fr')=='ar' else 'Nouveau PIN invalide.'));return
+                messagebox.showerror('ToDo','PIN جديد غير صالح.' if lang=='ar' else 'Nouveau PIN invalide.');return
             if new_pin=='1234':
-                messagebox.showerror('ToDo',('يجب تغيير PIN الافتراضي 1234.' if get_setting('language','fr')=='ar' else 'Le PIN par défaut 1234 doit être remplacé.'));return
+                messagebox.showerror('ToDo','يجب تغيير PIN الافتراضي 1234.' if lang=='ar' else 'Le PIN par défaut 1234 doit être remplacé.');return
             if confirm!=new_pin:
-                messagebox.showerror('ToDo',('PIN غير متطابق.' if get_setting('language','fr')=='ar' else 'Les PIN ne correspondent pas.'));return
+                messagebox.showerror('ToDo','PIN غير متطابق.' if lang=='ar' else 'Les PIN ne correspondent pas.');return
             with connect() as conn:
-                conn.execute('UPDATE users SET pin_hash=? WHERE id=?',(hash_pin(new_pin),row['id']))
+                new_hash=hash_pin(new_pin)
+                conn.execute('UPDATE users SET pin_hash=? WHERE id=?',(new_hash,row['id']))
                 audit(conn,'PIN_CHANGE_REQUIRED',row['id'])
                 conn.commit()
-            row=dict(row);row['pin_hash']=hash_pin(new_pin)
+            row=dict(row);row['pin_hash']=new_hash
+            pin=new_pin
         self.user=dict(row);current_user.set(row['id'])
         with connect() as conn:
-            if not str(row['pin_hash']).startswith('pbkdf2
+            if not str(row['pin_hash']).startswith('pbkdf2$'):
+                conn.execute('UPDATE users SET pin_hash=? WHERE id=?',(hash_pin(pin),row['id']))
+            audit(conn,'LOGIN',row['id'])
+        self.build_shell();self.show('home')
 
     def apply_window_mode(self, windowed=None):
         if windowed is None:
