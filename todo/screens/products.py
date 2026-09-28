@@ -325,6 +325,44 @@ class ProductEditor(tk.Toplevel):
             cat=next((name for cid,(_,name) in self.cat_vars.items() if cid in selected_cats),'Général') if selected_cats else 'Général'
             rules=self.read_offers()
             barcodes=self.read_barcodes()
+            # A shared barcode is valid (different size/brand/product), but accidental
+            # duplicate product creation must be confirmed explicitly.
+            current_codes=set()
+            if self.pid:
+                with connect() as lookup:
+                    current_codes={r["barcode"] for r in lookup.execute(
+                        "SELECT barcode FROM product_barcodes WHERE product_id=?",(self.pid,)
+                    )}
+            new_codes=[code for code,_,_ in barcodes if code and code not in current_codes]
+            conflicts=[]
+            if new_codes:
+                with connect() as lookup:
+                    for code in new_codes:
+                        rows=lookup.execute("""SELECT DISTINCT p.id,p.name
+                                               FROM product_barcodes b
+                                               JOIN products p ON p.id=b.product_id
+                                               WHERE b.barcode=? AND p.active=1 AND p.id<>?
+                                               ORDER BY p.name,p.id""",
+                                            (code,int(self.pid or 0))).fetchall()
+                        if rows:conflicts.append((code,[dict(r) for r in rows]))
+            if conflicts:
+                details=[]
+                for code,rows in conflicts:
+                    names=", ".join(r["name"] for r in rows[:4])
+                    if len(rows)>4:names+=f" (+{len(rows)-4})"
+                    details.append(f"{code} → {names}")
+                if not messagebox.askyesno(
+                    self.tr("Barcode déjà utilisé","الباركود مستعمل من قبل"),
+                    self.tr(
+                        "Ce barcode existe déjà :\n\n"+ "\n".join(details) +
+                        "\n\nSi c'est le MÊME article, choisissez Non et modifiez l'article existant.\n"
+                        "Choisissez Oui uniquement s'il s'agit d'un AUTRE article, format, taille ou marque.",
+                        "هذا الباركود مستعمل من قبل:\n\n"+ "\n".join(details) +
+                        "\n\nإذا كان نفس المنتوج، اختر لا وعدّل المنتوج الموجود.\n"
+                        "اختر نعم فقط إذا كان منتوجا آخر أو حجما/صيغة/علامة مختلفة."
+                    ),
+                    parent=self
+                ):return
             img=self.img_rel
             if self.img_source:img=import_image(self.img_source)
             with connect() as c:

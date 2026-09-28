@@ -15,4 +15,12 @@ class ProductLifecycleUiTests(unittest.TestCase):
         save=text[start:end]
         self.assertIn("require_permission('MANAGEMENT', c)",save)
         self.assertNotIn('require_admin(c)',save)
+    def test_duplicate_barcode_warning_distinguishes_same_vs_different_product(self):
+        text=(ROOT/'todo'/'screens'/'products.py').read_text(encoding='utf-8')
+        self.assertIn('Barcode déjà utilisé',text)
+        self.assertIn('MÊME article',text)
+        self.assertIn('AUTRE article, format, taille ou marque',text)
+        self.assertIn('AND p.id<>?',text)
+        self.assertIn('current_codes',text)
+
 if __name__=='__main__':unittest.main()
