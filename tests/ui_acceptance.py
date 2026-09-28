@@ -637,6 +637,14 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     assert get_setting('sans_ticket_enabled')=='0'
     assert get_setting('payment_window_enabled')=='0'
     assert get_setting('customer_display_enabled')=='0'
+    # Switching FR -> AR must finish the save callback first, then rebuild the shell.
+    settings.language.set('ar')
+    with patch('tkinter.messagebox.showinfo'):
+        settings.save()
+    app.update()
+    assert get_setting('language')=='ar'
+    assert app.current is not None and app.current.winfo_exists()
+    app.change_language('fr');app.update()
     print('PASS: UI product/category -> purchase confirmation -> stock 5 -> scan/qty/discount -> visible SOLDER/VALIDER at 1100x640 -> sale 5 DH -> stock 3 -> receipt PDF -> journal',flush=True)
     if os.environ.get('TODO_REVIEW_UI'):
         app.show('sale')

@@ -529,6 +529,8 @@ class SettingsFrame(ttk.Frame):
         set_setting("auto_backup_minutes",backup_minutes)
         self.app.schedule_auto_backup()
         messagebox.showinfo("ToDo",self.tr("Paramètres enregistrés.","تم حفظ الإعدادات."),parent=self)
+        if language_changed:
+            self.app.after_idle(lambda lang=new_language:self.app.change_language(lang))
 
 
 
