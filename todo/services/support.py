@@ -2,6 +2,7 @@ from pathlib import Path
 import os,sqlite3,sys,subprocess
 import database
 from database import connect,get_setting
+from services.security import verify_pin
 
 APP_VERSION='1.1.0'
 
@@ -37,6 +38,8 @@ def diagnostics():
         integrity=conn.execute('PRAGMA integrity_check').fetchone()[0]
         schema=conn.execute('PRAGMA user_version').fetchone()[0]
         tables=conn.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchone()[0]
+        admin=conn.execute("SELECT pin_hash FROM users WHERE username='admin' AND active=1 ORDER BY id LIMIT 1").fetchone()
+        default_admin_pin=bool(admin and verify_pin('1234',admin['pin_hash']))
     backup=latest_backup()
     return {
         'version':APP_VERSION,
@@ -49,6 +52,7 @@ def diagnostics():
         'tables':int(tables),
         'integrity':integrity,
         'last_backup':str(backup) if backup else '',
+        'default_admin_pin':default_admin_pin,
     }
 
 def diagnostic_text():
@@ -63,6 +67,7 @@ def diagnostic_text():
         f"Tables: {d['tables']}",
         f"Intégrité: {d['integrity']}",
         f"Dernier backup: {d['last_backup'] or 'aucun'}",
+        f"PIN admin par défaut: {'À CHANGER' if d['default_admin_pin'] else 'OK'}",
     ])
 
 def open_document(key):

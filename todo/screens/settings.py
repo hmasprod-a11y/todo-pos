@@ -720,6 +720,7 @@ class SettingsFrame(ttk.Frame):
             (self.tr('Taille base','حجم القاعدة'),f"{d['db_size_bytes']/1024/1024:.2f} MB"),
             (self.tr('Base de données','قاعدة البيانات'),d['db_path']),
             (self.tr('Dernier backup','آخر نسخة احتياطية'),d['last_backup'] or self.tr('Aucun trouvé','لا توجد')),
+            (self.tr('PIN admin','PIN المدير'),self.tr('À CHANGER (1234)','يجب تغييره (1234)') if d['default_admin_pin'] else 'OK'),
         ]
         for i,(label,value) in enumerate(entries):
             ttk.Label(info,text=label+':',font=('Segoe UI',9,'bold')).grid(row=i,column=0,sticky='nw',pady=3)
