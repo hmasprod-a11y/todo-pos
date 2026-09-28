@@ -1,6 +1,6 @@
 import math
 from database import connect
-from services.security import require_admin, audit
+from services.security import require_permission, audit
 
 def list_promotions(query='', active_only=False):
     q=(query or '').strip()
@@ -22,7 +22,7 @@ def save_promotion(product_id, min_qty, unit_price_cents, pricing_mode='UNIT', p
     if price<0: raise ValueError("Prix promotion invalide")
     if mode not in ('UNIT','BUNDLE'): raise ValueError("Mode promotion invalide")
     with connect() as conn:
-        conn.execute("BEGIN IMMEDIATE");require_admin(conn)
+        conn.execute("BEGIN IMMEDIATE");require_permission('MANAGEMENT', conn)
         if not conn.execute("SELECT 1 FROM products WHERE id=? AND active=1",(pid,)).fetchone():
             raise ValueError("Article introuvable")
         if promotion_id is None:
@@ -40,14 +40,14 @@ def save_promotion(product_id, min_qty, unit_price_cents, pricing_mode='UNIT', p
 
 def set_promotion_active(promotion_id, active):
     with connect() as conn:
-        conn.execute("BEGIN IMMEDIATE");require_admin(conn)
+        conn.execute("BEGIN IMMEDIATE");require_permission('MANAGEMENT', conn)
         if conn.execute("UPDATE quantity_prices SET active=? WHERE id=?",(1 if active else 0,int(promotion_id))).rowcount!=1:
             raise ValueError("Promotion introuvable")
         audit(conn,"PROMOTION_ACTIVE",promotion_id,str(int(bool(active))));conn.commit()
 
 def delete_promotion(promotion_id):
     with connect() as conn:
-        conn.execute("BEGIN IMMEDIATE");require_admin(conn)
+        conn.execute("BEGIN IMMEDIATE");require_permission('MANAGEMENT', conn)
         if conn.execute("DELETE FROM quantity_prices WHERE id=?",(int(promotion_id),)).rowcount!=1:
             raise ValueError("Promotion introuvable")
         audit(conn,"PROMOTION_DELETE",promotion_id);conn.commit()
