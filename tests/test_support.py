@@ -5,12 +5,13 @@ import database
 from services import backup
 from services.support import diagnostics,diagnostic_text,documentation_paths,APP_VERSION
 from services.security import hash_pin
+from services.bootstrap import ensure_defaults
 
 class SupportTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.old_db=database.DB_PATH;self.old_base=backup.BASE
         database.DB_PATH=Path(self.tmp.name)/'todo.db';backup.DB_PATH=database.DB_PATH;backup.BASE=Path(self.tmp.name)
-        database.init_db();database.set_setting('shop_name','TODO TEST');database.set_setting('workstation_code','09')
+        database.init_db();ensure_defaults();database.set_setting('shop_name','TODO TEST');database.set_setting('workstation_code','09')
     def tearDown(self):
         database.DB_PATH=self.old_db;backup.DB_PATH=self.old_db;backup.BASE=self.old_base;self.tmp.cleanup()
     def test_diagnostics_contains_safe_runtime_information(self):
