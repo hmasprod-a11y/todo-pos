@@ -518,8 +518,10 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     assert not any(w for w in descendants(app) if w.winfo_class()=='Toplevel')
     assert sale.focus_get() is sale.entry
     reminder=sale.last_sale_summary.cget('text')
-    assert reminder.count('\n')==1
+    assert reminder.count('\n')==3
     assert 'TOTAL :' in reminder and 'MODE P :' in reminder and 'PAYÉ :' in reminder and 'RENDU :' in reminder
+    assert sale.last_sale_box.winfo_manager()
+    assert sale.last_sale_box.winfo_y() < sale.total_box.winfo_y()
     with connect() as c:
         row=dict(c.execute('SELECT * FROM sales').fetchone())
         assert row['total_cents']==500 and row['change_cents']==500
