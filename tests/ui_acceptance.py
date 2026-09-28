@@ -534,6 +534,14 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     sale.query.set('TEST123');sale.confirm_search();app.update()
     assert sale.cart and sale.last_sale_snapshot is None
     assert len(sale.ticket.get_children())==1
+    # The same rule must hold when the next sale starts from the tactile photo grid,
+    # not only from a scanner/search confirmation.
+    sale.last_sale_snapshot=[dict(line) for line in sale.cart]
+    sale.clear(preserve_last_sale=True);app.update()
+    assert sale.last_sale_snapshot and sale.ticket.get_children()
+    sale.add_product(photo_internal_pid);app.update()
+    assert sale.cart and sale.last_sale_snapshot is None
+    assert len(sale.ticket.get_children())==1
     sale.clear()
     sale.cash_tools();app.update()
     cash_window=next(w for w in descendants(app) if w.winfo_class()=='Toplevel')
