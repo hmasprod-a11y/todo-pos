@@ -617,6 +617,12 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     assert close_session(__import__('services.cash',fromlist=['get_open_session']).get_open_session()['id'],300)[:2]==(300,0)
     app.show('settings');app.update()
     settings=app.current
+    # FocusIn events can expose widget paths as strings in frozen Tk builds.
+    # They must never crash the global keyboard focus tracker.
+    class _Evt: pass
+    evt=_Evt();evt.widget='.!definitely_missing_widget'
+    app.remember_keyboard_target(evt)
+    assert not app._is_text_input(evt.widget)
     with patch('services.printers.installed_printers',return_value=['Receipt Test']):
         button(settings,'Actualiser imprimantes').invoke()
     assert 'Receipt Test' in settings.printer_choice['values']

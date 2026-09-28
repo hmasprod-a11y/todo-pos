@@ -426,15 +426,27 @@ class ToDoApp(tk.Tk):
             tk.Button(window,text=tr(fr,ar),bg=color,fg='white',command=lambda n=fr:choose(n)).pack(fill='x',padx=25,pady=6,ipady=10)
         ttk.Button(window,text=tr('Fermer','إغلاق'),style='Danger.TButton',command=window.destroy).pack(fill='x',padx=25,pady=14)
 
+    def _resolve_widget(self, widget):
+        if widget is None:
+            return None
+        if isinstance(widget,str):
+            try:
+                return self.nametowidget(widget)
+            except (KeyError,tk.TclError):
+                return None
+        return widget
+
     def _is_text_input(self, widget):
         try:
+            widget=self._resolve_widget(widget)
             return widget is not None and widget.winfo_exists() and widget.winfo_class() in ('Entry', 'TEntry', 'Text', 'Spinbox', 'TSpinbox', 'TCombobox')
-        except tk.TclError:
+        except (AttributeError,KeyError,tk.TclError):
             return False
 
     def remember_keyboard_target(self, event):
-        if self._is_text_input(event.widget):
-            self._keyboard_target = event.widget
+        widget=self._resolve_widget(getattr(event,'widget',None))
+        if self._is_text_input(widget):
+            self._keyboard_target = widget
 
     def toggle_keyboard(self, target=None):
         # The global keyboard must always be able to open.  A target field is
