@@ -30,7 +30,8 @@ def visible(w):
 with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showwarning',fail), patch('tkinter.messagebox.showinfo',lambda *a,**k:None):
     app=ToDoApp()
     app.report_callback_exception=lambda t,v,tb: fail('Tk callback',v)
-    app.login_pin.set('1234');app.login()
+    with patch('tkinter.simpledialog.askstring',side_effect=['9876','9876']):
+        app.login_pin.set('1234');app.login()
     app.geometry('1100x640');app.update()
     done=__import__('tkinter').BooleanVar(value=False)
     app.after(200,lambda:done.set(True));app.wait_variable(done)
@@ -462,7 +463,7 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     lock=app.lock_window
     app.show('products');assert app.current is sale
     lock.pin.set('9999');lock.unlock();assert app.lock_window is lock
-    lock.pin.set('1234');lock.unlock();assert app.lock_window is None
+    lock.pin.set('9876');lock.unlock();assert app.lock_window is None
     assert sale.cart==saved
     sale.calculator();app.update()
     calc=next(w for w in descendants(app) if w.winfo_class()=='Toplevel')

@@ -209,9 +209,517 @@ class ToDoApp(tk.Tk):
                 self.login_blocked_until=time.monotonic()+30;self.failed_logins=0
             self.login_pin.set('')
             messagebox.showerror('ToDo',('الرمز السري غير صحيح.' if get_setting('language','fr')=='ar' else 'PIN incorrect.'));return
+        if row['role']=='admin' and verify_pin('1234',row['pin_hash']):
+            from tkinter import simpledialog
+            new_pin=simpledialog.askstring('ToDo',('أدخل PIN جديدا للمدير (4 أرقام على الأقل):' if get_setting('language','fr')=='ar' else 'Nouveau PIN administrateur (4 chiffres minimum) :'),parent=self,show='*')
+            if new_pin is None:return
+            confirm=simpledialog.askstring('ToDo',('أكد PIN الجديد:' if get_setting('language','fr')=='ar' else 'Confirmez le nouveau PIN :'),parent=self,show='*')
+            if not new_pin.isdigit() or len(new_pin)<4:
+                messagebox.showerror('ToDo',('PIN جديد غير صالح.' if get_setting('language','fr')=='ar' else 'Nouveau PIN invalide.'));return
+            if new_pin=='1234':
+                messagebox.showerror('ToDo',('يجب تغيير PIN الافتراضي 1234.' if get_setting('language','fr')=='ar' else 'Le PIN par défaut 1234 doit être remplacé.'));return
+            if confirm!=new_pin:
+                messagebox.showerror('ToDo',('PIN غير متطابق.' if get_setting('language','fr')=='ar' else 'Les PIN ne correspondent pas.'));return
+            with connect() as conn:
+                conn.execute('UPDATE users SET pin_hash=? WHERE id=?',(hash_pin(new_pin),row['id']))
+                audit(conn,'PIN_CHANGE_REQUIRED',row['id'])
+                conn.commit()
+            row=dict(row);row['pin_hash']=hash_pin(new_pin)
         self.user=dict(row);current_user.set(row['id'])
         with connect() as conn:
-            if not row['pin_hash'].startswith('pbkdf2$'):
+            if not str(row['pin_hash']).startswith('pbkdf2
+
+    def apply_window_mode(self, windowed=None):
+        if windowed is None:
+            windowed=get_setting('windows_mode','1')=='1'
+        # Windowed is the safe default. POS/kiosk mode uses borderless fullscreen.
+        if windowed:
+            try:self.attributes('-fullscreen',False)
+            except tk.TclError:pass
+            self.overrideredirect(False)
+            self.resizable(True,True)
+        else:
+            self.overrideredirect(False)
+            try:self.attributes('-fullscreen',True)
+            except tk.TclError:pass
+
+    def build_shell(self):
+        self.clear_root()
+        self.resizable(True, True)
+        width=min(1360,self.winfo_screenwidth()-40)
+        height=min(820,self.winfo_screenheight()-80)
+        self.geometry(f'{width}x{height}')
+        self.minsize(min(1100,width),min(640,height))
+        # The shop workflow uses a compact blue module bar like the reference
+        # screen: the cashier sees the current module immediately and has more
+        # room for the product table and the cart than with a permanent sidebar.
+        self.shell=ttk.Frame(self);self.shell.pack(fill="both",expand=True)
+        self.bind_all('<FocusIn>', self.remember_keyboard_target, add='+')
+        bar=tk.Frame(self.shell,bg="#0878C9",height=64)
+        self.nav_bar=bar
+        bar.pack(fill="x");bar.pack_propagate(False)
+        self.shop_label=tk.Label(bar,text=get_setting("shop_name","ToDo"),bg="#0878C9",fg="white",font=("Segoe UI",18,"bold"))
+        self.shop_label.pack(side="left",padx=(18,14))
+        lang=get_setting("language","fr")
+        nav_fr=[("🛒 Vente","sale"),("📦 Stock","stock"),("📋 Journal","journal"),("🗂 Gestion","management"),("⚙ Paramètres","settings"),("📊 Statistiques","statistics")]
+        nav_ar=[("🛒 البيع","sale"),("📦 المخزون","stock"),("📋 السجل","journal"),("🗂 الإدارة","management"),("⚙ الإعدادات","settings"),("📊 الإحصائيات","statistics")]
+        nav=nav_ar if lang=="ar" else nav_fr
+        self.nav_buttons={}
+        from services.security import has_permission
+        nav_permissions={'settings':'SETTINGS','journal':'REPORTS','statistics':'REPORTS','management':'MANAGEMENT'}
+        for txt,key in nav:
+            needed=nav_permissions.get(key)
+            if needed and not has_permission(needed,self.user['id']):continue
+            b=tk.Button(bar,text=txt,bg="#0878C9",fg="white",activebackground="#075B96",activeforeground="white",relief="flat",bd=0,font=("Segoe UI",10,"bold"),padx=10,command=lambda k=key:self.show(k))
+            b.pack(side="left",fill="y");self.nav_buttons[key]=b
+        # Touch-friendly controls: explicit, large and high-contrast on POS tablets.
+        self.close_button=tk.Button(bar,text="✕",bg="#DC2626",fg="white",activebackground="#B91C1C",activeforeground="white",
+                  relief="flat",bd=0,font=("Segoe UI",15,"bold"),width=4,cursor="hand2",
+                  command=self.on_close)
+        self.close_button.pack(side="right",fill="y")
+        self.minimize_button=tk.Button(bar,text="—",bg="#0F5F9A",fg="white",activebackground="#0B4F80",activeforeground="white",
+                  relief="flat",bd=0,font=("Segoe UI",16,"bold"),width=4,cursor="hand2",
+                  command=self.iconify)
+        self.minimize_button.pack(side="right",fill="y")
+        self.keyboard_button=tk.Button(bar,text=("⌨ لوحة المفاتيح" if lang=="ar" else "⌨ Clavier"),bg="#F59E0B",fg="#111827",
+                  activebackground="#D97706",activeforeground="white",relief="flat",bd=0,
+                  font=("Segoe UI",10,"bold"),padx=14,cursor="hand2",
+                  command=self.toggle_keyboard)
+        self.keyboard_button.pack(side="right",fill="y",padx=(6,4))
+        self.customer_button=tk.Button(bar,text=("شاشة الزبون" if lang=="ar" else "Écran client"),bg="#0878C9",fg="white",
+                  activebackground="#075B96",activeforeground="white",relief="flat",bd=0,
+                  font=("Segoe UI",9,"bold"),padx=10,cursor="hand2",
+                  command=self.toggle_customer_display)
+        self.customer_button.pack(side="right",fill="y",padx=4)
+        self.user_badge=tk.Label(bar,text=f"{self.user['display_name']} · {self.user['role']}",bg="#0878C9",fg="white",
+                 font=("Segoe UI",9,"bold"))
+        self.user_badge.pack(side="right",padx=8)
+        self.content=ttk.Frame(self.shell);self.content.pack(fill="both",expand=True)
+        self.apply_theme()
+        if get_setting('customer_display_enabled','0')=='1':
+            self.after(250,self._open_enabled_customer_display)
+
+    def _open_enabled_customer_display(self):
+        if get_setting('customer_display_enabled','0')=='1' and not (self.customer_window and self.customer_window.winfo_exists()):
+            self.toggle_customer_display()
+    def change_language(self, language):
+        if language not in ('fr','ar'): return
+        set_setting('language',language)
+        key=getattr(self,'current_key','sale')
+        self.sale_frame=None
+        self.current=None
+        self.build_shell();self.show(key)
+
+    def show(self, key):
+        if self.lock_window and self.lock_window.winfo_exists():
+            self.lock_window.lift();return
+        from services.security import has_permission
+        permission_routes={
+            'settings':'SETTINGS','journal':'REPORTS','statistics':'REPORTS',
+            'management':'MANAGEMENT','products':'MANAGEMENT','purchases':'MANAGEMENT','suppliers':'MANAGEMENT',
+            'clients':'MANAGEMENT','supplier_payments':'MANAGEMENT','rendez_vous':'MANAGEMENT',
+            'promotions':'MANAGEMENT','loyalty':'MANAGEMENT','supplier_returns':'MANAGEMENT',
+            'customer_orders':'MANAGEMENT','quotations':'MANAGEMENT','inventory':'STOCK_EDIT',
+            'sorties':'STOCK_EDIT','inventory_sessions':'STOCK_EDIT'
+        }
+        needed=permission_routes.get(key)
+        if needed and not has_permission(needed,self.user['id']):
+            messagebox.showerror('ToDo',('ليست لديك الصلاحية لهذه العملية.' if get_setting('language','fr')=='ar' else 'Permission insuffisante.'));return
+        if self.current:
+            if self.current is self.sale_frame:self.current.pack_forget()
+            else:self.current.destroy()
+        if key=='sale' and self.sale_frame and self.sale_frame.winfo_exists():
+            self.current=self.sale_frame
+            self.current.pack(fill='both',expand=True)
+            self.current.render_products();self.current.focus_search()
+            self._mark_nav(key)
+            return
+
+        makers = {
+            "home": lambda: HomeFrame(self.content, self),
+            "sale": lambda: SaleFrame(self.content, self),
+            "products": lambda: ProductsFrame(self.content),
+            "cash": lambda: CashFrame(self.content, self),
+            "stock": lambda: StockFrame(self.content, self),
+            "purchases": lambda: PurchasesFrame(self.content, self),
+            "suppliers": lambda: SuppliersFrame(self.content),
+            "clients": lambda: ClientsFrame(self.content,self),
+            "returns": lambda: ReturnsFrame(self.content, self),
+            "journal": lambda: JournalFrame(self.content),
+            "settings": lambda: SettingsFrame(self.content, self),
+            "management": lambda: ManagementFrame(self.content, self),
+            "statistics": lambda: StatisticsFrame(self.content),
+            "inventory": lambda: InventaireFrame(self.content, self),
+            "sorties": lambda: SortiesFrame(self.content, self),
+            "supplier_payments": lambda: SupplierReglementFrame(self.content, self),
+            "rendez_vous": lambda: RendezVousFrame(self.content, self),
+            "promotions": lambda: PromotionsFrame(self.content, self),
+            "inventory_sessions": lambda: InventorySessionsFrame(self.content, self),
+            "loyalty": lambda: LoyaltyFrame(self.content, self),
+            "supplier_returns": lambda: SupplierReturnsFrame(self.content, self),
+            "customer_orders": lambda: CustomerOrdersFrame(self.content, self),
+            "quotations": lambda: QuotationsFrame(self.content, self),
+        }
+
+        self.current = makers[key]()
+        if key=="sale":self.sale_frame=self.current
+        self.current.pack(fill="both", expand=True)
+        self._mark_nav(key)
+
+    def _mark_nav(self,key):
+        for name,button in getattr(self,'nav_buttons',{}).items():
+            is_active = (name==key)
+            button.configure(
+                bg=self.theme_active if is_active else self.theme_color,
+                relief='solid' if is_active else 'flat',
+                bd=0,
+                font=('Segoe UI',10,'bold') if is_active else ('Segoe UI',10,'normal'),
+            )
+        self.current_key=key
+
+    def apply_theme(self):
+        palette={'Bleu':('#2563EB','#1D4ED8'),'Vert':('#15803D','#166534'),'Violet':('#7C3AED','#6D28D9')}
+        self.theme_color,self.theme_active=palette.get(get_setting('theme','Bleu'),palette['Bleu'])
+        style=ttk.Style(self)
+        style.configure('Primary.TButton',background=self.theme_color)
+        style.map('Primary.TButton',background=[('active',self.theme_active)])
+        style.configure('Accent.TLabel',foreground=self.theme_color)
+        style.configure('Total.TLabel',foreground=self.theme_color)
+        bar=getattr(self,'nav_bar',None)
+        if bar is not None and bar.winfo_exists():
+            bar.configure(bg=self.theme_color)
+            for button in getattr(self,'nav_buttons',{}).values():
+                if button.winfo_exists():
+                    button.configure(bg=self.theme_color,activebackground=self.theme_active)
+            for widget_name in ('shop_label','customer_button','user_badge'):
+                widget=getattr(self,widget_name,None)
+                if widget is not None and widget.winfo_exists():
+                    widget.configure(bg=self.theme_color)
+                    if isinstance(widget,tk.Button):
+                        widget.configure(activebackground=self.theme_active)
+            # Close/minimize/keyboard keep their dedicated high-contrast colors.
+            self._mark_nav(getattr(self,'current_key','home'))
+
+    def choose_theme(self):
+        lang=get_setting('language','fr')
+        tr=lambda fr,ar: ar if lang=='ar' else fr
+        window=tk.Toplevel(self);window.title(tr('Thème','الألوان'));window.transient(self);window.grab_set()
+        ttk.Label(window,text=tr('Couleur principale','اللون الرئيسي'),style='Title.TLabel').pack(padx=25,pady=(18,8))
+        def choose(name):
+            set_setting('theme',name);self.apply_theme();window.destroy()
+        themes=[('Bleu','أزرق','#2563EB'),('Vert','أخضر','#15803D'),('Violet','بنفسجي','#7C3AED')]
+        for fr,ar,color in themes:
+            tk.Button(window,text=tr(fr,ar),bg=color,fg='white',command=lambda n=fr:choose(n)).pack(fill='x',padx=25,pady=6,ipady=10)
+        ttk.Button(window,text=tr('Fermer','إغلاق'),style='Danger.TButton',command=window.destroy).pack(fill='x',padx=25,pady=14)
+
+    def _is_text_input(self, widget):
+        try:
+            return widget is not None and widget.winfo_exists() and widget.winfo_class() in ('Entry', 'TEntry', 'Text', 'Spinbox', 'TSpinbox', 'TCombobox')
+        except tk.TclError:
+            return False
+
+    def remember_keyboard_target(self, event):
+        if self._is_text_input(event.widget):
+            self._keyboard_target = event.widget
+
+    def toggle_keyboard(self, target=None):
+        # The global keyboard must always be able to open.  A target field is
+        # optional: if none is focused yet, the keyboard stays visible and the
+        # next Entry/Text clicked becomes its target.
+        target = target if self._is_text_input(target) else self.focus_get()
+        if not self._is_text_input(target):
+            target = self._keyboard_target
+        from screens.virtual_keyboard import VirtualKeyboard
+        VirtualKeyboard.toggle(self, target)
+
+    def toggle_customer_display(self):
+        if self.customer_window and self.customer_window.winfo_exists():
+            if self.customer_after_id:
+                try:self.after_cancel(self.customer_after_id)
+                except Exception:pass
+            self.customer_after_id=None
+            if self.customer_video is not None:self.customer_video.release();self.customer_video=None
+            self.customer_window.destroy();self.customer_window=None;self.customer_label=None;self.customer_sale_frame=None;self.customer_sale_rows=None;self.customer_sale_total=None;self.customer_sale_status=None;return
+        w=tk.Toplevel(self);self.customer_window=w;lang=get_setting('language','fr');w.title('ToDo — '+('شاشة الزبون' if lang=='ar' else 'Écran client'));w.configure(bg="#0F172A")
+        screens=[]
+        try:
+            from screeninfo import get_monitors
+            screens=get_monitors()
+        except Exception:pass
+        if len(screens)>1:
+            main_x=self.winfo_rootx();main_y=self.winfo_rooty()
+            def contains(m,x,y):return m.x<=x<m.x+m.width and m.y<=y<m.y+m.height
+            primary=next((m for m in screens if contains(m,main_x,main_y)),None)
+            if primary is None:primary=min(screens,key=lambda m:(m.x-main_x)**2+(m.y-main_y)**2)
+            others=[m for m in screens if m is not primary]
+            target=min(others,key=lambda m:(m.x-main_x)**2+(m.y-main_y)**2)
+            w.geometry(f"{target.width}x{target.height}+{target.x}+{target.y}");w.overrideredirect(True)
+        else:
+            # Keep a normal window on single-monitor tills so the cashier is not trapped.
+            w.geometry("1280x720")
+        w.bind("<Escape>",lambda e:self.toggle_customer_display())
+        self.customer_label=tk.Label(w,text=('العروض والإعلانات' if lang=='ar' else 'Offres & promotions'),bg="#0F172A",fg="white",font=("Segoe UI",30,"bold"),justify="center",bd=0,highlightthickness=0)
+        self.customer_label.bind("<Configure>",lambda e:self._render_customer_slide() if self.customer_video is None else None)
+
+        self.customer_sale_frame=tk.Frame(w,bg="#F8FAFC")
+        sale_header=tk.Frame(self.customer_sale_frame,bg="#0F172A",height=86)
+        sale_header.pack(fill='x');sale_header.pack_propagate(False)
+        tk.Label(sale_header,text=get_setting('shop_name','ToDo'),bg='#0F172A',fg='white',font=('Segoe UI',28,'bold')).pack(side='left',padx=28)
+        self.customer_sale_status=tk.Label(sale_header,text=('تذكرتكم' if lang=='ar' else 'Votre ticket'),bg='#0F172A',fg='#BFDBFE',font=('Segoe UI',16,'bold'))
+        self.customer_sale_status.pack(side='right',padx=28)
+
+        table_header=tk.Frame(self.customer_sale_frame,bg='#E2E8F0',height=48)
+        table_header.pack(fill='x');table_header.pack_propagate(False)
+        headers=(('المنتوج','الكمية','الثمن','المجموع') if lang=='ar' else ('ARTICLE','QTÉ','PRIX','TOTAL'))
+        for col,weight in enumerate((5,1,2,2)):
+            table_header.columnconfigure(col,weight=weight)
+        for col,(text,anchor) in enumerate(zip(headers,('w','center','e','e'))):
+            tk.Label(table_header,text=text,bg='#E2E8F0',fg='#334155',font=('Segoe UI',13,'bold'),anchor=anchor).grid(
+                row=0,column=col,sticky='nsew',padx=12)
+
+        self.customer_sale_rows=tk.Frame(self.customer_sale_frame,bg='#F8FAFC')
+        self.customer_sale_rows.pack(fill='both',expand=True,padx=22,pady=12)
+
+        footer=tk.Frame(self.customer_sale_frame,bg=self.theme_color,height=96)
+        footer.pack(fill='x');footer.pack_propagate(False)
+        tk.Label(footer,text=('المجموع' if lang=='ar' else 'TOTAL'),bg=self.theme_color,fg='white',font=('Segoe UI',20,'bold')).pack(side='left',padx=28)
+        self.customer_sale_total=tk.Label(footer,text='0.00 '+get_setting('currency','DH'),bg=self.theme_color,fg='white',font=('Segoe UI',36,'bold'))
+        self.customer_sale_total.pack(side='right',padx=28)
+
+        w.protocol("WM_DELETE_WINDOW",self.toggle_customer_display)
+        w.lift();w.focus_set();self._apply_customer_display_mode()
+
+    def _stop_customer_media(self):
+        if self.customer_after_id:
+            try:self.after_cancel(self.customer_after_id)
+            except Exception:pass
+        self.customer_after_id=None
+        if self.customer_video is not None:
+            try:self.customer_video.release()
+            except Exception:pass
+            self.customer_video=None
+
+    def _apply_customer_display_mode(self, mode=None):
+        if not (self.customer_window and self.customer_window.winfo_exists()):
+            return
+        mode=mode or get_setting('customer_display_mode','promotions')
+        if mode=='prices':
+            self._stop_customer_media()
+            if self.customer_label and self.customer_label.winfo_exists():
+                self.customer_label.pack_forget()
+            if self.customer_sale_frame and self.customer_sale_frame.winfo_exists():
+                self.customer_sale_frame.pack(fill='both',expand=True)
+            self._render_customer_prices()
+        else:
+            if self.customer_sale_frame and self.customer_sale_frame.winfo_exists():
+                self.customer_sale_frame.pack_forget()
+            if self.customer_label and self.customer_label.winfo_exists():
+                self.customer_label.pack(fill='both',expand=True)
+            self._load_customer_slides()
+
+    def _render_customer_prices(self):
+        if not (self.customer_sale_rows and self.customer_sale_rows.winfo_exists()):
+            return
+        for child in self.customer_sale_rows.winfo_children():
+            child.destroy()
+        lang=get_setting('language','fr')
+        currency=get_setting('currency','DH')
+        cart=list(self.customer_cart or [])
+        if not cart:
+            tk.Label(self.customer_sale_rows,text=('شكراً لزيارتكم' if lang=='ar' else 'Merci pour votre visite'),
+                     bg='#F8FAFC',fg='#64748B',font=('Segoe UI',26,'bold')).pack(expand=True)
+        else:
+            raw_weights=[]
+            for item in cart:
+                qty=Decimal(str(item.get('qty',0)))
+                unit=Decimal(str(item.get('unit_price_cents',0)))
+                gross=int((qty*unit).quantize(Decimal('1'),rounding=ROUND_HALF_UP))
+                raw_weights.append(max(0,gross-int(item.get('discount_cents',0) or 0)))
+            subtotal=sum(raw_weights)
+            if subtotal>0:
+                exact=[Decimal(self.customer_total)*Decimal(w)/Decimal(subtotal) for w in raw_weights]
+                line_totals=[int(v.to_integral_value(rounding=ROUND_HALF_UP)) for v in exact]
+                diff=self.customer_total-sum(line_totals)
+                if diff:
+                    order=sorted(range(len(exact)),key=lambda i:(exact[i]-Decimal(line_totals[i])),reverse=(diff>0))
+                    for i in order[:abs(diff)]:
+                        line_totals[i]+=1 if diff>0 else -1
+            else:
+                line_totals=[0]*len(cart)
+
+            start_index=max(0,len(cart)-10)
+            visible=cart[start_index:]
+            visible_totals=line_totals[start_index:]
+            for index,(item,line_cents) in enumerate(zip(visible,visible_totals)):
+                bg='white' if index%2==0 else '#F1F5F9'
+                row=tk.Frame(self.customer_sale_rows,bg=bg,height=50)
+                row.pack(fill='x',pady=2);row.pack_propagate(False)
+                qty=Decimal(str(item.get('qty',0)))
+                unit=Decimal(str(item.get('unit_price_cents',0)))
+                step=Decimal(str(item.get('qty_multiplier',1) or 1))
+                display_qty=(qty/step) if step else qty
+                display_price=(unit*step) if step else unit
+                name=str(item.get('name',''))
+                if step != 1:
+                    name+=f" · pack ×{float(step):g}"
+                values=(name,f"{float(display_qty):g}",f"{float(display_price)/100:.2f} {currency}",f"{line_cents/100:.2f} {currency}")
+                anchors=('w','center','e','e')
+                for col,weight in enumerate((5,1,2,2)):
+                    row.columnconfigure(col,weight=weight)
+                for col,(value,anchor) in enumerate(zip(values,anchors)):
+                    tk.Label(row,text=value,bg=bg,fg='#0F172A',font=('Segoe UI',14,'bold' if anchor=='e' else 'normal'),
+                             anchor=anchor).grid(row=0,column=col,sticky='nsew',padx=12)
+            if len(cart)>10:
+                tk.Label(self.customer_sale_rows,text=(f"+ {len(cart)-10} منتجات" if lang=='ar' else f"+ {len(cart)-10} article(s)"),
+                         bg='#F8FAFC',fg='#64748B',font=('Segoe UI',11,'bold')).pack(anchor='e',padx=12,pady=4)
+        if self.customer_sale_total and self.customer_sale_total.winfo_exists():
+            self.customer_sale_total.config(text=f"{self.customer_total/100:.2f} {currency}")
+
+    def _load_customer_slides(self):
+        folder=Path.cwd()/"customer_media";folder.mkdir(exist_ok=True)
+        self.customer_slides=sorted([p for p in folder.iterdir() if p.suffix.lower() in (".png",".jpg",".jpeg",".webp",".mp4",".avi",".mov",".mkv")])
+        self.customer_slide_index=0
+        if not self.customer_slides:
+            self._render_customer_slide();return
+        self._show_customer_slide()
+
+    def _show_customer_slide(self):
+        if not (self.customer_window and self.customer_window.winfo_exists()):return
+        if self.customer_after_id:
+            try:self.after_cancel(self.customer_after_id)
+            except Exception:pass
+        self.customer_after_id=None
+        if self.customer_video is not None:self.customer_video.release();self.customer_video=None
+        if self.customer_slides and self.customer_slides[self.customer_slide_index].suffix.lower() in (".mp4",".avi",".mov",".mkv"):
+            self._start_customer_video();return
+        self._render_customer_slide()
+        try:seconds=int(get_setting("customer_slide_seconds","6") or 6)
+        except (TypeError,ValueError):seconds=6
+        seconds=max(2,min(300,seconds))
+        self.customer_after_id=self.after(seconds*1000,self._next_customer_slide)
+
+    def _next_customer_slide(self):
+        if self.customer_slides:self.customer_slide_index=(self.customer_slide_index+1)%len(self.customer_slides)
+        self._show_customer_slide()
+
+    def _cover_customer_image(self,im):
+        w=max(16,self.customer_label.winfo_width());h=max(9,self.customer_label.winfo_height())
+        scale=max(w/im.width,h/im.height);nw=max(1,round(im.width*scale));nh=max(1,round(im.height*scale));im=im.resize((nw,nh),Image.Resampling.LANCZOS)
+        left=max(0,(nw-w)//2);top=max(0,(nh-h)//2)
+        return im.crop((left,top,left+w,top+h))
+
+    def _start_customer_video(self):
+        try:
+            import cv2
+            self.customer_video=cv2.VideoCapture(str(self.customer_slides[self.customer_slide_index]))
+            if not self.customer_video.isOpened():raise ValueError("video")
+            fps=self.customer_video.get(cv2.CAP_PROP_FPS)
+            self.customer_video_delay=max(15,round(1000/fps)) if fps and fps>0 else 33
+            self._render_customer_video_frame()
+        except Exception:
+            if self.customer_video is not None:self.customer_video.release();self.customer_video=None
+            self._skip_bad_customer_media()
+
+    def _skip_bad_customer_media(self):
+        if not self.customer_slides:return
+        bad=self.customer_slides.pop(self.customer_slide_index)
+        if not self.customer_slides:
+            lang=get_setting('language','fr')
+            self.customer_label.config(image="",text=(f'وسائط غير صالحة: {bad.name}' if lang=='ar' else f'Média invalide : {bad.name}'))
+            return
+        self.customer_slide_index%=len(self.customer_slides)
+        self._show_customer_slide()
+
+    def _render_customer_video_frame(self):
+        if not (self.customer_window and self.customer_window.winfo_exists() and self.customer_video is not None):return
+        try:
+            import cv2
+            ok,frame=self.customer_video.read()
+            if not ok:
+                self.customer_video.release();self.customer_video=None;self._next_customer_slide();return
+            from PIL import Image,ImageTk
+            frame=cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
+            im=self._cover_customer_image(Image.fromarray(frame))
+            self.customer_photo=ImageTk.PhotoImage(im);self.customer_label.config(image=self.customer_photo,text="")
+            self.customer_after_id=self.after(self.customer_video_delay,self._render_customer_video_frame)
+        except Exception:
+            if self.customer_video is not None:self.customer_video.release();self.customer_video=None
+            self._skip_bad_customer_media()
+
+    def _render_customer_slide(self):
+        if not (self.customer_label and self.customer_label.winfo_exists()):return
+        if not self.customer_slides:
+            if self.customer_after_id:
+                try:self.after_cancel(self.customer_after_id)
+                except Exception:pass
+            self.customer_after_id=None
+            lang=get_setting('language','fr')
+            placeholder=('ToDo\n\nالعروض والإعلانات\n\nضع الصور أو الفيديوهات داخل مجلد customer_media'
+                         if lang=='ar' else
+                         'ToDo\n\nOffres & promotions\n\nAjoutez les images ou vidéos dans customer_media')
+            self.customer_label.config(image="",text=placeholder,font=("Segoe UI",28,"bold"),fg="white",bg="#0F172A")
+            return
+        path=self.customer_slides[self.customer_slide_index]
+        if path.suffix.lower() in (".mp4",".avi",".mov",".mkv"):return
+        try:
+            from PIL import Image,ImageTk
+            im=self._cover_customer_image(Image.open(path).convert("RGB"))
+            self.customer_photo=ImageTk.PhotoImage(im);self.customer_label.config(image=self.customer_photo,text="")
+        except Exception:
+            self._skip_bad_customer_media()
+
+    def update_customer_display(self, cart, total):
+        self.customer_cart=list(cart or [])
+        self.customer_total=int(total or 0)
+        if get_setting('customer_serial_enabled','0')=='1':
+            try:
+                from services.customer_serial_display import show_sale
+                show_sale(self.customer_cart,self.customer_total)
+            except Exception:
+                pass
+        if not (self.customer_window and self.customer_window.winfo_exists()):
+            return
+        if get_setting('customer_display_mode','promotions')=='prices':
+            self._render_customer_prices()
+        elif not self.customer_slides:
+            self._render_customer_slide()
+
+    def lock_cashier(self):
+        from screens.cashier_tools import CashierLock
+        if not self.lock_window or not self.lock_window.winfo_exists():
+            self.lock_window=CashierLock(self)
+
+    def on_close(self):
+        if self.lock_window and self.lock_window.winfo_exists():
+            self.lock_window.lift();return
+        lang=get_setting('language','fr')
+        title='الخروج' if lang=='ar' else 'Quitter ToDo'
+        message=('هل تريد فعلاً إغلاق البرنامج؟ سيتم حفظ التذكرة الحالية في الانتظار وإنشاء نسخة احتياطية قبل الإغلاق.'
+                 if lang=='ar' else
+                 'Voulez-vous vraiment quitter ? Le ticket en cours sera mis en attente et une sauvegarde sera créée avant la fermeture.')
+        if not messagebox.askyesno(title,message,parent=self):
+            if self.sale_frame:self.sale_frame.focus_search()
+            return
+        if self.sale_frame and self.sale_frame.cart:
+            from services.sales import hold_sale
+            try:
+                hold_sale(self.user['id'],self.sale_frame.cart,'Reprise après fermeture',self.sale_frame.ticket_discount_cents,self.sale_frame.held_id,client_id=self.sale_frame.client_id)
+                self.sale_frame.cart=[]
+            except Exception as e:
+                messagebox.showerror('ToDo',(f'لم يتم حفظ التذكرة: {e}' if lang=='ar' else f'Ticket non sauvegardé : {e}'),parent=self);return
+        try:
+            if get_setting("backup_on_close", "1") == "1":
+                create_backup()
+        except Exception as e:
+            messagebox.showerror(('النسخ الاحتياطي' if lang=='ar' else 'Sauvegarde'),(f'فشل النسخ الاحتياطي: {e}\nسيبقى البرنامج مفتوحاً لإعادة المحاولة.' if lang=='ar' else f'Sauvegarde échouée : {e}\nLe programme reste ouvert pour réessayer.'),parent=self);return
+        self.destroy()
+
+if __name__ == "__main__":
+    app = ToDoApp()
+    app.protocol("WM_DELETE_WINDOW", app.on_close)
+    app.mainloop()
+
+):
                 conn.execute('UPDATE users SET pin_hash=? WHERE id=?',(hash_pin(pin),row['id']))
             audit(conn,'LOGIN',row['id'])
         self.build_shell();self.show('home')

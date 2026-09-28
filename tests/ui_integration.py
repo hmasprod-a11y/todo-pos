@@ -21,7 +21,8 @@ def button(w,label):
     return next(c for c in descendants(w) if c.winfo_class() in ('Button','TButton') and c.cget('text')==label)
 with patch('tkinter.messagebox.showerror',fail):
     app=ToDoApp();app.report_callback_exception=lambda t,v,tb:fail(v)
-    app.login_pin.set('1234');app.login();app.geometry('1100x640');app.update()
+    with patch('tkinter.simpledialog.askstring',side_effect=['9876','9876']):
+        app.login_pin.set('1234');app.login();app.geometry('1100x640');app.update()
     with connect() as c:
         ids=[c.execute('INSERT INTO categories(name) VALUES(?)',(f'Family {i:02}',)).lastrowid for i in range(30)]
     editor=ProductEditor(app);editor.name.set('TEST multi family');editor.sell.set('15');editor.buy.set('8')
