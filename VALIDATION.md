@@ -22,13 +22,13 @@ Avant installation magasin, tester physiquement :
 Le statut de livraison d'un commit dépend des trois workflows GitHub verts sur ce commit précis.
 
 ## Validation de la release 1.1.0
-Commit validé : `3ffda929f0f84a1f346c0ab0134c719daf156ba6`.
+Commit validé : `b88259169af07e0e14ddd9e3933632c08027af2c`.
 
 Workflows GitHub sur ce commit :
-- Quick test build #183 : success
-- ToDo tests #756 : success
-- Windows build #755 : success
+- Quick test build #200 : success
+- ToDo tests #773 : success
+- Windows build #772 : success
 
-Le build Windows #755 a généré l'artifact `ToDo-POS-1.1.0-Windows`, contenant le package portable, l'installateur et les sommes SHA256 prévues par le workflow.
+Le build Windows #772 a validé le package `ToDo-POS-1.1.0-Windows`, contenant le package portable, l'installateur et les sommes SHA256 prévues par le workflow.
 
 Cette validation couvre l'automatisation. Les contrôles matériels et magasin restent manuels et doivent être exécutés sur le poste cible avant déploiement réel.
