@@ -1,13 +1,13 @@
 import math
 from database import connect
-from services.security import require_admin,current_user,audit
+from services.security import require_permission,current_user,audit
 from services.pricing import resolve_unit_price
 from services.money import rounded
 
 def create_quotation(lines, client_id=None, valid_until=None, notes=''):
     if not lines: raise ValueError("Devis vide")
     with connect() as conn:
-        conn.execute("BEGIN IMMEDIATE");require_admin(conn)
+        conn.execute("BEGIN IMMEDIATE");require_permission('MANAGEMENT', conn)
         if client_id is not None and not conn.execute("SELECT 1 FROM clients WHERE id=? AND active=1",(int(client_id),)).fetchone():
             raise ValueError("Client introuvable")
         normalized=[];total=0
@@ -55,7 +55,7 @@ def quotation_cart(quotation_id):
 
 def cancel_quotation(quotation_id):
     with connect() as conn:
-        conn.execute("BEGIN IMMEDIATE");require_admin(conn)
+        conn.execute("BEGIN IMMEDIATE");require_permission('MANAGEMENT', conn)
         if conn.execute("UPDATE quotations SET status='CANCELLED' WHERE id=? AND status='OPEN'",(int(quotation_id),)).rowcount!=1:
             raise ValueError("Devis introuvable ou déjà clôturé")
         audit(conn,'QUOTATION_CANCEL',quotation_id);conn.commit()

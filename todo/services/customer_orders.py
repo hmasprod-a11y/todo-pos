@@ -1,13 +1,13 @@
 import math
 from database import connect
-from services.security import require_admin,current_user,audit
+from services.security import require_permission,current_user,audit
 from services.pricing import resolve_unit_price
 from services.money import rounded
 
 def create_customer_order(client_id, lines, delivery_address='', notes=''):
     if not lines: raise ValueError("Commande vide")
     with connect() as conn:
-        conn.execute("BEGIN IMMEDIATE");require_admin(conn)
+        conn.execute("BEGIN IMMEDIATE");require_permission('MANAGEMENT', conn)
         client=conn.execute("SELECT id FROM clients WHERE id=? AND active=1",(int(client_id),)).fetchone()
         if not client: raise ValueError("Client introuvable")
         normalized=[];total=0
@@ -49,7 +49,7 @@ def set_customer_order_status(order_id,status):
     status=str(status).upper()
     if status not in ('OPEN','READY','CANCELLED'): raise ValueError("Statut invalide")
     with connect() as conn:
-        conn.execute("BEGIN IMMEDIATE");require_admin(conn)
+        conn.execute("BEGIN IMMEDIATE");require_permission('MANAGEMENT', conn)
         row=conn.execute("SELECT status FROM customer_orders WHERE id=?",(int(order_id),)).fetchone()
         if not row or row['status'] in ('COMPLETED','CANCELLED'): raise ValueError("Commande déjà clôturée")
         conn.execute("UPDATE customer_orders SET status=? WHERE id=?",(status,int(order_id)))
