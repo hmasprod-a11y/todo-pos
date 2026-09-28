@@ -31,4 +31,20 @@ class ReleaseDocumentationTests(unittest.TestCase):
                 bad.append(rel)
         self.assertEqual(bad,[],f'Fichiers interdits dans la release: {bad}')
 
+    def test_release_version_is_consistent_everywhere(self):
+        support=(ROOT/'todo'/'services'/'support.py').read_text(encoding='utf-8')
+        installer=(ROOT/'installer.iss').read_text(encoding='utf-8')
+        readme=(ROOT/'README.md').read_text(encoding='utf-8')
+        changelog=(ROOT/'CHANGELOG.md').read_text(encoding='utf-8')
+
+        marker="APP_VERSION='"
+        start=support.index(marker)+len(marker)
+        version=support[start:support.index("'",start)]
+
+        self.assertIn(f'AppVersion={version}',installer)
+        self.assertIn(f'OutputBaseFilename=ToDo-POS-{version}-Setup',installer)
+        self.assertIn(f'# ToDo POS {version}',readme)
+        self.assertIn(f'ToDo-POS-{version}-Windows',readme)
+        self.assertIn(f'## {version} —',changelog)
+
 if __name__=='__main__':unittest.main()
