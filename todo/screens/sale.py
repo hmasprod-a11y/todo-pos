@@ -138,20 +138,20 @@ class SaleFrame(ttk.Frame):
         self.subtotal_label.pack(anchor='e',pady=(0,2))
 
         total_color=getattr(self.app,'theme_color','#2563EB')
-        total_box=tk.Frame(checkout_area,bg=total_color,padx=12,pady=6)
-        total_box.pack(fill='x',pady=(2,4))
-        tk.Label(total_box,text=self.tr('TOTAL NET','المجموع الصافي'),bg=total_color,fg='white',
+        self.total_box=tk.Frame(checkout_area,bg=total_color,padx=12,pady=6)
+        self.total_box.pack(fill='x',pady=(2,4))
+        tk.Label(self.total_box,text=self.tr('TOTAL NET','المجموع الصافي'),bg=total_color,fg='white',
                  font=('Segoe UI',11,'bold')).pack(side='left')
-        self.total_label=tk.Label(total_box,text='',bg=total_color,fg='white',
+        self.total_label=tk.Label(self.total_box,text='',bg=total_color,fg='white',
                                   font=('Segoe UI',24,'bold'))
         self.total_label.pack(side='right')
 
-        self.last_sale_box=tk.Frame(checkout_area,bg='#0B45D8',padx=8,pady=4)
+        self.last_sale_box=tk.Frame(checkout_area,bg='#1117D9',padx=14,pady=10,bd=1,relief='solid')
         self.last_sale_summary=tk.Label(
             self.last_sale_box,
             text=self.tr('DERNIÈRE VENTE  ·  FACTURE —  ·  PAYÉ —  ·  RENDU —',
                          'آخر بيع  ·  الفاتورة —  ·  المؤدى —  ·  الباقي —'),
-            bg='#0B45D8',fg='white',font=('Consolas',10,'bold'),anchor='w',
+            bg='#1117D9',fg='white',font=('Consolas',13,'bold'),anchor='w',
             justify='left'
         )
         self.last_sale_summary.pack(fill='x')
@@ -854,7 +854,7 @@ class SaleFrame(ttk.Frame):
         completed=not self.cart and bool(self.last_sale_snapshot)
         self.ticket_title.config(text=self.tr(f'🧾  Ticket en cours  ·  {item_count} article(s)',f'🧾  التذكرة الحالية  ·  {item_count} منتوج'))
         if completed:
-            if not self.last_sale_box.winfo_manager():self.last_sale_box.pack(fill='x',pady=(2,4))
+            if not self.last_sale_box.winfo_manager():self.last_sale_box.pack(fill='x',pady=(4,6),before=self.total_box)
         elif self.last_sale_box.winfo_manager():
             self.last_sale_box.pack_forget()
         if not self.edit_controls.winfo_manager():self.edit_controls.pack(fill='x',pady=(2,4),before=self.subtotal_label)
@@ -1114,8 +1114,8 @@ class SaleFrame(ttk.Frame):
             labels={'CASH':self.tr('ESPÈCES','نقداً'),'CARD':self.tr('CARTE','بطاقة'),
                     'CREDIT':self.tr('CRÉDIT','دين'),'MIXED':self.tr('MIXTE','مختلط')}
             self.last_sale_summary.config(text=self.tr(
-                f"TOTAL : {fmt(total,self.currency)}   ·   MODE P : {labels.get(completed_payment,completed_payment)}\nPAYÉ : {fmt(paid,self.currency)}   ·   RENDU : {fmt(result['change_cents'],self.currency)}",
-                f"المجموع : {fmt(total,self.currency)}   ·   طريقة الأداء : {labels.get(completed_payment,completed_payment)}\nالمؤدى : {fmt(paid,self.currency)}   ·   الباقي : {fmt(result['change_cents'],self.currency)}"
+                f"TOTAL : {fmt(total,self.currency)}\nMODE P : {labels.get(completed_payment,completed_payment)}\nPAYÉ : {fmt(paid,self.currency)}\nRENDU : {fmt(result['change_cents'],self.currency)}",
+                f"المجموع : {fmt(total,self.currency)}\nطريقة الأداء : {labels.get(completed_payment,completed_payment)}\nالمؤدى : {fmt(paid,self.currency)}\nالباقي : {fmt(result['change_cents'],self.currency)}"
             ))
             self.clear(preserve_last_sale=True)
             self.status.config(text=self.tr(f"Dernière vente : {fmt(total,self.currency)} · Reçu : {fmt(paid,self.currency)} · Monnaie : {fmt(result['change_cents'],self.currency)} · {result['sale_no']}",f"آخر بيع: {fmt(total,self.currency)} · المستلم: {fmt(paid,self.currency)} · الباقي: {fmt(result['change_cents'],self.currency)} · {result['sale_no']}"))
