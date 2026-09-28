@@ -508,11 +508,11 @@ class SaleFrame(ttk.Frame):
         ttk.Button(window,text=self.tr('Retour à la vente','العودة للبيع'),command=window.destroy).pack(pady=8)
         window.bind('<Escape>',lambda e:window.destroy())
         if action=='close':
-            def run_close():
-                if frame.close() and window.winfo_exists():
+            def after_closed():
+                if window.winfo_exists():
                     window.destroy()
-                    self.focus_search()
-            window.after_idle(run_close)
+                self.focus_search()
+            window.after_idle(lambda:frame.close(on_closed=after_closed))
         elif action=='expense':
             window.after_idle(frame.expense)
 

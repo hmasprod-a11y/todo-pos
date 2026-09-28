@@ -571,8 +571,16 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
         for value,count in ((100,1),(2,2)):
             for _ in range(count):button(counter,f'+ {value:g} DH').invoke()
         button(counter,'Valider le comptage').invoke()
-    app.after(150,finish_cash_count)
     button(cash_window,'Clôturer').invoke()
+    app.update()
+    counter=next(w for w in descendants(app) if w.winfo_class()=='Toplevel' and 'Comptage' in str(w.title()))
+    assert counter.winfo_exists()
+    # Non-blocking closure: the app event loop remains alive while the counter is open.
+    heartbeat={'ok':False}
+    app.after(10,lambda:heartbeat.__setitem__('ok',True))
+    app.update();app.after(20,app.quit);app.mainloop()
+    assert heartbeat['ok']
+    finish_cash_count()
     app.update()
     assert not any(w for w in descendants(app) if w.winfo_class()=='Toplevel' and 'Comptage' in str(w.title()))
     with connect() as c:

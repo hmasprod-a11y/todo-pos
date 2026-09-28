@@ -136,53 +136,71 @@ Cash OUT       : {fmt(t['cash_out'])}
             ),tags=(tag,))
         ttk.Label(w,text=self.tr(f"{len(rows)} clôture(s) · Écart cumulé {fmt(total_diff)}",f"{len(rows)} إغلاق · الفرق التراكمي {fmt(total_diff)}"),font=("Segoe UI",11,"bold")).pack(anchor="e",padx=12,pady=(0,12))
 
-    def _count_close_cash(self, expected):
+    def _open_close_cash(self, expected, on_closed=None):
         parent=self.winfo_toplevel()
-        w=tk.Toplevel(self);w.title(self.tr('Comptage caisse','عدّ الصندوق'));w.transient(parent);w.geometry('560x520')
-        w.update_idletasks()
-        x=max(0,parent.winfo_rootx()+(parent.winfo_width()-w.winfo_width())//2)
-        y=max(0,parent.winfo_rooty()+(parent.winfo_height()-w.winfo_height())//2)
-        w.geometry(f'+{x}+{y}')
-        w.lift();w.focus_force();w.grab_set()
+        w=tk.Toplevel(self)
+        w.title(self.tr('Comptage caisse','عدّ الصندوق'))
+        w.transient(parent)
+        w.geometry('560x520')
+        w.protocol('WM_DELETE_WINDOW',w.destroy)
         ttk.Label(w,text=self.tr('Cash attendu','النقد المتوقع'),font=('Segoe UI',11)).pack(pady=(16,2))
         ttk.Label(w,text=fmt(expected),font=('Segoe UI',24,'bold')).pack()
-        counts={};result={'value':None}
+        counts={}
         summary=ttk.Label(w,text='',font=('Segoe UI',10));summary.pack(pady=6)
         total_label=ttk.Label(w,text=fmt(0),font=('Segoe UI',22,'bold'));total_label.pack(pady=4)
         grid=ttk.Frame(w);grid.pack(fill='x',padx=16,pady=8)
         values=(200,100,50,20,10,5,2,1,0.5)
         def refresh():
-            cents=sum(to_cents(str(v))*n for v,n in counts.items());total_label.config(text=fmt(cents))
+            cents=sum(to_cents(str(v))*n for v,n in counts.items())
+            total_label.config(text=fmt(cents))
             summary.config(text=' · '.join(f'{v:g}×{n}' for v,n in counts.items() if n))
             return cents
-        def add(v,delta=1):counts[v]=max(0,counts.get(v,0)+delta);refresh()
+        def add(v,delta=1):
+            counts[v]=max(0,counts.get(v,0)+delta)
+            refresh()
         for i,v in enumerate(values):
             box=ttk.Frame(grid);box.grid(row=i//3,column=i%3,sticky='nsew',padx=4,pady=4)
             ttk.Button(box,text=f'+ {v:g} DH',command=lambda x=v:add(x),width=13).pack(fill='x')
             ttk.Button(box,text=self.tr('Retirer','نقص')+f' {v:g}',command=lambda x=v:add(x,-1),width=13).pack(fill='x',pady=(2,0))
         for c in range(3):grid.columnconfigure(c,weight=1)
-        def clear():counts.clear();refresh()
-        def validate():result['value']=refresh();w.destroy()
+        def clear():
+            counts.clear();refresh()
+        def validate():
+            actual_cents=refresh()
+            try:
+                exp,diff,_=close_session(get_open_session()['id'],actual_cents)
+            except Exception as e:
+                messagebox.showerror('ToDo',str(e),parent=w);return
+            actual=actual_cents/100
+            messagebox.showinfo(
+                self.tr('Clôture','إغلاق الصندوق'),
+                self.tr(
+                    f'Attendu: {fmt(exp)}\nRéel: {actual:.2f} DH\nDifférence: {fmt(diff)}',
+                    f'المتوقع: {fmt(exp)}\nالفعلي: {actual:.2f} DH\nالفرق: {fmt(diff)}'
+                ),
+                parent=w
+            )
+            w.destroy()
+            self.refresh()
+            if on_closed:
+                self.after_idle(on_closed)
         buttons=ttk.Frame(w);buttons.pack(side='bottom',fill='x',padx=16,pady=16)
         ttk.Button(buttons,text=self.tr('Effacer','مسح'),command=clear).pack(side='left')
         ttk.Button(buttons,text=self.tr('Annuler','إلغاء'),command=w.destroy).pack(side='right',padx=6)
         ttk.Button(buttons,text=self.tr('Valider le comptage','تأكيد العد'),style='Primary.TButton',command=validate).pack(side='right')
-        w.bind('<Escape>',lambda e:w.destroy());self.wait_window(w)
-        return None if result['value'] is None else result['value']/100
+        w.bind('<Escape>',lambda e:w.destroy())
+        w.update_idletasks()
+        x=max(0,parent.winfo_rootx()+(parent.winfo_width()-w.winfo_width())//2)
+        y=max(0,parent.winfo_rooty()+(parent.winfo_height()-w.winfo_height())//2)
+        w.geometry(f'+{x}+{y}')
+        w.lift();w.focus_force()
+        return w
 
-    def close(self):
+    def close(self,on_closed=None):
         if get_setting('closure_enabled','1')!='1':
-            messagebox.showinfo('ToDo',self.tr('La clôture est désactivée dans les paramètres.','إغلاق الصندوق معطل من الإعدادات.'),parent=self);return False
+            messagebox.showinfo('ToDo',self.tr('La clôture est désactivée dans les paramètres.','إغلاق الصندوق معطل من الإعدادات.'),parent=self);return None
         s=get_open_session()
-        if not s:return False
+        if not s:return None
         with connect() as c:t=session_totals(c,s["id"])
         expected=int(s["opening_cash_cents"])+t["cash_sales"]-t["cash_returns"]-t["expenses"]+t["cash_in"]-t["cash_out"]
-        actual=self._count_close_cash(expected)
-        if actual is None:return False
-        try:
-            expected,diff,t=close_session(s["id"],to_cents(actual))
-            messagebox.showinfo(self.tr("Clôture","إغلاق الصندوق"),self.tr(f"Attendu: {fmt(expected)}\nRéel: {actual:.2f} DH\nDifférence: {fmt(diff)}",f"المتوقع: {fmt(expected)}\nالفعلي: {actual:.2f} DH\nالفرق: {fmt(diff)}"),parent=self);self.refresh()
-            return True
-        except Exception as e:
-            messagebox.showerror("ToDo",str(e),parent=self)
-            return False
+        return self._open_close_cash(expected,on_closed=on_closed)
