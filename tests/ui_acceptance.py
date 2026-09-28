@@ -487,6 +487,10 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     assert sale.totals()[1]==500
     for label in ['SOLDER avec','SOLDER sans','Fonctions']:visible(button(sale,label))
     mixed_dialog=PaymentDialog(sale,500)
+    mixed_dialog.method.set('CASH');mixed_dialog.amount.set('10.00');mixed_dialog.amount_changed();app.update()
+    assert 'Monnaie à rendre' in mixed_dialog.change.cget('text') and '5.00' in mixed_dialog.change.cget('text')
+    mixed_dialog.amount.set('4.00');mixed_dialog.amount_changed();app.update()
+    assert 'Reste à payer' in mixed_dialog.change.cget('text') and '1.00' in mixed_dialog.change.cget('text')
     mixed_dialog.choose_method('MIXED')
     mixed_dialog.amount.set('1.00')
     mixed_dialog.card_amount.set('1.00')
