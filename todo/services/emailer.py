@@ -2,6 +2,7 @@ import smtplib,ssl
 from email.message import EmailMessage
 from pathlib import Path
 from database import get_setting,connect
+from services.secrets import get_smtp_password
 from services.security import audit
 
 def email_settings():
@@ -12,7 +13,7 @@ def email_settings():
         'host':get_setting('smtp_host','smtp.gmail.com').strip(),
         'port':port,
         'user':get_setting('smtp_user','').strip(),
-        'password':get_setting('smtp_app_password',''),
+        'password':get_smtp_password(),
         'from_name':get_setting('smtp_from_name','ToDo').strip() or 'ToDo',
         'subject':get_setting('smtp_subject','').strip(),
     }

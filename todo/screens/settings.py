@@ -4,6 +4,7 @@ import os,sys
 import tkinter as tk
 from tkinter import ttk,messagebox,filedialog,simpledialog
 from database import get_setting,set_setting,connect
+from services.secrets import get_smtp_password,set_smtp_password
 from services.backup import create_backup,restore_backup,create_full_backup,restore_full_backup
 from services.security import hash_pin, require_admin, require_permission, audit
 
@@ -306,7 +307,7 @@ class SettingsFrame(ttk.Frame):
         mail=ttk.LabelFrame(body,text=self.tr('E-mail / Gmail','البريد الإلكتروني / Gmail'),padding=10);mail.pack(fill='x',pady=10)
         self.email_enabled=tk.BooleanVar(value=get_setting('email_enabled','0')=='1')
         self.smtp_host=tk.StringVar(value=get_setting('smtp_host','smtp.gmail.com'));self.smtp_port=tk.StringVar(value=get_setting('smtp_port','587'))
-        self.smtp_user=tk.StringVar(value=get_setting('smtp_user',''));self.smtp_password=tk.StringVar(value=get_setting('smtp_app_password',''))
+        self.smtp_user=tk.StringVar(value=get_setting('smtp_user',''));self.smtp_password=tk.StringVar(value=get_smtp_password())
         self.smtp_from=tk.StringVar(value=get_setting('smtp_from_name','ToDo'))
         self.smtp_subject=tk.StringVar(value=get_setting('smtp_subject','').strip())
         ttk.Checkbutton(mail,text=self.tr('Activer envoi ticket / rapport par e-mail','تفعيل إرسال التذاكر والتقارير بالبريد'),variable=self.email_enabled).grid(row=0,column=0,columnspan=2,sticky='w')
@@ -510,7 +511,7 @@ class SettingsFrame(ttk.Frame):
         except ValueError:
             messagebox.showerror('ToDo',self.tr('Paramètres RFID invalides.','إعدادات RFID غير صالحة.'),parent=self);return
         set_setting('rfid_enabled','1' if self.rfid_enabled.get() else '0');set_setting('rfid_mode',self.rfid_mode.get());set_setting('rfid_port',self.rfid_port.get().strip());set_setting('rfid_baudrate',str(rfid_baud));set_setting('rfid_timeout_ms',str(rfid_timeout))
-        set_setting('email_enabled','1' if self.email_enabled.get() else '0');set_setting('smtp_host',self.smtp_host.get().strip());set_setting('smtp_port',str(smtp_port));set_setting('smtp_user',self.smtp_user.get().strip());set_setting('smtp_app_password',self.smtp_password.get());set_setting('smtp_from_name',self.smtp_from.get().strip() or 'ToDo');set_setting('smtp_subject',self.smtp_subject.get().strip())
+        set_setting('email_enabled','1' if self.email_enabled.get() else '0');set_setting('smtp_host',self.smtp_host.get().strip());set_setting('smtp_port',str(smtp_port));set_setting('smtp_user',self.smtp_user.get().strip());set_smtp_password(self.smtp_password.get());set_setting('smtp_from_name',self.smtp_from.get().strip() or 'ToDo');set_setting('smtp_subject',self.smtp_subject.get().strip())
         try:
             customer_serial_baud=int(self.customer_serial_baud.get());customer_serial_timeout=int(self.customer_serial_timeout.get());customer_serial_width=int(self.customer_serial_width.get())
             if customer_serial_baud<=0 or customer_serial_timeout<100 or customer_serial_timeout>10000 or customer_serial_width not in (16,20,24,40):raise ValueError()

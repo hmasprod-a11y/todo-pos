@@ -7,6 +7,7 @@ from services import backup
 from services.bootstrap import ensure_defaults
 from services.security import current_user
 from services.emailer import send_email
+from services.secrets import get_smtp_password,set_smtp_password
 
 class EmailTests(unittest.TestCase):
     def setUp(self):
@@ -34,5 +35,17 @@ class EmailTests(unittest.TestCase):
             self.assertTrue(send_email('client@example.com','Ticket 42','Bonjour',settings=cfg))
         msg=smtp.send_message.call_args[0][0]
         self.assertEqual(msg['Subject'],'Ticket 42')
+
+    def test_smtp_password_is_not_stored_in_plaintext_and_legacy_value_migrates(self):
+        set_smtp_password('secret-app-pass')
+        stored=database.get_setting('smtp_app_password','')
+        self.assertNotEqual(stored,'secret-app-pass')
+        self.assertNotIn('secret-app-pass',stored)
+        self.assertEqual(get_smtp_password(),'secret-app-pass')
+        database.set_setting('smtp_app_password','legacy-pass')
+        self.assertEqual(get_smtp_password(),'legacy-pass')
+        migrated=database.get_setting('smtp_app_password','')
+        self.assertNotEqual(migrated,'legacy-pass')
+        self.assertNotIn('legacy-pass',migrated)
 
 if __name__=='__main__':unittest.main()
