@@ -1,5 +1,5 @@
 from database import connect,get_setting
-from services.security import current_user,require_admin,audit
+from services.security import current_user,require_permission,audit
 
 def loyalty_settings(conn=None):
     return {
@@ -41,7 +41,7 @@ def adjust_points(client_id, points_delta, reason):
     reason=(reason or '').strip()
     if not reason: raise ValueError("Raison obligatoire")
     with connect() as conn:
-        conn.execute("BEGIN IMMEDIATE");require_admin(conn)
+        conn.execute("BEGIN IMMEDIATE");require_permission('MANAGEMENT', conn)
         if not conn.execute("SELECT 1 FROM clients WHERE id=? AND active=1",(int(client_id),)).fetchone():
             raise ValueError("Client introuvable")
         if delta<0 and client_points(client_id,conn)+delta<0:
