@@ -1,5 +1,5 @@
 from database import connect
-from services.security import require_admin, audit, current_user
+from services.security import require_admin, require_permission, audit, current_user
 
 
 def save_client(name, phone='', notes='', client_id=None):

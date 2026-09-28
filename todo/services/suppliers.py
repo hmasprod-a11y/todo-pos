@@ -1,5 +1,5 @@
 from database import connect
-from services.security import require_admin, audit
+from services.security import require_permission, audit
 
 
 def save_supplier(name, phone='', notes='', supplier_id=None):
@@ -10,7 +10,7 @@ def save_supplier(name, phone='', notes='', supplier_id=None):
         raise ValueError('Nom, téléphone ou notes trop longs.')
     with connect() as conn:
         conn.execute('BEGIN IMMEDIATE')
-        require_admin(conn)
+        require_permission('MANAGEMENT', conn)
         if supplier_id is None:
             supplier_id = conn.execute(
                 'INSERT INTO suppliers(name,phone,notes) VALUES(?,?,?)',
