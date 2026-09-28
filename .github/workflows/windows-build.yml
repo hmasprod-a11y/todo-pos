@@ -99,6 +99,37 @@ jobs:
           "write-ok" | Set-Content -Path $probe -Encoding UTF8
           if ((Get-Content $probe -Raw).Trim() -ne "write-ok") { throw "ProgramData write probe failed" }
 
+          # First-launch smoke of the installed frozen executable.
+          # A successful startup must create the live SQLite database under ProgramData,
+          # never next to the executable in Program Files.
+          $dbPath = Join-Path $dataDir "data\todo.db"
+          $launchError = Join-Path $dataDir "logs\launch_error.txt"
+          if (Test-Path $dbPath) { Remove-Item $dbPath -Force }
+          if (Test-Path $launchError) { Remove-Item $launchError -Force }
+
+          $appProc = Start-Process -FilePath $exe -PassThru
+          $deadline = (Get-Date).AddSeconds(20)
+          while ((Get-Date) -lt $deadline -and -not (Test-Path $dbPath)) {
+            if ($appProc.HasExited) {
+              throw "Installed ToDo.exe exited before creating ProgramData database (exit $($appProc.ExitCode))"
+            }
+            Start-Sleep -Milliseconds 500
+            $appProc.Refresh()
+          }
+          if (-not (Test-Path $dbPath)) {
+            if (-not $appProc.HasExited) { Stop-Process -Id $appProc.Id -Force }
+            throw "Installed ToDo.exe did not create $dbPath"
+          }
+          if (Test-Path $launchError) {
+            $detail = Get-Content $launchError -Raw
+            if (-not $appProc.HasExited) { Stop-Process -Id $appProc.Id -Force }
+            throw "Installed ToDo.exe wrote launch_error.txt: $detail"
+          }
+          if (-not $appProc.HasExited) { Stop-Process -Id $appProc.Id -Force }
+          if (Test-Path (Join-Path $installDir "todo\data\todo.db")) {
+            throw "Installed application wrote mutable database inside Program Files"
+          }
+
           $sentinel = Join-Path $dataDir "ci-uninstall-preserve.txt"
           "keep-me" | Set-Content -Path $sentinel -Encoding UTF8
           $uninstaller = Join-Path $installDir "unins000.exe"
