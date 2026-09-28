@@ -573,6 +573,8 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
         button(counter,'Valider le comptage').invoke()
     app.after(150,finish_cash_count)
     button(cash_window,'Clôturer').invoke()
+    app.update()
+    assert not any(w for w in descendants(app) if w.winfo_class()=='Toplevel' and 'Comptage' in str(w.title()))
     with connect() as c:
         closing=c.execute('SELECT * FROM cash_sessions').fetchone()
         assert closing['status']=='CLOSED' and closing['actual_cash_cents']==10400 and closing['difference_cents']==0

@@ -499,12 +499,22 @@ class SaleFrame(ttk.Frame):
     def cash_tools(self,action=None):
         from screens.cashdesk import CashFrame
         window=tk.Toplevel(self);window.title(self.tr('Caisse','الصندوق'))
-        window.transient(self.app);window.grab_set()
+        window.transient(self.app)
+        # Direct closure must not create a modal-on-modal grab chain on Windows.
+        # The denomination counter opened by CashFrame.close() is the only modal.
+        if action!='close':
+            window.grab_set()
         frame=CashFrame(window,self.app);frame.pack(fill='both',expand=True)
         ttk.Button(window,text=self.tr('Retour à la vente','العودة للبيع'),command=window.destroy).pack(pady=8)
         window.bind('<Escape>',lambda e:window.destroy())
-        if action in ('close','expense'):
-            window.after_idle(getattr(frame,action))
+        if action=='close':
+            def run_close():
+                if frame.close() and window.winfo_exists():
+                    window.destroy()
+                    self.focus_search()
+            window.after_idle(run_close)
+        elif action=='expense':
+            window.after_idle(frame.expense)
 
 
     def print_addition(self):

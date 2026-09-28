@@ -137,7 +137,13 @@ Cash OUT       : {fmt(t['cash_out'])}
         ttk.Label(w,text=self.tr(f"{len(rows)} clôture(s) · Écart cumulé {fmt(total_diff)}",f"{len(rows)} إغلاق · الفرق التراكمي {fmt(total_diff)}"),font=("Segoe UI",11,"bold")).pack(anchor="e",padx=12,pady=(0,12))
 
     def _count_close_cash(self, expected):
-        w=tk.Toplevel(self);w.title(self.tr('Comptage caisse','عدّ الصندوق'));w.transient(self.winfo_toplevel());w.grab_set();w.geometry('560x520')
+        parent=self.winfo_toplevel()
+        w=tk.Toplevel(self);w.title(self.tr('Comptage caisse','عدّ الصندوق'));w.transient(parent);w.geometry('560x520')
+        w.update_idletasks()
+        x=max(0,parent.winfo_rootx()+(parent.winfo_width()-w.winfo_width())//2)
+        y=max(0,parent.winfo_rooty()+(parent.winfo_height()-w.winfo_height())//2)
+        w.geometry(f'+{x}+{y}')
+        w.lift();w.focus_force();w.grab_set()
         ttk.Label(w,text=self.tr('Cash attendu','النقد المتوقع'),font=('Segoe UI',11)).pack(pady=(16,2))
         ttk.Label(w,text=fmt(expected),font=('Segoe UI',24,'bold')).pack()
         counts={};result={'value':None}
@@ -166,14 +172,17 @@ Cash OUT       : {fmt(t['cash_out'])}
 
     def close(self):
         if get_setting('closure_enabled','1')!='1':
-            messagebox.showinfo('ToDo',self.tr('La clôture est désactivée dans les paramètres.','إغلاق الصندوق معطل من الإعدادات.'),parent=self);return
+            messagebox.showinfo('ToDo',self.tr('La clôture est désactivée dans les paramètres.','إغلاق الصندوق معطل من الإعدادات.'),parent=self);return False
         s=get_open_session()
-        if not s:return
+        if not s:return False
         with connect() as c:t=session_totals(c,s["id"])
         expected=int(s["opening_cash_cents"])+t["cash_sales"]-t["cash_returns"]-t["expenses"]+t["cash_in"]-t["cash_out"]
         actual=self._count_close_cash(expected)
-        if actual is None:return
+        if actual is None:return False
         try:
             expected,diff,t=close_session(s["id"],to_cents(actual))
             messagebox.showinfo(self.tr("Clôture","إغلاق الصندوق"),self.tr(f"Attendu: {fmt(expected)}\nRéel: {actual:.2f} DH\nDifférence: {fmt(diff)}",f"المتوقع: {fmt(expected)}\nالفعلي: {actual:.2f} DH\nالفرق: {fmt(diff)}"),parent=self);self.refresh()
-        except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
+            return True
+        except Exception as e:
+            messagebox.showerror("ToDo",str(e),parent=self)
+            return False
