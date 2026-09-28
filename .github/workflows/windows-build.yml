@@ -29,10 +29,10 @@ jobs:
         run: python -m compileall -q todo ToDo.pyw IMPORT_OLD_DATA.pyw
       - name: Build portable Windows application
         shell: cmd
-        run: pyinstaller --noconfirm --clean --windowed --onedir --name ToDo --paths todo --add-data "todo;todo" ToDo.pyw
+        run: pyinstaller --noconfirm --clean --noupx --windowed --onedir --name ToDo --version-file tools/windows_version_info.txt --paths todo --add-data "todo;todo" ToDo.pyw
       - name: Build data import utility
         shell: cmd
-        run: pyinstaller --noconfirm --clean --windowed --onefile --name ImporterToDo --paths todo IMPORT_OLD_DATA.pyw
+        run: pyinstaller --noconfirm --clean --noupx --windowed --onefile --name ImporterToDo --version-file tools/windows_importer_version_info.txt --paths todo IMPORT_OLD_DATA.pyw
       - name: Create optional isolated demo
         run: python tools/create_demo.py dist/ToDo
       - name: Include documentation and importer
