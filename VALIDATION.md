@@ -22,13 +22,16 @@ Avant installation magasin, tester physiquement :
 Le statut de livraison d'un commit dépend des trois workflows GitHub verts sur ce commit précis.
 
 ## Validation de la release 1.1.0
-Commit validé : `b88259169af07e0e14ddd9e3933632c08027af2c`.
+La validation n'est pas figée sur un ancien numéro de commit dans ce document : le **commit de livraison est toujours le HEAD exact** pour lequel les trois workflows suivants sont tous en `success` :
 
-Workflows GitHub sur ce commit :
-- Quick test build #200 : success
-- ToDo tests #773 : success
-- Windows build #772 : success
+- `Quick test build`;
+- `ToDo tests`;
+- `Windows build`.
 
-Le build Windows #772 a validé le package `ToDo-POS-1.1.0-Windows`, contenant le package portable, l'installateur et les sommes SHA256 prévues par le workflow.
+Le workflow Windows réalise également un smoke test réel de l'installateur : installation silencieuse, présence de `ToDo.exe`, création de `%ProgramData%\ToDo POS`, contrôle de l'autorisation `Modify` du groupe Windows intégré `Users`, test d'écriture, désinstallation silencieuse et vérification que les données de ProgramData sont conservées.
 
-Cette validation couvre l'automatisation. Les contrôles matériels et magasin restent manuels et doivent être exécutés sur le poste cible avant déploiement réel.
+Chaque artifact Windows contient `RELEASE_HEAD.txt` avec le SHA Git exact qui a produit le package et le numéro du workflow Windows. Ce fichier est la référence embarquée pour rattacher un installateur à son code source précis.
+
+Une release n'est donc considérée comme automatisément validée que si le SHA de `RELEASE_HEAD.txt` correspond au commit examiné et que les trois workflows GitHub de ce même SHA sont verts.
+
+Cette validation automatisée ne remplace pas les contrôles physiques en magasin : scanner, imprimante, tiroir, afficheur client, balance, RFID, ports COM et rendu arabe doivent encore être testés sur le matériel cible avant déploiement réel.

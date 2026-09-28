@@ -42,11 +42,17 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist/ToDo/docs | Out-Null
           Copy-Item README.md,README_1_1_AR.md,VALIDATION.md,CHANGELOG.md dist/ToDo/
           Copy-Item docs/* dist/ToDo/docs/
+          @(
+            "Commit=$env:GITHUB_SHA",
+            "WindowsBuildRun=$env:GITHUB_RUN_NUMBER",
+            "Workflow=$env:GITHUB_WORKFLOW"
+          ) | Set-Content dist/ToDo/RELEASE_HEAD.txt -Encoding UTF8
           $required = @(
             "dist/ToDo/README.md",
             "dist/ToDo/README_1_1_AR.md",
             "dist/ToDo/VALIDATION.md",
             "dist/ToDo/CHANGELOG.md",
+            "dist/ToDo/RELEASE_HEAD.txt",
             "dist/ToDo/docs/USER_GUIDE_FR.md",
             "dist/ToDo/docs/USER_GUIDE_AR.md",
             "dist/ToDo/docs/BACKUP_RESTORE.md",
@@ -71,6 +77,24 @@ jobs:
 
           $dataDir = Join-Path $env:ProgramData "ToDo POS"
           if (-not (Test-Path $dataDir)) { throw "ProgramData directory was not created: $dataDir" }
+
+          # Verify the installer grants Modify to the built-in Users group,
+          # independently of the elevated GitHub runner account.
+          $usersSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-545")
+          $hasModify = $false
+          foreach ($rule in (Get-Acl $dataDir).Access) {
+            try { $sid = $rule.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]) }
+            catch { continue }
+            $modify = [System.Security.AccessControl.FileSystemRights]::Modify
+            if ($sid -eq $usersSid -and
+                $rule.AccessControlType -eq [System.Security.AccessControl.AccessControlType]::Allow -and
+                (($rule.FileSystemRights -band $modify) -eq $modify)) {
+              $hasModify = $true
+              break
+            }
+          }
+          if (-not $hasModify) { throw "Built-in Users group does not have Modify permission on $dataDir" }
+
           $probe = Join-Path $dataDir "ci-write-probe.txt"
           "write-ok" | Set-Content -Path $probe -Encoding UTF8
           if ((Get-Content $probe -Raw).Trim() -ne "write-ok") { throw "ProgramData write probe failed" }
