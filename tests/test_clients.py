@@ -126,10 +126,13 @@ class ClientWorkflowTests(unittest.TestCase):
         self.assertEqual(search_products(category=second)[0]['id'],self.pid)
         self.assertEqual(len(list((database.DB_PATH.parent/'migration_backups').glob('*.db'))),1)
 
-    def test_photo_catalog_excludes_regular_products_before_limit(self):
+    def test_photo_catalog_uses_explicit_visibility_even_with_barcode(self):
         with database.connect() as c:
             c.executemany('INSERT INTO products(name,category_id) VALUES(?,?)',[(f'A{i:03}',self.cat) for i in range(100)])
-            photo=c.execute("INSERT INTO products(name,category_id,image_path) VALUES('Z photo',?,'assets/test.png')",(self.cat,)).lastrowid
-        self.assertNotIn(photo,[r['id'] for r in search_products()])
-        self.assertEqual([r['id'] for r in search_products(images_only=True)],[photo])
+            shown=c.execute("INSERT INTO products(name,category_id,image_path,show_in_sale_photos) VALUES('Z photo shown',?,'assets/test.png',1)",(self.cat,)).lastrowid
+            hidden=c.execute("INSERT INTO products(name,category_id,image_path,show_in_sale_photos) VALUES('Z photo hidden',?,'assets/test.png',0)",(self.cat,)).lastrowid
+            c.execute("INSERT INTO product_barcodes(product_id,barcode) VALUES(?,?)",(shown,'6111111111111'))
+        self.assertNotIn(shown,[r['id'] for r in search_products()])
+        self.assertEqual([r['id'] for r in search_products(images_only=True)],[shown])
+        self.assertNotIn(hidden,[r['id'] for r in search_products(images_only=True)])
         self.assertEqual(search_products(images_only=True,offset=1),[])

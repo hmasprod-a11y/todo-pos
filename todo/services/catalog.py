@@ -17,9 +17,8 @@ def search_products(query='', category=None, limit=None, images_only=False, offs
             cat_filter = ''
 
         if images_only:
-            # Photo catalogue is reserved for products without a real/scannable barcode.
-            # Auto-generated TODO-* internal ids keep image-only products selectable by photo.
-            cat_filter+=" AND trim(p.image_path)<>'' AND NOT EXISTS(SELECT 1 FROM product_barcodes pb WHERE pb.product_id=p.id AND trim(pb.barcode)<>'' AND pb.barcode NOT LIKE 'TODO-%')"
+            # Photo visibility is an explicit product choice and is independent of barcode presence.
+            cat_filter+=" AND trim(p.image_path)<>'' AND p.show_in_sale_photos=1"
         offset=max(0,int(offset))
         if not query:
             return conn.execute(

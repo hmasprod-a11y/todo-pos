@@ -23,4 +23,14 @@ class ProductLifecycleUiTests(unittest.TestCase):
         self.assertIn('AND p.id<>?',text)
         self.assertIn('current_codes',text)
 
+    def test_sale_photo_visibility_is_explicit_and_barcode_independent(self):
+        products=(ROOT/'todo'/'screens'/'products.py').read_text(encoding='utf-8')
+        catalog=(ROOT/'todo'/'services'/'catalog.py').read_text(encoding='utf-8')
+        database=(ROOT/'todo'/'database.py').read_text(encoding='utf-8')
+        self.assertIn('Afficher dans les photos de vente',products)
+        self.assertIn('show_in_sale_photos',products)
+        self.assertIn("p.show_in_sale_photos=1",catalog)
+        self.assertNotIn("NOT EXISTS(SELECT 1 FROM product_barcodes",catalog)
+        self.assertIn("show_in_sale_photos INTEGER NOT NULL DEFAULT 0",database)
+
 if __name__=='__main__':unittest.main()

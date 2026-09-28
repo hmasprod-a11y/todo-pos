@@ -30,7 +30,7 @@ class ProductEditor(tk.Toplevel):
         # virtual keyboard (another Toplevel) from receiving mouse/touch events.
         # The editor remains transient, while its own embedded keyboard works
         # entirely inside this window.
-        self.sku=tk.StringVar();self.alias=tk.StringVar();self.supplier_code=tk.StringVar();self.preferred_supplier=tk.StringVar();self.fraction=tk.BooleanVar();self.stock_note=tk.StringVar();self.rfid_tag=tk.StringVar()
+        self.sku=tk.StringVar();self.alias=tk.StringVar();self.supplier_code=tk.StringVar();self.preferred_supplier=tk.StringVar();self.fraction=tk.BooleanVar();self.stock_note=tk.StringVar();self.rfid_tag=tk.StringVar();self.show_in_sale_photos=tk.BooleanVar(value=False)
         self.bar=tk.StringVar();self.name=tk.StringVar();self.cat=tk.StringVar()
         self.barcode_rows=[]
         self.buy=tk.StringVar(value="0");self.sell=tk.StringVar(value="0");self.stock=tk.StringVar(value="0");self.alert=tk.StringVar(value="0")
@@ -78,6 +78,7 @@ class ProductEditor(tk.Toplevel):
         ttk.Button(b,text=self.tr('⌨ Clavier','⌨ لوحة المفاتيح'),style='Primary.TButton',command=self.toggle_embedded_keyboard).pack(side='left',padx=(10,0))
         self.preview=tk.Label(right,text=self.tr("Aucune image","لا توجد صورة"),bg="white",relief="groove",width=25,height=13);self.preview.pack()
         ttk.Button(right,text=self.tr('Choisir image','اختيار صورة'),style='Soft.TButton',command=self.choose_image).pack(fill='x',pady=8)
+        ttk.Checkbutton(right,text=self.tr('Afficher dans les photos de vente','إظهار الصورة في شاشة البيع'),variable=self.show_in_sale_photos).pack(anchor='w',fill='x',pady=(0,8))
         fields=ttk.LabelFrame(right,text=self.tr('Recherche','معلومات إضافية'),padding=8);fields.pack(fill='x',pady=10)
         for label,variable in [(self.tr('Référence','المرجع'),self.sku),(self.tr('Code fournisseur','رمز المورد'),self.supplier_code),(self.tr('Alias','اسم بديل'),self.alias)]:
             ttk.Label(fields,text=label).pack(anchor='w')
@@ -290,7 +291,7 @@ class ProductEditor(tk.Toplevel):
             bars=c.execute("SELECT barcode,qty_multiplier,price_override_cents FROM product_barcodes WHERE product_id=? ORDER BY id",(self.pid,)).fetchall()
             rs=c.execute("SELECT min_qty,unit_price_cents,pricing_mode FROM quantity_prices WHERE product_id=? ORDER BY min_qty",(self.pid,)).fetchall()
             gps=c.execute("SELECT grid_id,unit_price_cents FROM product_grid_prices WHERE product_id=?",(self.pid,)).fetchall()
-        self.sku.set(p["sku"]);self.alias.set(p["alias"]);self.supplier_code.set(p["supplier_code"]);self.fraction.set(bool(p["allow_fraction"]))
+        self.sku.set(p["sku"]);self.alias.set(p["alias"]);self.supplier_code.set(p["supplier_code"]);self.fraction.set(bool(p["allow_fraction"]));self.show_in_sale_photos.set(bool(p["show_in_sale_photos"]))
         supplier_id=p["preferred_supplier_id"] if "preferred_supplier_id" in p.keys() else None
         supplier_label=next((f"{r['name']} · #{r['id']}" for r in self.supplier_rows if r['id']==supplier_id),'')
         self.preferred_supplier.set(supplier_label)
@@ -371,11 +372,11 @@ class ProductEditor(tk.Toplevel):
                 c.execute("INSERT OR IGNORE INTO categories(name) VALUES(?)",(cat,))
                 catid=c.execute("SELECT id FROM categories WHERE name=?",(cat,)).fetchone()["id"]
                 if self.pid:
-                    c.execute("""UPDATE products SET name=?,category_id=?,purchase_price_cents=?,sale_price_cents=?,alert_qty=?,image_path=?,updated_at=CURRENT_TIMESTAMP WHERE id=?""",
-                              (name,catid,buy,sell,alert,img,self.pid));pid=self.pid
+                    c.execute("""UPDATE products SET name=?,category_id=?,purchase_price_cents=?,sale_price_cents=?,alert_qty=?,image_path=?,show_in_sale_photos=?,updated_at=CURRENT_TIMESTAMP WHERE id=?""",
+                              (name,catid,buy,sell,alert,img,1 if self.show_in_sale_photos.get() else 0,self.pid));pid=self.pid
                 else:
-                    cur=c.execute("""INSERT INTO products(name,category_id,purchase_price_cents,sale_price_cents,stock_qty,alert_qty,image_path) VALUES(?,?,?,?,?,?,?)""",
-                                  (name,catid,buy,sell,0,alert,img));pid=cur.lastrowid
+                    cur=c.execute("""INSERT INTO products(name,category_id,purchase_price_cents,sale_price_cents,stock_qty,alert_qty,image_path,show_in_sale_photos) VALUES(?,?,?,?,?,?,?,?)""",
+                                  (name,catid,buy,sell,0,alert,img,1 if self.show_in_sale_photos.get() else 0));pid=cur.lastrowid
                 set_product_categories(c,pid,selected_cats or [catid])
                 old=c.execute('SELECT stock_qty FROM products WHERE id=?',(pid,)).fetchone()[0]
                 if abs(stock-self.loaded_stock)>1e-9 and abs(stock-old)>1e-9:
