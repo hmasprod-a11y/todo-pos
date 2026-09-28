@@ -14,6 +14,7 @@ def email_settings():
         'user':get_setting('smtp_user','').strip(),
         'password':get_setting('smtp_app_password',''),
         'from_name':get_setting('smtp_from_name','ToDo').strip() or 'ToDo',
+        'subject':get_setting('smtp_subject','').strip(),
     }
 
 def _validate_address(value):
@@ -27,7 +28,7 @@ def send_email(to,subject,body,attachments=None,settings=None):
     host=(cfg.get('host') or '').strip();user=_validate_address(cfg.get('user'));password=cfg.get('password') or ''
     if not host or not password:raise ValueError('Configuration SMTP incomplète.')
     to=_validate_address(to)
-    msg=EmailMessage();msg['From']=f"{cfg.get('from_name') or 'ToDo'} <{user}>";msg['To']=to;msg['Subject']=str(subject or 'ToDo')
+    msg=EmailMessage();msg['From']=f"{cfg.get('from_name') or 'ToDo'} <{user}>";msg['To']=to;msg['Subject']=str(cfg.get('subject') or subject or 'ToDo')
     msg.set_content(str(body or ''))
     for item in attachments or []:
         path=Path(item)

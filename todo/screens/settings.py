@@ -308,13 +308,15 @@ class SettingsFrame(ttk.Frame):
         self.smtp_host=tk.StringVar(value=get_setting('smtp_host','smtp.gmail.com'));self.smtp_port=tk.StringVar(value=get_setting('smtp_port','587'))
         self.smtp_user=tk.StringVar(value=get_setting('smtp_user',''));self.smtp_password=tk.StringVar(value=get_setting('smtp_app_password',''))
         self.smtp_from=tk.StringVar(value=get_setting('smtp_from_name','ToDo'))
+        self.smtp_subject=tk.StringVar(value=get_setting('smtp_subject','').strip())
         ttk.Checkbutton(mail,text=self.tr('Activer envoi ticket / rapport par e-mail','تفعيل إرسال التذاكر والتقارير بالبريد'),variable=self.email_enabled).grid(row=0,column=0,columnspan=2,sticky='w')
         ttk.Label(mail,text='SMTP').grid(row=1,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_host,width=28).grid(row=1,column=1,sticky='w',padx=8)
         ttk.Label(mail,text='Port').grid(row=1,column=2,sticky='e');ttk.Entry(mail,textvariable=self.smtp_port,width=7).grid(row=1,column=3,sticky='w',padx=8)
         ttk.Label(mail,text=self.tr('Compte Gmail / e-mail','حساب Gmail / البريد')).grid(row=2,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_user,width=32).grid(row=2,column=1,sticky='w',padx=8)
         ttk.Label(mail,text=self.tr('App Password','كلمة مرور التطبيق')).grid(row=3,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_password,width=32,show='•').grid(row=3,column=1,sticky='w',padx=8)
         ttk.Label(mail,text=self.tr('Nom expéditeur','اسم المرسل')).grid(row=4,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_from,width=24).grid(row=4,column=1,sticky='w',padx=8)
-        ttk.Button(mail,text=self.tr('Tester e-mail','اختبار البريد'),style='Soft.TButton',command=self.test_email).grid(row=4,column=2,padx=6)
+        ttk.Label(mail,text=self.tr('Objet','الموضوع')).grid(row=5,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_subject,width=32).grid(row=5,column=1,sticky='w',padx=8)
+        ttk.Button(mail,text=self.tr('Tester e-mail','اختبار البريد'),style='Soft.TButton',command=self.test_email).grid(row=5,column=2,padx=6)
         b=ttk.LabelFrame(body,text=self.tr('Données','البيانات'),padding=10);b.pack(fill="x",pady=10)
         ttk.Button(b,text=self.tr('Backup maintenant','نسخ احتياطي الآن'),style='Success.TButton',command=self.backup).pack(side='left',padx=4)
         self.auto_backup=tk.StringVar(value=get_setting("auto_backup_minutes","15"))
@@ -508,7 +510,7 @@ class SettingsFrame(ttk.Frame):
         except ValueError:
             messagebox.showerror('ToDo',self.tr('Paramètres RFID invalides.','إعدادات RFID غير صالحة.'),parent=self);return
         set_setting('rfid_enabled','1' if self.rfid_enabled.get() else '0');set_setting('rfid_mode',self.rfid_mode.get());set_setting('rfid_port',self.rfid_port.get().strip());set_setting('rfid_baudrate',str(rfid_baud));set_setting('rfid_timeout_ms',str(rfid_timeout))
-        set_setting('email_enabled','1' if self.email_enabled.get() else '0');set_setting('smtp_host',self.smtp_host.get().strip());set_setting('smtp_port',str(smtp_port));set_setting('smtp_user',self.smtp_user.get().strip());set_setting('smtp_app_password',self.smtp_password.get());set_setting('smtp_from_name',self.smtp_from.get().strip() or 'ToDo')
+        set_setting('email_enabled','1' if self.email_enabled.get() else '0');set_setting('smtp_host',self.smtp_host.get().strip());set_setting('smtp_port',str(smtp_port));set_setting('smtp_user',self.smtp_user.get().strip());set_setting('smtp_app_password',self.smtp_password.get());set_setting('smtp_from_name',self.smtp_from.get().strip() or 'ToDo');set_setting('smtp_subject',self.smtp_subject.get().strip())
         try:
             customer_serial_baud=int(self.customer_serial_baud.get());customer_serial_timeout=int(self.customer_serial_timeout.get());customer_serial_width=int(self.customer_serial_width.get())
             if customer_serial_baud<=0 or customer_serial_timeout<100 or customer_serial_timeout>10000 or customer_serial_width not in (16,20,24,40):raise ValueError()
@@ -546,7 +548,7 @@ class SettingsFrame(ttk.Frame):
     def test_email(self):
         try:
             from services.emailer import test_email_connection
-            cfg={'enabled':True,'host':self.smtp_host.get().strip(),'port':int(self.smtp_port.get()),'user':self.smtp_user.get().strip(),'password':self.smtp_password.get(),'from_name':self.smtp_from.get().strip() or 'ToDo'}
+            cfg={'enabled':True,'host':self.smtp_host.get().strip(),'port':int(self.smtp_port.get()),'user':self.smtp_user.get().strip(),'password':self.smtp_password.get(),'from_name':self.smtp_from.get().strip() or 'ToDo','subject':self.smtp_subject.get().strip()}
             test_email_connection(settings=cfg)
             messagebox.showinfo('ToDo',self.tr('E-mail test envoyé.','تم إرسال بريد الاختبار.'),parent=self)
         except Exception as error:
