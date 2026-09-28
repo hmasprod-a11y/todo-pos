@@ -151,7 +151,8 @@ class SaleFrame(ttk.Frame):
             self.last_sale_box,
             text=self.tr('DERNIÈRE VENTE  ·  FACTURE —  ·  PAYÉ —  ·  RENDU —',
                          'آخر بيع  ·  الفاتورة —  ·  المؤدى —  ·  الباقي —'),
-            bg='#0B45D8',fg='white',font=('Segoe UI',9,'bold'),anchor='w'
+            bg='#0B45D8',fg='white',font=('Consolas',12,'bold'),anchor='w',
+            justify='left'
         )
         self.last_sale_summary.pack(fill='x')
 
@@ -826,12 +827,11 @@ class SaleFrame(ttk.Frame):
         if index is None:index=self.selected()
         self.ticket.delete(*self.ticket.get_children())
         sub,total=self.totals()
-        display_cart=self.cart if self.cart else (self.last_sale_snapshot or [])
+        # The active ticket is always the current sale. A completed sale is shown
+        # only in the separate reminder block, Logica-style, while the new ticket
+        # immediately returns to 0.00 and remains ready for the next customer.
+        display_cart=self.cart
         display_ticket_discount=self.ticket_discount_cents
-        if not self.cart and self.last_sale_snapshot:
-            sub=sum(line_total(x['unit_price_cents'],x['qty'])-int(x.get('discount_cents',0)) for x in display_cart)
-            display_ticket_discount=self.last_sale_discount_cents
-            total=max(0,sub-display_ticket_discount)
         weights=[line_total(x['unit_price_cents'],x['qty'])-int(x.get('discount_cents',0)) for x in display_cart]
         nets=allocate(total,weights)
         for i,(x,net) in enumerate(zip(display_cart,nets)):
@@ -852,16 +852,13 @@ class SaleFrame(ttk.Frame):
         self.subtotal_label.config(text=f"{self.tr('Sous-total','المجموع الفرعي')} {fmt(sub,self.currency)}  ·  {self.tr('Remise ticket','تخفيض التذكرة')} {fmt(display_ticket_discount,self.currency)}")
         item_count=len(display_cart)
         completed=not self.cart and bool(self.last_sale_snapshot)
+        self.ticket_title.config(text=self.tr(f'🧾  Ticket en cours  ·  {item_count} article(s)',f'🧾  التذكرة الحالية  ·  {item_count} منتوج'))
         if completed:
-            self.ticket_title.config(text=self.tr(f'🧾  Dernière vente  ·  {item_count} article(s)',f'🧾  آخر بيع  ·  {item_count} منتوج'))
-            if self.edit_controls.winfo_manager():self.edit_controls.pack_forget()
-            if self.checkout_buttons.winfo_manager():self.checkout_buttons.pack_forget()
-            if not self.last_sale_box.winfo_manager():self.last_sale_box.pack(fill='x',pady=(2,0))
-        else:
-            self.ticket_title.config(text=self.tr(f'🧾  Ticket en cours  ·  {item_count} article(s)',f'🧾  التذكرة الحالية  ·  {item_count} منتوج'))
-            if self.last_sale_box.winfo_manager():self.last_sale_box.pack_forget()
-            if not self.edit_controls.winfo_manager():self.edit_controls.pack(fill='x',pady=(2,4),before=self.subtotal_label)
-            if not self.checkout_buttons.winfo_manager():self.checkout_buttons.pack(fill='x',pady=(2,0))
+            if not self.last_sale_box.winfo_manager():self.last_sale_box.pack(fill='x',pady=(2,4))
+        elif self.last_sale_box.winfo_manager():
+            self.last_sale_box.pack_forget()
+        if not self.edit_controls.winfo_manager():self.edit_controls.pack(fill='x',pady=(2,4),before=self.subtotal_label)
+        if not self.checkout_buttons.winfo_manager():self.checkout_buttons.pack(fill='x',pady=(2,0))
         self.total_label.config(text=fmt(total,self.currency))
         self.app.update_customer_display(display_cart,total)
 
@@ -1114,14 +1111,14 @@ class SaleFrame(ttk.Frame):
             # Business cart state is cleared immediately so the completed sale cannot be submitted twice.
             self.last_sale_snapshot=[dict(line) for line in self.cart]
             self.last_sale_discount_cents=self.ticket_discount_cents
-            self.clear(preserve_last_sale=True)
-            self.status.config(text=self.tr(f"Dernière vente : {fmt(total,self.currency)} · Reçu : {fmt(paid,self.currency)} · Monnaie : {fmt(result['change_cents'],self.currency)} · {result['sale_no']}",f"آخر بيع: {fmt(total,self.currency)} · المستلم: {fmt(paid,self.currency)} · الباقي: {fmt(result['change_cents'],self.currency)} · {result['sale_no']}"))
             labels={'CASH':self.tr('ESPÈCES','نقداً'),'CARD':self.tr('CARTE','بطاقة'),
                     'CREDIT':self.tr('CRÉDIT','دين'),'MIXED':self.tr('MIXTE','مختلط')}
             self.last_sale_summary.config(text=self.tr(
-                f"DERNIÈRE VENTE  ·  FACTURE {fmt(total,self.currency)}  ·  PAYÉ {fmt(paid,self.currency)}  ·  RENDU {fmt(result['change_cents'],self.currency)}  ·  {labels.get(completed_payment,completed_payment)}",
-                f"آخر بيع  ·  الفاتورة {fmt(total,self.currency)}  ·  المؤدى {fmt(paid,self.currency)}  ·  الباقي {fmt(result['change_cents'],self.currency)}  ·  {labels.get(completed_payment,completed_payment)}"
+                f"TOTAL : {fmt(total,self.currency)}\nMODE P : {labels.get(completed_payment,completed_payment)}\nPAYÉ : {fmt(paid,self.currency)}\nRENDU : {fmt(result['change_cents'],self.currency)}",
+                f"المجموع : {fmt(total,self.currency)}\nطريقة الأداء : {labels.get(completed_payment,completed_payment)}\nالمؤدى : {fmt(paid,self.currency)}\nالباقي : {fmt(result['change_cents'],self.currency)}"
             ))
+            self.clear(preserve_last_sale=True)
+            self.status.config(text=self.tr(f"Dernière vente : {fmt(total,self.currency)} · Reçu : {fmt(paid,self.currency)} · Monnaie : {fmt(result['change_cents'],self.currency)} · {result['sale_no']}",f"آخر بيع: {fmt(total,self.currency)} · المستلم: {fmt(paid,self.currency)} · الباقي: {fmt(result['change_cents'],self.currency)} · {result['sale_no']}"))
             if get_setting('customer_serial_enabled','0')=='1':
                 try:
                     from services.customer_serial_display import show_payment

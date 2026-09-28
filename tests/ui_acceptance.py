@@ -506,13 +506,15 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     app.after(150,finish_payment)
     button(sale,'SOLDER avec').invoke();app.update()
     assert not sale.cart
-    assert sale.last_sale_snapshot and sale.ticket.get_children()
-    # Checkout stays inline: no automatic receipt popup. Cashier focus returns
-    # to the barcode/search field and the compact blue reminder shows the result.
+    assert sale.last_sale_snapshot and not sale.ticket.get_children()
+    assert sale.total_label.cget('text').startswith('0.00')
+    assert sale.checkout_buttons.winfo_manager()
+    # Checkout stays inline: the active ticket resets to zero while the separate
+    # blue Logica-style reminder preserves the completed payment result.
     assert not any(w for w in descendants(app) if w.winfo_class()=='Toplevel')
     assert sale.focus_get() is sale.entry
     reminder=sale.last_sale_summary.cget('text')
-    assert 'PAYÉ' in reminder and 'RENDU' in reminder
+    assert 'TOTAL :' in reminder and 'MODE P :' in reminder and 'PAYÉ :' in reminder and 'RENDU :' in reminder
     with connect() as c:
         row=dict(c.execute('SELECT * FROM sales').fetchone())
         assert row['total_cents']==500 and row['change_cents']==500
@@ -534,8 +536,10 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     sale.clear(preserve_last_sale=True)
     assert sale.scan_submit_job is None and sale.search_job is None
     assert sale.query.get()=='' and sale.scan_quantity.get()=='1'
-    assert sale.last_sale_snapshot and sale.ticket.get_children()
-    # Logica-compatible behavior: completed ticket remains visible until the next article.
+    assert sale.last_sale_snapshot and not sale.ticket.get_children()
+    assert sale.total_label.cget('text').startswith('0.00')
+    # Logica-compatible behavior: the completed sale stays as a separate reminder
+    # while the active ticket is empty until the next article.
     sale.query.set('TEST123');sale.confirm_search();app.update()
     assert sale.cart and sale.last_sale_snapshot is None
     assert len(sale.ticket.get_children())==1
@@ -543,7 +547,7 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     # not only from a scanner/search confirmation.
     sale.last_sale_snapshot=[dict(line) for line in sale.cart]
     sale.clear(preserve_last_sale=True);app.update()
-    assert sale.last_sale_snapshot and sale.ticket.get_children()
+    assert sale.last_sale_snapshot and not sale.ticket.get_children()
     sale.add_product(photo_internal_pid);app.update()
     assert sale.cart and sale.last_sale_snapshot is None
     assert len(sale.ticket.get_children())==1
