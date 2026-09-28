@@ -509,11 +509,16 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     assert sale.last_sale_snapshot and not sale.ticket.get_children()
     assert sale.total_label.cget('text').startswith('0.00')
     assert sale.checkout_buttons.winfo_manager()
+    assert sale.edit_controls.winfo_manager()
+    visible(button(sale,'Fonctions'))
+    visible(button(sale,'SOLDER avec'))
+    visible(button(sale,'SOLDER sans'))
     # Checkout stays inline: the active ticket resets to zero while the separate
     # blue Logica-style reminder preserves the completed payment result.
     assert not any(w for w in descendants(app) if w.winfo_class()=='Toplevel')
     assert sale.focus_get() is sale.entry
     reminder=sale.last_sale_summary.cget('text')
+    assert reminder.count('\n')==1
     assert 'TOTAL :' in reminder and 'MODE P :' in reminder and 'PAYÉ :' in reminder and 'RENDU :' in reminder
     with connect() as c:
         row=dict(c.execute('SELECT * FROM sales').fetchone())
