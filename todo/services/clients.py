@@ -8,7 +8,7 @@ def save_client(name, phone='', notes='', client_id=None):
         raise ValueError('Nom obligatoire ; vérifiez la longueur des champs.')
     with connect() as conn:
         conn.execute('BEGIN IMMEDIATE')
-        require_admin(conn)
+        require_permission('MANAGEMENT', conn)
         if client_id is None:
             client_id=conn.execute('INSERT INTO clients(name,phone,notes) VALUES(?,?,?)',(name,phone,notes)).lastrowid
         elif conn.execute('UPDATE clients SET name=?,phone=?,notes=? WHERE id=? AND active=1',(name,phone,notes,client_id)).rowcount!=1:
@@ -67,7 +67,7 @@ def get_client(client_id):
 
 def deactivate_client(client_id):
     with connect() as conn:
-        conn.execute('BEGIN IMMEDIATE');require_admin(conn)
+        conn.execute('BEGIN IMMEDIATE');require_permission('MANAGEMENT', conn)
         row=conn.execute('SELECT * FROM clients WHERE id=?',(client_id,)).fetchone()
         if row is None:raise ValueError('Client introuvable.')
         if _client(conn,row)['balance_cents']!=0:
