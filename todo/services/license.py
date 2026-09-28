@@ -2,7 +2,8 @@ import base64,hashlib,json,os,platform,shutil,uuid
 from datetime import date
 from pathlib import Path
 import database
-from database import connect,get_setting
+from database import connect
+from services.license_policy import load_license_policy
 from services.security import require_admin,audit
 
 LICENSE_FILE='license.json'
@@ -67,8 +68,9 @@ def load_installed_license():
     except (OSError,json.JSONDecodeError):return None
 
 def license_status():
-    enforced=get_setting('license_enforced','0')=='1'
-    public_key=get_setting('license_public_key_b64','').strip()
+    policy=load_license_policy()
+    enforced=policy['enforced']
+    public_key=policy['public_key_b64']
     document=load_installed_license()
     result={'enforced':enforced,'installed':bool(document),'valid':False,'machine_id':machine_fingerprint(),'customer':'','issued_at':'','expires_at':'','days_remaining':None,'error':''}
     if not document:
@@ -85,7 +87,7 @@ def license_status():
 
 def install_license(source):
     with connect() as conn:require_admin(conn)
-    public_key=get_setting('license_public_key_b64','').strip()
+    public_key=load_license_policy()['public_key_b64']
     if not public_key:raise ValueError('Configurez la clé publique avant activation.')
     src=Path(source)
     if not src.is_file():raise ValueError('Fichier licence introuvable.')
@@ -98,7 +100,8 @@ def install_license(source):
     return license_status()
 
 def assert_license_if_enforced():
-    if get_setting('license_enforced','0')!='1':return True
+    policy=load_license_policy()
+    if not policy['enforced']:return True
     status=license_status()
     if not status['valid']:raise PermissionError(status['error'] or 'Licence invalide.')
     return True

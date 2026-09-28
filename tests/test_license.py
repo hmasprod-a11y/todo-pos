@@ -4,6 +4,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'todo'))
 import database
 from services.license import verify_license_document,license_status
+from services.license_policy import load_license_policy,save_license_policy
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives import serialization
 
@@ -40,5 +41,19 @@ class LicenseTests(unittest.TestCase):
         with self.assertRaises(ValueError):verify_license_document(doc,pub,machine_id='XYZ')
         expired,pub2=self.make_doc(days=-1)
         with self.assertRaises(ValueError):verify_license_document(expired,pub2,machine_id='ABC')
+
+    def test_license_policy_moves_enforcement_out_of_sqlite_and_is_one_way(self):
+        old_base=database.BASE_DIR
+        with tempfile.TemporaryDirectory() as td:
+            database.BASE_DIR=Path(td)
+            try:
+                save_license_policy('PUBLIC-KEY',True,maintenance=True)
+                policy=load_license_policy()
+                self.assertTrue(policy['enforced']);self.assertEqual(policy['public_key_b64'],'PUBLIC-KEY')
+                self.assertNotIn('PUBLIC-KEY',(Path(td)/'data'/'license_policy.dat').read_text(encoding='utf-8'))
+                with self.assertRaises(PermissionError):save_license_policy('PUBLIC-KEY',False)
+                with self.assertRaises(PermissionError):save_license_policy('OTHER-KEY',True)
+            finally:
+                database.BASE_DIR=old_base
 
 if __name__=='__main__':unittest.main()
