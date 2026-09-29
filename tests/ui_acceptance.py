@@ -625,6 +625,25 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     assert get_client(cid)['balance_cents']==0
     payments.destroy()
     assert close_session(__import__('services.cash',fromlist=['get_open_session']).get_open_session()['id'],300)[:2]==(300,0)
+    # P0 UI endurance: repeat the real scanner -> payment dialog -> cashier reset
+    # path.  This exercises the non-blocking checkout loop and last-sale reminder,
+    # not just the transactional service underneath it.
+    with connect() as c:
+        c.execute('UPDATE products SET stock_qty=20 WHERE id=?',(pid,))
+    open_session(app.user['id'],0)
+    app.show('sale');app.update();sale=app.current
+    for cycle in range(5):
+        sale.query.set('TEST123');sale.confirm_search();app.update()
+        assert sale.cart and sale.focus_get() is sale.entry
+        def finish_endurance_payment():
+            dialog=next(w for w in descendants(app) if isinstance(w,PaymentDialog))
+            dialog.amount.set('3.00');dialog.confirm_button.invoke()
+        app.after(80,finish_endurance_payment)
+        button(sale,'SOLDER sans').invoke();app.update()
+        assert not sale.cart and sale.last_sale_snapshot
+        assert sale.focus_get() is sale.entry
+        assert 'TOTAL :' in sale.last_sale_summary.cget('text')
+    assert close_session(__import__('services.cash',fromlist=['get_open_session']).get_open_session()['id'],1500)[:2]==(1500,0)
     app.show('settings');app.update()
     settings=app.current
     # FocusIn events can expose widget paths as strings in frozen Tk builds.
