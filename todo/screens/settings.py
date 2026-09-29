@@ -92,13 +92,6 @@ class CategoryEditor(tk.Toplevel):
         self.swatch.config(bg=self.color_var.get(), text=self.color_var.get(),
                            fg='#ffffff', font=('Consolas', 8))
 
-    def sync_country_profile(self,event=None):
-        profile=get_country_profile(self.country.get())
-        self.cur.set(profile.currency)
-        rate=f"{profile.default_tax_rate_basis_points/100:g}%"
-        included=self.tr('taxe comprise','ضريبة مضمّنة') if profile.tax_included_by_default else self.tr('taxe ajoutée','ضريبة مضافة')
-        self.country_info.set(f"{profile.currency} · {profile.tax_label} {rate} · {included}")
-
     def save(self):
         name  = self.name_var.get().strip()
         color = self.color_var.get().strip() or '#2563EB'
@@ -478,6 +471,13 @@ class SettingsFrame(ttk.Frame):
     def toggle_price_grid(self,grid_id,active):
         with connect() as c:c.execute("UPDATE price_grids SET active=? WHERE id=?",(0 if active else 1,grid_id))
         self.refresh_price_grids()
+
+    def sync_country_profile(self,event=None):
+        profile=get_country_profile(self.country.get())
+        self.cur.set(profile.currency)
+        rate=f"{profile.default_tax_rate_basis_points/100:g}%"
+        included=self.tr('taxe comprise','ضريبة مضمّنة') if profile.tax_included_by_default else self.tr('taxe ajoutée','ضريبة مضافة')
+        self.country_info.set(f"{profile.currency} · {profile.tax_label} {rate} · {included}")
 
     def save(self):
         try:

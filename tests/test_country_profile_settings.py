@@ -38,6 +38,8 @@ class CountryProfileSettingsTests(unittest.TestCase):
         self.assertIn("self.sync_country_profile()", text)
         self.assertIn("textvariable=self.country_info", text)
         self.assertIn("row=3,column=2", text)
+        settings_frame=text[text.index("class SettingsFrame"):]
+        self.assertIn("    def sync_country_profile(self,event=None):", settings_frame)
 
 
 if __name__ == "__main__":
