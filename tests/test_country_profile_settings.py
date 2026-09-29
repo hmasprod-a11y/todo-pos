@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "todo"))
 
 import database
-from services.globalization import current_country_profile, select_country_profile
+from services.globalization import current_country_profile, new_product_tax_defaults, select_country_profile
 
 
 class CountryProfileSettingsTests(unittest.TestCase):
@@ -30,6 +30,7 @@ class CountryProfileSettingsTests(unittest.TestCase):
             self.assertEqual(database.get_setting("tax_label", conn=conn), "Sales tax")
             self.assertEqual(database.get_setting("tax_default_rate_basis_points", conn=conn), "0")
             self.assertEqual(database.get_setting("tax_default_included", conn=conn), "0")
+        self.assertEqual(new_product_tax_defaults(), {"tax_rate_basis_points": 0, "tax_included": 0})
 
 
 if __name__ == "__main__":

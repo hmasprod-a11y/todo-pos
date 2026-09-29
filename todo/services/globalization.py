@@ -37,3 +37,14 @@ def select_country_profile(country_code, conn=None):
     _write_setting(conn, "tax_default_rate_basis_points", profile.default_tax_rate_basis_points)
     _write_setting(conn, "tax_default_included", 1 if profile.tax_included_by_default else 0)
     return profile
+
+
+def new_product_tax_defaults(conn=None):
+    """Return tax fields for a new product without touching existing products."""
+    if conn is None:
+        with connect() as db:
+            return new_product_tax_defaults(db)
+    profile=current_country_profile(conn)
+    rate=get_setting("tax_default_rate_basis_points", profile.default_tax_rate_basis_points, conn)
+    included=get_setting("tax_default_included", 1 if profile.tax_included_by_default else 0, conn)
+    return {"tax_rate_basis_points": int(rate), "tax_included": 1 if str(included)=="1" else 0}
