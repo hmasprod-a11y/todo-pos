@@ -358,8 +358,15 @@ application's first launch. Evidence commits: `d4014ca`, `cad488a`,
 `9a2b442`. The three release workflows (Quick test build,
 ToDo tests, and Windows build) are required green for each change.
 
-### P1 — Global Core
+### P1 — Global Core — in progress (2026-09-29)
 English + localization engine + Tax Engine + Country Profiles.
+
+Foundations delivered: JSON translation catalogues and English shell navigation;
+country profiles with persisted defaults; integer-safe tax calculation; immutable
+sale tax snapshots; country-aware product tax defaults; visible country/tax
+settings; and receipt tax breakdowns. Evidence commits: `de215b6`, `9e0ae8e`,
+`f353a0e`, `bfdcb3a`, `3847307`, `223aad8`, `39b8313`, `7434866`,
+`f4ddc6b`, `dde3b6c`, and `0a64280`.
 
 ### P2 — Commercial Engine
 Free/Pro + FeatureService + Microsoft Store entitlement + ads framework.
@@ -386,9 +393,11 @@ Cloud backup + multi-store + subscriptions.
 
 # Current execution rule
 
-The current priority is **P0 only**.
+The current priority is **P1 — Global Core**. P0.1 is complete.
 
-Do not start Tax Engine, Store commerce, ads, or MSIX until P0 release gates are materially improved.
+Continue localization, country profiles and the tax engine in small compatible
+commits. Do not start Store commerce, ads, licensing gates, or MSIX packaging
+until their respective roadmap phases.
 
 Workflow:
 1. Read exact `main` HEAD.
