@@ -1,0 +1,56 @@
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "todo"))
+
+import database as db
+from services.bootstrap import ensure_defaults
+from services.cash import open_session
+from services.sales import complete_sale
+from services.security import current_user
+
+
+class TaxSaleSnapshotTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.previous = db.DB_PATH
+        db.DB_PATH = Path(self.temp.name) / "todo.db"
+        db.init_db()
+        ensure_defaults()
+        with db.connect() as conn:
+            self.user_id = conn.execute("SELECT id FROM users WHERE username='admin'").fetchone()[0]
+        current_user.set(self.user_id)
+        self.session_id = open_session(self.user_id, 0)
+
+    def tearDown(self):
+        current_user.set(None)
+        db.DB_PATH = self.previous
+        self.temp.cleanup()
+
+    def add_product(self, name, rate, included):
+        with db.connect() as conn:
+            return conn.execute(
+                "INSERT INTO products(name,sale_price_cents,tax_rate_basis_points,tax_included) VALUES(?,?,?,?)",
+                (name, 1000, rate, included),
+            ).lastrowid
+
+    def test_included_and_exclusive_tax_are_snapshotted_and_payable(self):
+        included = self.add_product("Included", 2000, 1)
+        exclusive = self.add_product("Exclusive", 2000, 0)
+        first = complete_sale(self.session_id, self.user_id, [dict(product_id=included, qty=1, unit_price_cents=1200)], "CASH", 1200)
+        second = complete_sale(self.session_id, self.user_id, [dict(product_id=exclusive, qty=1, unit_price_cents=1000)], "CASH", 1200)
+        self.assertEqual((first["total_cents"], first["tax_total_cents"]), (1200, 200))
+        self.assertEqual((second["total_cents"], second["tax_total_cents"]), (1200, 200))
+        with db.connect() as conn:
+            one = conn.execute("SELECT tax_net_cents,tax_amount_cents,tax_gross_cents,net_total_cents FROM sale_items WHERE sale_id=?", (first["id"],)).fetchone()
+            two = conn.execute("SELECT tax_net_cents,tax_amount_cents,tax_gross_cents,net_total_cents FROM sale_items WHERE sale_id=?", (second["id"],)).fetchone()
+            sale = conn.execute("SELECT country_code,tax_label_snapshot,tax_total_cents FROM sales WHERE id=?", (second["id"],)).fetchone()
+        self.assertEqual(tuple(one), (1000, 200, 1200, 1200))
+        self.assertEqual(tuple(two), (1000, 200, 1200, 1200))
+        self.assertEqual(tuple(sale), ("MA", "Tax", 200))
+
+
+if __name__ == "__main__":
+    unittest.main()

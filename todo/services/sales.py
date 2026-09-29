@@ -6,6 +6,7 @@ from database import connect, get_setting
 from services.inventory import apply_stock_movement
 from services.pricing import resolve_unit_price, resolve_line_price, line_total
 from services.money import allocate, rounded
+from fiscal.tax import calculate_tax
 from services.security import audit, current_user
 
 def sale_number():
@@ -109,7 +110,15 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
             loyalty_value=loyalty_points*cfg['point_value_cents']
             if loyalty_value>subtotal-discount:
                 raise ValueError('La valeur des points dépasse le total du ticket.')
-        total=subtotal-discount-loyalty_value;paid=int(paid_cents)
+        pre_tax_total=subtotal-discount-loyalty_value
+        line_bases=allocate(pre_tax_total,weights)
+        tax_breakdowns=[
+            calculate_tax(base,int(p['tax_rate_basis_points']),tax_included=bool(p['tax_included']))
+            for (p,*_),base in zip(normalized,line_bases)
+        ]
+        total=sum(tax.gross_cents for tax in tax_breakdowns)
+        tax_total=sum(tax.tax_cents for tax in tax_breakdowns)
+        paid=int(paid_cents)
         split=None
         if payments is not None:
             split=[(str(method).upper(),int(amount)) for method,amount in payments if int(amount)>0]
@@ -129,18 +138,20 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
         client_ticket_no=next_client_ticket_number(conn)
         workstation=(session['workstation_code'] or '01').strip().upper()
         stock_tracked=get_setting('stock_management_enabled','1',conn)=='1'
-        sid=conn.execute('INSERT INTO sales(sale_no,session_id,cashier_user_id,subtotal_cents,discount_cents,total_cents,payment_method,paid_cents,change_cents,client_id,seller_id,client_ticket_no,workstation_code,stock_tracked) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                         (no,session_id,user_id,subtotal,discount+loyalty_value,total,payment_method,paid,change,client_id,seller_id,client_ticket_no,workstation,1 if stock_tracked else 0)).lastrowid
+        country_code=get_setting('country_code','MA',conn).strip().upper() or 'MA'
+        tax_label=get_setting('tax_label','Tax',conn).strip() or 'Tax'
+        sid=conn.execute('INSERT INTO sales(sale_no,session_id,cashier_user_id,subtotal_cents,discount_cents,total_cents,payment_method,paid_cents,change_cents,client_id,seller_id,client_ticket_no,workstation_code,stock_tracked,country_code,tax_label_snapshot,tax_total_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                         (no,session_id,user_id,subtotal,discount+loyalty_value,total,payment_method,paid,change,client_id,seller_id,client_ticket_no,workstation,1 if stock_tracked else 0,country_code,tax_label,tax_total)).lastrowid
         if split is None:
             settled=paid-change if payment_method=='CASH' else paid
             conn.execute('INSERT INTO sale_payments(sale_id,payment_method,amount_cents) VALUES(?,?,?)',(sid,payment_method,settled))
         else:
             conn.executemany('INSERT INTO sale_payments(sale_id,payment_method,amount_cents) VALUES(?,?,?)',[(sid,method,amount) for method,amount in split])
-        nets=allocate(total,weights)
-        for (p,qty,unit,gross,line_discount,barcode,pricing),net in zip(normalized,nets):
+        for (p,qty,unit,gross,line_discount,barcode,pricing),tax,line_base in zip(normalized,tax_breakdowns,line_bases):
             pack=pricing and pricing['pricing_mode']=='PACK'
-            conn.execute('INSERT INTO sale_items(sale_id,product_id,barcode_used,name_snapshot,qty,unit_price_cents,cost_price_cents,discount_cents,line_total_cents,net_total_cents,qty_multiplier,pricing_mode) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
-                         (sid,p['id'],barcode,p['name'],qty,pricing['unit_price_cents'] if pack else rounded(unit),p['purchase_price_cents'],gross-net,gross,net,pricing['qty_multiplier'] if pricing else 1,'PACK' if pack else 'UNIT'))
+            customer_total=tax.gross_cents
+            conn.execute('INSERT INTO sale_items(sale_id,product_id,barcode_used,name_snapshot,qty,unit_price_cents,cost_price_cents,discount_cents,line_total_cents,net_total_cents,qty_multiplier,pricing_mode,tax_rate_basis_points,tax_included,tax_net_cents,tax_amount_cents,tax_gross_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                         (sid,p['id'],barcode,p['name'],qty,pricing['unit_price_cents'] if pack else rounded(unit),p['purchase_price_cents'],gross-line_base,gross,customer_total,pricing['qty_multiplier'] if pricing else 1,'PACK' if pack else 'UNIT',tax.rate_basis_points,1 if tax.tax_included else 0,tax.net_cents,tax.tax_cents,tax.gross_cents))
             if stock_tracked and not p['is_misc']:
                 apply_stock_movement(conn,p['id'],-qty,'SALE',p['purchase_price_cents'],'sale',sid,no,user_id)
         if quotation_id is not None:
@@ -168,7 +179,7 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
         if held_id is not None:
             conn.execute('DELETE FROM held_sales WHERE id=?',(held_id,))
         audit(conn,'SALE',sid,no,user_id)
-        return dict(id=sid,sale_no=no,client_ticket_no=client_ticket_no,workstation_code=workstation,stock_tracked=stock_tracked,subtotal_cents=subtotal,discount_cents=discount+loyalty_value,total_cents=total,paid_cents=paid,change_cents=change,loyalty_points_used=loyalty_points,loyalty_value_cents=loyalty_value)
+        return dict(id=sid,sale_no=no,client_ticket_no=client_ticket_no,workstation_code=workstation,stock_tracked=stock_tracked,subtotal_cents=subtotal,discount_cents=discount+loyalty_value,tax_total_cents=tax_total,total_cents=total,paid_cents=paid,change_cents=change,loyalty_points_used=loyalty_points,loyalty_value_cents=loyalty_value)
 
 def hold_sale(user_id,cart,label='',discount_cents=0,held_id=None,client_id=None,seller_id=None,price_grid_id=None,payment_method='CASH'):
     if not cart:raise ValueError('Ticket vide')
