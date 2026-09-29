@@ -191,6 +191,15 @@ CREATE TABLE IF NOT EXISTS sellers (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS tax_profiles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    rate_basis_points INTEGER NOT NULL DEFAULT 0,
+    tax_included INTEGER NOT NULL DEFAULT 1,
+    active INTEGER NOT NULL DEFAULT 1
+);
+
 CREATE TABLE IF NOT EXISTS sales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sale_no TEXT NOT NULL UNIQUE,
@@ -536,6 +545,8 @@ CREATE INDEX IF NOT EXISTS idx_supplier_payments_sup ON supplier_payments(suppli
 INSERT OR IGNORE INTO settings(key,value) VALUES
 ('shop_name','ToDo'),
 ('currency','DH'),
+('country_code','MA'),
+('tax_label','Tax'),
 ('allow_negative_stock','1'),
 ('manual_stock_edit_enabled','1'),
 ('stock_management_enabled','1'),
@@ -640,14 +651,14 @@ def migrate(conn):
         conn.execute("INSERT INTO settings(key,value) VALUES('negative_stock_policy_v1','1')")
     additions = {
         'quantity_prices': {'pricing_mode': "TEXT NOT NULL DEFAULT 'UNIT'"},
-        'products': {'supplier_code': "TEXT NOT NULL DEFAULT ''", 'alias': "TEXT NOT NULL DEFAULT ''", 'is_misc': 'INTEGER NOT NULL DEFAULT 0', 'preferred_supplier_id': 'INTEGER REFERENCES suppliers(id)', 'show_in_sale_photos': 'INTEGER NOT NULL DEFAULT 0'},
+        'products': {'supplier_code': "TEXT NOT NULL DEFAULT ''", 'alias': "TEXT NOT NULL DEFAULT ''", 'is_misc': 'INTEGER NOT NULL DEFAULT 0', 'preferred_supplier_id': 'INTEGER REFERENCES suppliers(id)', 'show_in_sale_photos': 'INTEGER NOT NULL DEFAULT 0', 'tax_rate_basis_points': 'INTEGER NOT NULL DEFAULT 0', 'tax_included': 'INTEGER NOT NULL DEFAULT 1'},
         'stock_movements': {'user_id': 'INTEGER REFERENCES users(id)', 'old_qty': 'REAL'},
-        'sale_items': {'net_total_cents': 'INTEGER', 'qty_multiplier': 'REAL NOT NULL DEFAULT 1', 'pricing_mode': "TEXT NOT NULL DEFAULT 'UNIT'"},
+        'sale_items': {'net_total_cents': 'INTEGER', 'qty_multiplier': 'REAL NOT NULL DEFAULT 1', 'pricing_mode': "TEXT NOT NULL DEFAULT 'UNIT'", 'tax_rate_basis_points': 'INTEGER NOT NULL DEFAULT 0', 'tax_included': 'INTEGER NOT NULL DEFAULT 1', 'tax_net_cents': 'INTEGER NOT NULL DEFAULT 0', 'tax_amount_cents': 'INTEGER NOT NULL DEFAULT 0', 'tax_gross_cents': 'INTEGER NOT NULL DEFAULT 0'},
         'held_sales': {'discount_cents': 'INTEGER NOT NULL DEFAULT 0', 'client_id': 'INTEGER REFERENCES clients(id)', 'seller_id': 'INTEGER REFERENCES sellers(id)', 'price_grid_id': 'INTEGER REFERENCES price_grids(id)', 'payment_method': "TEXT NOT NULL DEFAULT 'CASH'"},
         'returns': {'refund_paid_cents': 'INTEGER'},
         'client_payments': {'session_id': 'INTEGER REFERENCES cash_sessions(id)', 'user_id': 'INTEGER REFERENCES users(id)', 'payment_method': "TEXT NOT NULL DEFAULT 'CASH'"},
         'supplier_payments': {'session_id': 'INTEGER REFERENCES cash_sessions(id)', 'user_id': 'INTEGER REFERENCES users(id)', 'payment_method': "TEXT NOT NULL DEFAULT 'CARD'"},
-        'sales': {'client_id': 'INTEGER REFERENCES clients(id)', 'seller_id': 'INTEGER REFERENCES sellers(id)', 'client_ticket_no': 'INTEGER', 'workstation_code': "TEXT NOT NULL DEFAULT '01'", 'stock_tracked': 'INTEGER NOT NULL DEFAULT 1'},
+        'sales': {'client_id': 'INTEGER REFERENCES clients(id)', 'seller_id': 'INTEGER REFERENCES sellers(id)', 'client_ticket_no': 'INTEGER', 'workstation_code': "TEXT NOT NULL DEFAULT '01'", 'stock_tracked': 'INTEGER NOT NULL DEFAULT 1', 'country_code': "TEXT NOT NULL DEFAULT 'MA'", 'tax_label_snapshot': "TEXT NOT NULL DEFAULT 'Tax'", 'tax_total_cents': 'INTEGER NOT NULL DEFAULT 0'},
         'cash_sessions': {'workstation_code': "TEXT NOT NULL DEFAULT '01'", 'closed_by_user_id': 'INTEGER REFERENCES users(id)'},
         'categories': {'color': "TEXT NOT NULL DEFAULT '#2563EB'", 'icon': "TEXT NOT NULL DEFAULT ''"},
     }
@@ -657,6 +668,12 @@ def migrate(conn):
             if name not in existing:
                 conn.execute(f'ALTER TABLE {table} ADD COLUMN {name} {declaration}')
     conn.execute('UPDATE stock_movements SET old_qty=stock_after-qty_delta WHERE old_qty IS NULL')
+    conn.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('country_code','MA')")
+    conn.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('tax_label','Tax')")
+    if not conn.execute("SELECT 1 FROM settings WHERE key='tax_snapshot_v1'").fetchone():
+        # Preserve historical receipt values as zero-tax snapshots before tax is enabled.
+        conn.execute('UPDATE sale_items SET tax_net_cents=COALESCE(net_total_cents,line_total_cents), tax_amount_cents=0, tax_gross_cents=COALESCE(net_total_cents,line_total_cents)')
+        conn.execute("INSERT INTO settings(key,value) VALUES('tax_snapshot_v1','1')")
     conn.execute("CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, user_id INTEGER, action TEXT NOT NULL, document TEXT NOT NULL, details TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
     conn.execute('CREATE INDEX IF NOT EXISTS idx_products_active_name ON products(active,name)')
     conn.execute('CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku)')
@@ -705,4 +722,4 @@ def migrate(conn):
     # Backfill one payment row for legacy sales; new sales write their split directly.
     conn.execute("INSERT INTO sale_payments(sale_id,payment_method,amount_cents) SELECT s.id,s.payment_method,CASE WHEN s.payment_method='CASH' THEN s.paid_cents-s.change_cents ELSE s.paid_cents END FROM sales s WHERE NOT EXISTS (SELECT 1 FROM sale_payments sp WHERE sp.sale_id=s.id)")
     conn.execute("INSERT INTO return_payments(return_id,payment_method,amount_cents) SELECT r.id,r.refund_method,COALESCE(r.refund_paid_cents,r.total_cents) FROM returns r WHERE r.refund_method IN ('CASH','CARD') AND NOT EXISTS (SELECT 1 FROM return_payments rp WHERE rp.return_id=r.id)")
-    conn.execute('PRAGMA user_version=123')
+    conn.execute('PRAGMA user_version=124')
