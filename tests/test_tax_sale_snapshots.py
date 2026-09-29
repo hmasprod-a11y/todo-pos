@@ -63,8 +63,7 @@ class TaxSaleSnapshotTests(unittest.TestCase):
         self.assertIn("TOTAL: 12.00 DH", receipt)
 
     def test_english_receipt_template_is_available(self):
-        with db.connect() as conn:
-            db.set_setting('receipt_template', 'EN_3C', conn=conn)
+        db.set_setting('receipt_template', 'EN_3C')
         product = self.add_product('English product', 0, 1)
         sale = complete_sale(self.session_id, self.user_id, [dict(product_id=product, qty=1, unit_price_cents=1000)], 'CASH', 1000)
         receipt = build_receipt(sale['id'])
