@@ -498,7 +498,7 @@ class SettingsFrame(ttk.Frame):
         set_setting("receipt_footer",self.footer.get());set_setting("search_limit",limit);set_setting("printer_name",self.printer.get().strip());set_setting('printer_receipt_name',self.printer.get().strip());set_setting('printer_report_name',self.report_printer.get().strip());set_setting('printer_addition_name',self.addition_printer.get().strip())
         for i,var in enumerate(self.kitchen_printers,1):set_setting(f'printer_kitchen_c{i}_name',var.get().strip())
         template=self.receipt_template.get().strip().upper()
-        if template not in ('FR_3C','FR_4C','FR_2L','AR_3C','AR_4C'):template='FR_3C'
+        if template not in ('FR_3C','FR_4C','FR_2L','EN_3C','EN_4C','AR_3C','AR_4C'):template='FR_3C'
         try:
             next_ticket=max(1,int(self.next_client_ticket.get()))
         except ValueError:

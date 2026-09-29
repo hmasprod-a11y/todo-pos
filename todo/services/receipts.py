@@ -8,6 +8,8 @@ RECEIPT_TEMPLATES={
     'FR_3C': {'lang':'fr','width':42,'layout':'3C'},
     'FR_4C': {'lang':'fr','width':48,'layout':'4C'},
     'FR_2L': {'lang':'fr','width':32,'layout':'2L'},
+    'EN_3C': {'lang':'en','width':42,'layout':'3C'},
+    'EN_4C': {'lang':'en','width':48,'layout':'4C'},
     'AR_3C': {'lang':'ar','width':42,'layout':'3C'},
     'AR_4C': {'lang':'ar','width':48,'layout':'4C'},
 }
@@ -41,35 +43,35 @@ def build_receipt(sale_id):
         client=conn.execute('SELECT name FROM clients WHERE id=?',(s['client_id'],)).fetchone() if s and s['client_id'] is not None else None
     if not s: raise ValueError("Vente introuvable")
     profile=_receipt_profile();lang=profile['lang'];ar=lang=='ar'
-    tr=lambda fr,arabic: arabic if ar else fr
+    tr=lambda fr,arabic,english=None: arabic if ar else (english if lang=='en' and english else fr)
     cur=get_setting("currency","DH");width=profile['width'];rule="="*width;dash="-"*width
     lines=[get_setting("shop_name","ToDo"),rule]
     if get_setting('receipt_show_ticket_no','1')=='1':
         ticket_value=s['client_ticket_no'] if s['client_ticket_no'] is not None else s['sale_no']
         ticket_value=f"{int(ticket_value):06d}" if isinstance(ticket_value,int) else ticket_value
-        lines.append(f"{tr('Ticket','التذكرة')}: {ticket_value}")
+        lines.append(f"{tr('Ticket','التذكرة','Receipt')}: {ticket_value}")
         if s['client_ticket_no'] is not None:
-            lines.append(f"{tr('Réf.','المرجع')}: {s['sale_no']}")
+            lines.append(f"{tr('Réf.','المرجع','Ref.')}: {s['sale_no']}")
     if get_setting('receipt_show_sale_mode','1')=='1':
-        lines.append(f"{tr('Mode vente','نوع البيع')}: {tr('VENTE','بيع')}")
-    lines.append(f"{tr('Poste','المحطة')}: {s['workstation_code']}")
-    lines.append(f"{tr('Caissier','الكاشير')}: {s['display_name']}")
-    if client:lines.append(f"{tr('Client','الزبون')}: {client['name']}")
+        lines.append(f"{tr('Mode vente','نوع البيع','Sale mode')}: {tr('VENTE','بيع','SALE')}")
+    lines.append(f"{tr('Poste','المحطة','Terminal')}: {s['workstation_code']}")
+    lines.append(f"{tr('Caissier','الكاشير','Cashier')}: {s['display_name']}")
+    if client:lines.append(f"{tr('Client','الزبون','Customer')}: {client['name']}")
     lines.append(dash)
     for i in items:
         if get_setting('receipt_show_barcode','0')=='1' and i['barcode_used']:
-            lines.append(f"{tr('Code','الباركود')}: {i['barcode_used']}")
+            lines.append(f"{tr('Code','الباركود','Barcode')}: {i['barcode_used']}")
         if profile['layout']=='4C':
             lines.append(f"{i['name_snapshot']} | {i['qty']:g} | {fmt(i['unit_price_cents'],cur)} | {fmt(i['net_total_cents'],cur)}")
         elif profile['layout']=='2L':
             lines += [i["name_snapshot"],f"{i['qty']:g} x {fmt(i['unit_price_cents'],cur)} = {fmt(i['net_total_cents'],cur)}"]
         else:
-            lines += [i["name_snapshot"],f"  {tr('Qté','الكمية')} {i['qty']:g} | {tr('Brut','الإجمالي')} {fmt(i['line_total_cents'],cur)} | {tr('Net','الصافي')} {fmt(i['net_total_cents'],cur)}"]
+            lines += [i["name_snapshot"],f"  {tr('Qté','الكمية','Qty')} {i['qty']:g} | {tr('Brut','الإجمالي','Gross')} {fmt(i['line_total_cents'],cur)} | {tr('Net','الصافي','Net')} {fmt(i['net_total_cents'],cur)}"]
         if i['pricing_mode']=='PACK':
             lines.append(f"  {i['qty']/i['qty_multiplier']:g} {tr('pack(s)','علبة')} x {fmt(i['unit_price_cents'],cur)} ({i['qty_multiplier']:g} {tr('unités','وحدات')})")
     lines += [
         dash,
-        f"{tr('Remise ticket','تخفيض التذكرة')}: {fmt(s['discount_cents'],cur)}",
+        f"{tr('Remise ticket','تخفيض التذكرة','Ticket discount')}: {fmt(s['discount_cents'],cur)}",
     ]
     tax_label=s['tax_label_snapshot'] or tr('Taxe','الضريبة')
     for tax in taxes:
@@ -77,18 +79,18 @@ def build_receipt(sale_id):
         lines.append(f"{tax_label} {rate}: {fmt(tax['tax_amount_cents'],cur)}")
     if not taxes and s['tax_total_cents']:
         lines.append(f"{tax_label}: {fmt(s['tax_total_cents'],cur)}")
-    lines.append(f"{tr('TOTAL','المجموع')}: {fmt(s['total_cents'],cur)}")
+    lines.append(f"{tr('TOTAL','المجموع','TOTAL')}: {fmt(s['total_cents'],cur)}")
     if get_setting('receipt_show_payment','1')=='1':
-        lines.append(f"{tr('Paiement','الأداء')}: {_payment_label(s['payment_method'],lang)}")
+        lines.append(f"{tr('Paiement','الأداء','Payment')}: {_payment_label(s['payment_method'],lang)}")
     if get_setting('receipt_show_payment','1')=='1' and s['payment_method']=='MIXED':
         for p in payments:lines.append(f"  {_payment_label(p['payment_method'],lang)}: {fmt(p['amount_cents'],cur)}")
     lines += [
-        f"{tr('Reçu','المؤدى')}: {fmt(s['paid_cents'],cur)}",
-        f"{tr('Monnaie','الباقي')}: {fmt(s['change_cents'],cur)}",
+        f"{tr('Reçu','المؤدى','Received')}: {fmt(s['paid_cents'],cur)}",
+        f"{tr('Monnaie','الباقي','Change')}: {fmt(s['change_cents'],cur)}",
     ]
     if s['payment_method']=='CREDIT':
-        lines.append(f"{tr('Dette initiale','الدين الأولي')}: {fmt(s['total_cents']-s['paid_cents'],cur)}")
-    lines += [rule,get_setting("receipt_footer",tr("Merci","شكراً"))]
+        lines.append(f"{tr('Dette initiale','الدين الأولي','Opening debt')}: {fmt(s['total_cents']-s['paid_cents'],cur)}")
+    lines += [rule,get_setting("receipt_footer",tr("Merci","شكراً","Thank you"))]
     return "\n".join(lines)
 
 

@@ -62,6 +62,16 @@ class TaxSaleSnapshotTests(unittest.TestCase):
         self.assertIn("TVA 20%: 2.00 DH", receipt)
         self.assertIn("TOTAL: 12.00 DH", receipt)
 
+    def test_english_receipt_template_is_available(self):
+        with db.connect() as conn:
+            db.set_setting('receipt_template', 'EN_3C', conn=conn)
+        product = self.add_product('English product', 0, 1)
+        sale = complete_sale(self.session_id, self.user_id, [dict(product_id=product, qty=1, unit_price_cents=1000)], 'CASH', 1000)
+        receipt = build_receipt(sale['id'])
+        self.assertIn('Receipt:', receipt)
+        self.assertIn('Cashier:', receipt)
+        self.assertIn('Change:', receipt)
+
 
 if __name__ == "__main__":
     unittest.main()
