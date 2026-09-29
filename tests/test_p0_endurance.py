@@ -92,6 +92,41 @@ class P0EnduranceTests(unittest.TestCase):
         self.assertEqual(sales, 100)
         self.assertEqual(closures, 50)
 
+    def test_sale_failure_rolls_back_without_partial_cash_or_stock(self):
+        # Simulate a mid-sale device/process failure.  The transactional boundary
+        # must leave no partial receipt, cash movement, or inventory mutation.
+        from services import sales as sales_service
+
+        with connect() as conn:
+            sales_before = conn.execute("SELECT COUNT(*) AS n FROM sales").fetchone()["n"]
+            stock_before = conn.execute(
+                "SELECT stock_qty FROM products WHERE id=?", (self.product_id,)
+            ).fetchone()["stock_qty"]
+
+        session_id = open_session(self.user_id, 0)
+        line = {
+            "product_id": self.product_id,
+            "barcode_id": self.barcode_id,
+            "barcode": "P0-ENDURANCE-001",
+            "qty": 1,
+            "unit_price_cents": 250,
+            "discount_cents": 0,
+        }
+        with patch.object(
+            sales_service, "apply_stock_movement", side_effect=OSError("simulated interruption")
+        ):
+            with self.assertRaisesRegex(OSError, "simulated interruption"):
+                complete_sale(session_id, self.user_id, [line], "CASH", 250)
+
+        with connect() as conn:
+            sales_after = conn.execute("SELECT COUNT(*) AS n FROM sales").fetchone()["n"]
+            stock_after = conn.execute(
+                "SELECT stock_qty FROM products WHERE id=?", (self.product_id,)
+            ).fetchone()["stock_qty"]
+        self.assertEqual(sales_after, sales_before)
+        self.assertEqual(stock_after, stock_before)
+        self.assertEqual(close_session(session_id, 0)[:2], (0, 0))
+
     def test_disconnected_serial_devices_raise_recoverable_errors(self):
         # CI cannot depend on physical peripherals.  A refused COM connection must
         # give callers a normal, catchable error rather than hang the cashier loop.
