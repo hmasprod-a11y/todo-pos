@@ -1,0 +1,95 @@
+"""P0 endurance coverage for the offline barcode, sale, and cash-closure path."""
+import os
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_ROOT / "todo"))
+_temp = tempfile.TemporaryDirectory()
+os.environ["TODO_DB_PATH"] = str(Path(_temp.name) / "p0-endurance.db")
+
+from database import connect, init_db
+from services.bootstrap import ensure_defaults
+from services.cash import close_session, open_session
+from services.catalog import scan_barcode
+from services.sales import complete_sale
+from services.security import current_user
+
+
+class P0EnduranceTests(unittest.TestCase):
+    """Keep high-volume transactional work deterministic and database-isolated."""
+
+    @classmethod
+    def setUpClass(cls):
+        init_db()
+        ensure_defaults()
+        with connect() as conn:
+            cls.user_id = conn.execute(
+                "SELECT id FROM users WHERE active=1 ORDER BY id LIMIT 1"
+            ).fetchone()["id"]
+            product_id = conn.execute(
+                "INSERT INTO products(name,sale_price_cents,stock_qty,active) "
+                "VALUES(?,?,?,1)",
+                ("P0 endurance barcode product", 250, 2500),
+            ).lastrowid
+            cls.barcode_id = conn.execute(
+                "INSERT INTO product_barcodes(product_id,barcode,qty_multiplier) "
+                "VALUES(?,?,1)",
+                (product_id, "P0-ENDURANCE-001"),
+            ).lastrowid
+            cls.product_id = product_id
+
+    def setUp(self):
+        self._user_token = current_user.set(self.user_id)
+
+    def tearDown(self):
+        current_user.reset(self._user_token)
+
+    def test_scans_sales_and_cash_closures_remain_consistent(self):
+        # Barcode lookup is intentionally exercised at release-gate volume before
+        # the repeated checkout/closure loop starts.
+        for _ in range(1000):
+            matches = scan_barcode("P0-ENDURANCE-001")
+            self.assertEqual(len(matches), 1)
+            self.assertEqual(matches[0]["id"], self.product_id)
+
+        for _ in range(50):
+            session_id = open_session(self.user_id, 0)
+            for _ in range(2):
+                sale = complete_sale(
+                    session_id,
+                    self.user_id,
+                    [{
+                        "product_id": self.product_id,
+                        "barcode_id": self.barcode_id,
+                        "barcode": "P0-ENDURANCE-001",
+                        "qty": 1,
+                        "unit_price_cents": 250,
+                        "discount_cents": 0,
+                    }],
+                    "CASH",
+                    250,
+                )
+                self.assertEqual(sale["total_cents"], 250)
+                self.assertEqual(sale["change_cents"], 0)
+
+            expected, difference, totals = close_session(session_id, 500)
+            self.assertEqual(expected, 500)
+            self.assertEqual(difference, 0)
+            self.assertEqual(totals["cash_sales"], 500)
+
+        with connect() as conn:
+            sales = conn.execute(
+                "SELECT COUNT(*) AS n FROM sales WHERE sale_no LIKE 'V-%'"
+            ).fetchone()["n"]
+            closures = conn.execute(
+                "SELECT COUNT(*) AS n FROM cash_sessions WHERE status='CLOSED'"
+            ).fetchone()["n"]
+        self.assertEqual(sales, 100)
+        self.assertEqual(closures, 50)
+
+
+if __name__ == "__main__":
+    unittest.main()
