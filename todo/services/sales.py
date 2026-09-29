@@ -150,8 +150,8 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
         for (p,qty,unit,gross,line_discount,barcode,pricing),tax,line_base in zip(normalized,tax_breakdowns,line_bases):
             pack=pricing and pricing['pricing_mode']=='PACK'
             customer_total=tax.gross_cents
-            conn.execute('INSERT INTO sale_items(sale_id,product_id,barcode_used,name_snapshot,qty,unit_price_cents,cost_price_cents,discount_cents,line_total_cents,net_total_cents,qty_multiplier,pricing_mode,tax_rate_basis_points,tax_included,tax_net_cents,tax_amount_cents,tax_gross_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                         (sid,p['id'],barcode,p['name'],qty,pricing['unit_price_cents'] if pack else rounded(unit),p['purchase_price_cents'],gross-line_base,gross,customer_total,pricing['qty_multiplier'] if pricing else 1,'PACK' if pack else 'UNIT',tax.rate_basis_points,1 if tax.tax_included else 0,tax.net_cents,tax.tax_cents,tax.gross_cents))
+            conn.execute('INSERT INTO sale_items(sale_id,product_id,barcode_used,name_snapshot,qty,unit_price_cents,cost_price_cents,discount_cents,line_total_cents,net_total_cents,qty_multiplier,pricing_mode,tax_rate_basis_points,tax_included,tax_class,tax_net_cents,tax_amount_cents,tax_gross_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                         (sid,p['id'],barcode,p['name'],qty,pricing['unit_price_cents'] if pack else rounded(unit),p['purchase_price_cents'],gross-line_base,gross,customer_total,pricing['qty_multiplier'] if pricing else 1,'PACK' if pack else 'UNIT',tax.rate_basis_points,1 if tax.tax_included else 0,p['tax_class'] if 'tax_class' in p.keys() else 'STANDARD',tax.net_cents,tax.tax_cents,tax.gross_cents))
             if stock_tracked and not p['is_misc']:
                 apply_stock_movement(conn,p['id'],-qty,'SALE',p['purchase_price_cents'],'sale',sid,no,user_id)
         if quotation_id is not None:

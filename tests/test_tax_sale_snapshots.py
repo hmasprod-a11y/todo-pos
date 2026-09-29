@@ -33,8 +33,8 @@ class TaxSaleSnapshotTests(unittest.TestCase):
     def add_product(self, name, rate, included):
         with db.connect() as conn:
             return conn.execute(
-                "INSERT INTO products(name,sale_price_cents,tax_rate_basis_points,tax_included) VALUES(?,?,?,?)",
-                (name, 1000, rate, included),
+                "INSERT INTO products(name,sale_price_cents,tax_rate_basis_points,tax_included,tax_class) VALUES(?,?,?,?,?)",
+                (name, 1000, rate, included, 'REDUCED'),
             ).lastrowid
 
     def test_included_and_exclusive_tax_are_snapshotted_and_payable(self):
@@ -45,11 +45,11 @@ class TaxSaleSnapshotTests(unittest.TestCase):
         self.assertEqual((first["total_cents"], first["tax_total_cents"]), (1200, 200))
         self.assertEqual((second["total_cents"], second["tax_total_cents"]), (1200, 200))
         with db.connect() as conn:
-            one = conn.execute("SELECT tax_net_cents,tax_amount_cents,tax_gross_cents,net_total_cents FROM sale_items WHERE sale_id=?", (first["id"],)).fetchone()
+            one = conn.execute("SELECT tax_net_cents,tax_amount_cents,tax_gross_cents,net_total_cents,tax_class FROM sale_items WHERE sale_id=?", (first["id"],)).fetchone()
             two = conn.execute("SELECT tax_net_cents,tax_amount_cents,tax_gross_cents,net_total_cents FROM sale_items WHERE sale_id=?", (second["id"],)).fetchone()
             sale = conn.execute("SELECT country_code,tax_label_snapshot,tax_total_cents FROM sales WHERE id=?", (second["id"],)).fetchone()
-        self.assertEqual(tuple(one), (1000, 200, 1200, 1200))
-        self.assertEqual(tuple(two), (1000, 200, 1200, 1200))
+        self.assertEqual(tuple(one), (1000, 200, 1200, 1200, 'REDUCED'))
+        self.assertEqual(tuple(two), (1000, 200, 1200, 1200, 'REDUCED'))
         self.assertEqual(tuple(sale), ("MA", "Tax", 200))
 
     def test_receipt_uses_sale_tax_snapshot_breakdown(self):
