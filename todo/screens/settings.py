@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import ttk,messagebox,filedialog,simpledialog
 from database import get_setting,set_setting,connect
 from services.secrets import get_smtp_password,set_smtp_password
-from country_profiles import PROFILES
+from country_profiles import PROFILES, get_country_profile
 from services.globalization import select_country_profile
 from services.backup import create_backup,restore_backup,create_full_backup,restore_full_backup
 from services.security import hash_pin, require_admin, require_permission, audit
@@ -92,6 +92,13 @@ class CategoryEditor(tk.Toplevel):
         self.swatch.config(bg=self.color_var.get(), text=self.color_var.get(),
                            fg='#ffffff', font=('Consolas', 8))
 
+    def sync_country_profile(self,event=None):
+        profile=get_country_profile(self.country.get())
+        self.cur.set(profile.currency)
+        rate=f"{profile.default_tax_rate_basis_points/100:g}%"
+        included=self.tr('taxe comprise','ضريبة مضمّنة') if profile.tax_included_by_default else self.tr('taxe ajoutée','ضريبة مضافة')
+        self.country_info.set(f"{profile.currency} · {profile.tax_label} {rate} · {included}")
+
     def save(self):
         name  = self.name_var.get().strip()
         color = self.color_var.get().strip() or '#2563EB'
@@ -148,11 +155,14 @@ class SettingsFrame(ttk.Frame):
         self.search_limit=tk.StringVar(value=get_setting("search_limit","60"))
         self.language=tk.StringVar(value=get_setting("language","fr"))
         self.country=tk.StringVar(value=get_setting("country_code","MA"))
+        self.country_info=tk.StringVar()
         ttk.Label(f,text=self.tr('Nom magasin','اسم المتجر')).grid(row=0,column=0,sticky="w");ttk.Entry(f,textvariable=self.shop,width=30).grid(row=0,column=1,padx=8)
         ttk.Label(f,text=self.tr('Langue','اللغة')).grid(row=0,column=2,sticky="w",padx=(18,4));ttk.Combobox(f,textvariable=self.language,values=("fr","en","ar"),state="readonly",width=8).grid(row=0,column=3,sticky="w")
-        ttk.Label(f,text=self.tr('Pays','البلد')).grid(row=1,column=2,sticky="w",padx=(18,4));ttk.Combobox(f,textvariable=self.country,values=tuple(PROFILES),state="readonly",width=8).grid(row=1,column=3,sticky="w")
+        ttk.Label(f,text=self.tr('Pays','البلد')).grid(row=1,column=2,sticky="w",padx=(18,4));self.country_combo=ttk.Combobox(f,textvariable=self.country,values=tuple(PROFILES),state="readonly",width=8);self.country_combo.grid(row=1,column=3,sticky="w");self.country_combo.bind('<<ComboboxSelected>>',self.sync_country_profile)
         ttk.Label(f,text=self.tr('Devise','العملة')).grid(row=1,column=0,sticky="w",pady=5);ttk.Entry(f,textvariable=self.cur,width=10).grid(row=1,column=1,sticky="w",padx=8)
-        ttk.Label(f,text=self.tr('Poste de caisse','رقم محطة الصندوق')).grid(row=1,column=2,sticky='w',padx=(18,4));ttk.Entry(f,textvariable=self.workstation,width=12).grid(row=1,column=3,sticky='w')
+        ttk.Label(f,textvariable=self.country_info,foreground='#475569',wraplength=260).grid(row=2,column=2,columnspan=2,sticky='w',padx=(18,4))
+        ttk.Label(f,text=self.tr('Poste de caisse','رقم محطة الصندوق')).grid(row=3,column=2,sticky='w',padx=(18,4));ttk.Entry(f,textvariable=self.workstation,width=12).grid(row=3,column=3,sticky='w')
+        self.sync_country_profile()
         ttk.Checkbutton(f,text=self.tr('Gestion de stock','تدبير المخزون'),variable=self.stock_management_enabled).grid(row=2,column=0,columnspan=2,sticky='w')
         ttk.Checkbutton(f,text=self.tr('Autoriser stock négatif','السماح بالمخزون السالب'),variable=self.neg,command=self.sync_stock_options).grid(row=3,column=0,columnspan=2,sticky="w")
         ttk.Checkbutton(f,text=self.tr('Bloquer vente si stock insuffisant','منع البيع عند نقص المخزون'),variable=self.block_insufficient,command=self.sync_stock_options).grid(row=4,column=0,columnspan=2,sticky="w")

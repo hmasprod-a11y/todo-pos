@@ -32,6 +32,13 @@ class CountryProfileSettingsTests(unittest.TestCase):
             self.assertEqual(database.get_setting("tax_default_included", conn=conn), "0")
         self.assertEqual(new_product_tax_defaults(), {"tax_rate_basis_points": 0, "tax_included": 0})
 
+    def test_country_selector_is_visible_and_explains_its_tax_default(self):
+        text=(Path(__file__).resolve().parents[1] / "todo" / "screens" / "settings.py").read_text(encoding="utf-8")
+        self.assertIn("self.country_combo", text)
+        self.assertIn("self.sync_country_profile()", text)
+        self.assertIn("textvariable=self.country_info", text)
+        self.assertIn("row=3,column=2", text)
+
 
 if __name__ == "__main__":
     unittest.main()
