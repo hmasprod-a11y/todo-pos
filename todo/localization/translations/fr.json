@@ -1,0 +1,15 @@
+{
+  "app.name": "ToDo POS",
+  "app.subtitle": "Point de vente hors ligne pour commerce et épicerie",
+  "language.en": "Anglais",
+  "language.fr": "Français",
+  "language.ar": "Arabe",
+  "common.cancel": "Annuler",
+  "common.close": "Fermer",
+  "common.save": "Enregistrer",
+  "sale.title": "Vente",
+  "sale.total": "TOTAL",
+  "sale.last_sale": "Dernière vente",
+  "payment.title": "Paiement",
+  "payment.change": "Monnaie à rendre"
+}

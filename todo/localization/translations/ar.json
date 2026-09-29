@@ -1,0 +1,15 @@
+{
+  "app.name": "ToDo POS",
+  "app.subtitle": "نقطة بيع دون اتصال للتجارة والبقالة",
+  "language.en": "الإنجليزية",
+  "language.fr": "الفرنسية",
+  "language.ar": "العربية",
+  "common.cancel": "إلغاء",
+  "common.close": "إغلاق",
+  "common.save": "حفظ",
+  "sale.title": "البيع",
+  "sale.total": "المجموع",
+  "sale.last_sale": "آخر عملية بيع",
+  "payment.title": "الأداء",
+  "payment.change": "الباقي"
+}

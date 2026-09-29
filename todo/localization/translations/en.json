@@ -1,0 +1,15 @@
+{
+  "app.name": "ToDo POS",
+  "app.subtitle": "Offline Point of Sale for Retail & Grocery",
+  "language.en": "English",
+  "language.fr": "French",
+  "language.ar": "Arabic",
+  "common.cancel": "Cancel",
+  "common.close": "Close",
+  "common.save": "Save",
+  "sale.title": "Sale",
+  "sale.total": "TOTAL",
+  "sale.last_sale": "Last sale",
+  "payment.title": "Payment",
+  "payment.change": "Change due"
+}
