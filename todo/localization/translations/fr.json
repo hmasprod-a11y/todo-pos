@@ -11,5 +11,13 @@
   "sale.total": "TOTAL",
   "sale.last_sale": "Dernière vente",
   "payment.title": "Paiement",
-  "payment.change": "Monnaie à rendre"
+  "payment.change": "Monnaie à rendre",
+  "nav.sale": "Vente",
+  "nav.stock": "Stock",
+  "nav.journal": "Journal",
+  "nav.management": "Gestion",
+  "nav.settings": "Paramètres",
+  "nav.statistics": "Statistiques",
+  "nav.keyboard": "Clavier",
+  "nav.customer_display": "Écran client"
 }

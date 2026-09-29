@@ -7,7 +7,7 @@ temp=tempfile.TemporaryDirectory()
 os.environ['TODO_DB_PATH']=str(Path(temp.name)/'ui.db')
 sys.path.insert(0,str(project/'todo'))
 from app import ToDoApp
-from database import connect
+from database import connect,get_setting
 from services.security import current_user
 from services.inventory import apply_stock_movement
 from screens.products import ProductEditor
@@ -83,5 +83,9 @@ for Editor in (ClientEditor,SupplierEditor):
     assert not editor.keyboard_visible
     editor.destroy();app.update()
 
+# P1: English is a live shell language, not merely a catalog file.
+app.change_language('en');app.update_idletasks()
+assert get_setting('language')=='en'
+assert app.nav_buttons['sale'].cget('text').endswith('Sale')
 app.destroy();temp.cleanup()
 print('UI SMOKE PASSED: login, scan, quantity, navigation, all screens, direct stock edit with ledger')

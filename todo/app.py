@@ -8,6 +8,7 @@ from services.bootstrap import ensure_defaults
 from services.backup import create_backup
 from services.security import verify_pin, current_user, hash_pin, audit
 from database import connect
+from localization import Translator, SUPPORTED_LANGUAGES
 
 from screens.home import HomeFrame
 from screens.sale import SaleFrame
@@ -257,6 +258,9 @@ class ToDoApp(tk.Tk):
             try:self.attributes('-fullscreen',True)
             except tk.TclError:pass
 
+    def ui_text(self, key, **values):
+        return Translator(get_setting("language", "fr")).text(key, **values)
+
     def build_shell(self):
         self.clear_root()
         self.resizable(True, True)
@@ -274,10 +278,14 @@ class ToDoApp(tk.Tk):
         bar.pack(fill="x");bar.pack_propagate(False)
         self.shop_label=tk.Label(bar,text=get_setting("shop_name","ToDo"),bg="#0878C9",fg="white",font=("Segoe UI",18,"bold"))
         self.shop_label.pack(side="left",padx=(18,14))
-        lang=get_setting("language","fr")
-        nav_fr=[("🛒 Vente","sale"),("📦 Stock","stock"),("📋 Journal","journal"),("🗂 Gestion","management"),("⚙ Paramètres","settings"),("📊 Statistiques","statistics")]
-        nav_ar=[("🛒 البيع","sale"),("📦 المخزون","stock"),("📋 السجل","journal"),("🗂 الإدارة","management"),("⚙ الإعدادات","settings"),("📊 الإحصائيات","statistics")]
-        nav=nav_ar if lang=="ar" else nav_fr
+        nav=[
+            ("🛒 "+self.ui_text("nav.sale"), "sale"),
+            ("📦 "+self.ui_text("nav.stock"), "stock"),
+            ("📋 "+self.ui_text("nav.journal"), "journal"),
+            ("🗂 "+self.ui_text("nav.management"), "management"),
+            ("⚙ "+self.ui_text("nav.settings"), "settings"),
+            ("📊 "+self.ui_text("nav.statistics"), "statistics"),
+        ]
         self.nav_buttons={}
         from services.security import has_permission
         nav_permissions={'settings':'SETTINGS','journal':'REPORTS','statistics':'REPORTS','management':'MANAGEMENT'}
@@ -295,12 +303,12 @@ class ToDoApp(tk.Tk):
                   relief="flat",bd=0,font=("Segoe UI",16,"bold"),width=4,cursor="hand2",
                   command=self.iconify)
         self.minimize_button.pack(side="right",fill="y")
-        self.keyboard_button=tk.Button(bar,text=("⌨ لوحة المفاتيح" if lang=="ar" else "⌨ Clavier"),bg="#F59E0B",fg="#111827",
+        self.keyboard_button=tk.Button(bar,text="⌨ "+self.ui_text("nav.keyboard"),bg="#F59E0B",fg="#111827",
                   activebackground="#D97706",activeforeground="white",relief="flat",bd=0,
                   font=("Segoe UI",10,"bold"),padx=14,cursor="hand2",
                   command=self.toggle_keyboard)
         self.keyboard_button.pack(side="right",fill="y",padx=(6,4))
-        self.customer_button=tk.Button(bar,text=("شاشة الزبون" if lang=="ar" else "Écran client"),bg="#0878C9",fg="white",
+        self.customer_button=tk.Button(bar,text=self.ui_text("nav.customer_display"),bg="#0878C9",fg="white",
                   activebackground="#075B96",activeforeground="white",relief="flat",bd=0,
                   font=("Segoe UI",9,"bold"),padx=10,cursor="hand2",
                   command=self.toggle_customer_display)
@@ -317,7 +325,7 @@ class ToDoApp(tk.Tk):
         if get_setting('customer_display_enabled','0')=='1' and not (self.customer_window and self.customer_window.winfo_exists()):
             self.toggle_customer_display()
     def change_language(self, language):
-        if language not in ('fr','ar'): return
+        if language not in SUPPORTED_LANGUAGES: return
         set_setting('language',language)
         key=getattr(self,'current_key','sale')
         self.sale_frame=None

@@ -11,5 +11,13 @@
   "sale.total": "TOTAL",
   "sale.last_sale": "Last sale",
   "payment.title": "Payment",
-  "payment.change": "Change due"
+  "payment.change": "Change due",
+  "nav.sale": "Sale",
+  "nav.stock": "Stock",
+  "nav.journal": "Journal",
+  "nav.management": "Management",
+  "nav.settings": "Settings",
+  "nav.statistics": "Statistics",
+  "nav.keyboard": "Keyboard",
+  "nav.customer_display": "Customer display"
 }

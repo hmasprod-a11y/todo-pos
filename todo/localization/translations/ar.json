@@ -11,5 +11,13 @@
   "sale.total": "المجموع",
   "sale.last_sale": "آخر عملية بيع",
   "payment.title": "الأداء",
-  "payment.change": "الباقي"
+  "payment.change": "الباقي",
+  "nav.sale": "البيع",
+  "nav.stock": "المخزون",
+  "nav.journal": "السجل",
+  "nav.management": "الإدارة",
+  "nav.settings": "الإعدادات",
+  "nav.statistics": "الإحصائيات",
+  "nav.keyboard": "لوحة المفاتيح",
+  "nav.customer_display": "شاشة الزبون"
 }
