@@ -46,7 +46,7 @@ class TaxSaleSnapshotTests(unittest.TestCase):
         self.assertEqual((second["total_cents"], second["tax_total_cents"]), (1200, 200))
         with db.connect() as conn:
             one = conn.execute("SELECT tax_net_cents,tax_amount_cents,tax_gross_cents,net_total_cents,tax_class FROM sale_items WHERE sale_id=?", (first["id"],)).fetchone()
-            two = conn.execute("SELECT tax_net_cents,tax_amount_cents,tax_gross_cents,net_total_cents FROM sale_items WHERE sale_id=?", (second["id"],)).fetchone()
+            two = conn.execute("SELECT tax_net_cents,tax_amount_cents,tax_gross_cents,net_total_cents,tax_class FROM sale_items WHERE sale_id=?", (second["id"],)).fetchone()
             sale = conn.execute("SELECT country_code,tax_label_snapshot,tax_total_cents FROM sales WHERE id=?", (second["id"],)).fetchone()
         self.assertEqual(tuple(one), (1000, 200, 1200, 1200, 'REDUCED'))
         self.assertEqual(tuple(two), (1000, 200, 1200, 1200, 'REDUCED'))
