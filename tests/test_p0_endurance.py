@@ -146,7 +146,7 @@ class P0EnduranceTests(unittest.TestCase):
             def __init__(self, *args, **kwargs):
                 raise OSError("device unavailable")
 
-        offline_serial = SimpleNamespace(Serial=OfflineSerial)
+        offline_serial = SimpleNamespace(Serial=OfflineSerial, OpenPrinter=OfflineSerial)
         with patch.dict(sys.modules, {"serial": offline_serial}):
             with self.assertRaisesRegex(OSError, "Balance COM99"):
                 scale.read_weight(port="COM99", timeout_ms=100)
