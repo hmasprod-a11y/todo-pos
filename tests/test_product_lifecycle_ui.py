@@ -39,5 +39,7 @@ class ProductLifecycleUiTests(unittest.TestCase):
         self.assertIn('Taxe (%)',text)
         self.assertIn('tax_rate_basis_points',text)
         self.assertIn('tax_included',text)
+        self.assertIn('tax_class',text)
+        self.assertIn("'STANDARD','REDUCED','ZERO'",text)
 
 if __name__=='__main__':unittest.main()

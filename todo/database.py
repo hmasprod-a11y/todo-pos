@@ -651,7 +651,7 @@ def migrate(conn):
         conn.execute("INSERT INTO settings(key,value) VALUES('negative_stock_policy_v1','1')")
     additions = {
         'quantity_prices': {'pricing_mode': "TEXT NOT NULL DEFAULT 'UNIT'"},
-        'products': {'supplier_code': "TEXT NOT NULL DEFAULT ''", 'alias': "TEXT NOT NULL DEFAULT ''", 'is_misc': 'INTEGER NOT NULL DEFAULT 0', 'preferred_supplier_id': 'INTEGER REFERENCES suppliers(id)', 'show_in_sale_photos': 'INTEGER NOT NULL DEFAULT 0', 'tax_rate_basis_points': 'INTEGER NOT NULL DEFAULT 0', 'tax_included': 'INTEGER NOT NULL DEFAULT 1'},
+        'products': {'supplier_code': "TEXT NOT NULL DEFAULT ''", 'alias': "TEXT NOT NULL DEFAULT ''", 'is_misc': 'INTEGER NOT NULL DEFAULT 0', 'preferred_supplier_id': 'INTEGER REFERENCES suppliers(id)', 'show_in_sale_photos': 'INTEGER NOT NULL DEFAULT 0', 'tax_rate_basis_points': 'INTEGER NOT NULL DEFAULT 0', 'tax_included': 'INTEGER NOT NULL DEFAULT 1', 'tax_class': "TEXT NOT NULL DEFAULT 'STANDARD'"},
         'stock_movements': {'user_id': 'INTEGER REFERENCES users(id)', 'old_qty': 'REAL'},
         'sale_items': {'net_total_cents': 'INTEGER', 'qty_multiplier': 'REAL NOT NULL DEFAULT 1', 'pricing_mode': "TEXT NOT NULL DEFAULT 'UNIT'", 'tax_rate_basis_points': 'INTEGER NOT NULL DEFAULT 0', 'tax_included': 'INTEGER NOT NULL DEFAULT 1', 'tax_net_cents': 'INTEGER NOT NULL DEFAULT 0', 'tax_amount_cents': 'INTEGER NOT NULL DEFAULT 0', 'tax_gross_cents': 'INTEGER NOT NULL DEFAULT 0'},
         'held_sales': {'discount_cents': 'INTEGER NOT NULL DEFAULT 0', 'client_id': 'INTEGER REFERENCES clients(id)', 'seller_id': 'INTEGER REFERENCES sellers(id)', 'price_grid_id': 'INTEGER REFERENCES price_grids(id)', 'payment_method': "TEXT NOT NULL DEFAULT 'CASH'"},
@@ -722,4 +722,4 @@ def migrate(conn):
     # Backfill one payment row for legacy sales; new sales write their split directly.
     conn.execute("INSERT INTO sale_payments(sale_id,payment_method,amount_cents) SELECT s.id,s.payment_method,CASE WHEN s.payment_method='CASH' THEN s.paid_cents-s.change_cents ELSE s.paid_cents END FROM sales s WHERE NOT EXISTS (SELECT 1 FROM sale_payments sp WHERE sp.sale_id=s.id)")
     conn.execute("INSERT INTO return_payments(return_id,payment_method,amount_cents) SELECT r.id,r.refund_method,COALESCE(r.refund_paid_cents,r.total_cents) FROM returns r WHERE r.refund_method IN ('CASH','CARD') AND NOT EXISTS (SELECT 1 FROM return_payments rp WHERE rp.return_id=r.id)")
-    conn.execute('PRAGMA user_version=124')
+    conn.execute('PRAGMA user_version=125')
