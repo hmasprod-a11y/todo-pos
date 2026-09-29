@@ -2,6 +2,7 @@
 
 from .profiles import (
     DEFAULT_COUNTRY_CODE,
+    PROFILES,
     CountryProfile,
     format_money,
     get_country_profile,
@@ -10,6 +11,7 @@ from .profiles import (
 
 __all__ = [
     "DEFAULT_COUNTRY_CODE",
+    "PROFILES",
     "CountryProfile",
     "format_money",
     "get_country_profile",
