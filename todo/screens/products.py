@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from database import connect, get_setting
 from services.inventory import apply_stock_movement
 from services.security import require_admin, require_permission, audit
 import math
 import os, tempfile
 from services.money import to_cents
+from services.globalization import new_product_tax_defaults
 from services.images import import_image, abs_image
 from screens.common import labeled_entry
 from services.catalog import list_categories, get_product_categories, set_product_categories, add_product_barcode, list_product_label_barcodes, product_label_data
@@ -34,6 +36,9 @@ class ProductEditor(tk.Toplevel):
         self.bar=tk.StringVar();self.name=tk.StringVar();self.cat=tk.StringVar()
         self.barcode_rows=[]
         self.buy=tk.StringVar(value="0");self.sell=tk.StringVar(value="0");self.stock=tk.StringVar(value="0");self.alert=tk.StringVar(value="0")
+        tax_defaults=new_product_tax_defaults()
+        self.tax_rate=tk.StringVar(value=f"{tax_defaults['tax_rate_basis_points']/100:.2f}")
+        self.tax_included=tk.BooleanVar(value=bool(tax_defaults['tax_included']))
         self.grid_price_vars={}
         root=ttk.Frame(self,padding=15);root.pack(fill="both",expand=True)
         self._keyboard_target = None
@@ -92,6 +97,10 @@ class ProductEditor(tk.Toplevel):
         ttk.Checkbutton(fields,text=self.tr('Vente au poids / fraction','البيع بالوزن / الكسر'),variable=self.fraction).pack(anchor='w',pady=5)
         ttk.Label(fields,text=self.tr('Note stock (facultatif)','ملاحظة المخزون (اختيارية)')).pack(anchor='w')
         ttk.Entry(fields,textvariable=self.stock_note).pack(fill='x')
+        ttk.Separator(fields,orient='horizontal').pack(fill='x',pady=8)
+        ttk.Label(fields,text=self.tr('Taxe (%)','الضريبة (%)')).pack(anchor='w')
+        ttk.Entry(fields,textvariable=self.tax_rate,width=27).pack(fill='x',pady=(0,5))
+        ttk.Checkbutton(fields,text=self.tr('Prix TTC (taxe comprise)','الثمن شامل الضريبة'),variable=self.tax_included).pack(anchor='w')
         if self.pid:
             self.load()
 
@@ -304,6 +313,7 @@ class ProductEditor(tk.Toplevel):
             price="" if extra["price_override_cents"] is None else f"{extra['price_override_cents']/100:.2f}"
             self.add_barcode_row(extra["barcode"],f"{extra['qty_multiplier']:g}",price)
         self.buy.set(f"{p['purchase_price_cents']/100:.2f}");self.sell.set(f"{p['sale_price_cents']/100:.2f}")
+        self.tax_rate.set(f"{p['tax_rate_basis_points']/100:.2f}");self.tax_included.set(bool(p['tax_included']))
         for gp in gps:
             if gp["grid_id"] in self.grid_price_vars:self.grid_price_vars[gp["grid_id"]].set(f"{gp['unit_price_cents']/100:.2f}")
         self.stock.set(f"{p['stock_qty']:g}");self.alert.set(f"{p['alert_qty']:g}");self.img_rel=p["image_path"] or ""
@@ -320,6 +330,13 @@ class ProductEditor(tk.Toplevel):
             barcode=self.bar.get().strip();name=self.name.get().strip()
             if not name:raise ValueError("اسم المنتوج إجباري.")
             buy=to_cents(self.buy.get());sell=to_cents(self.sell.get());stock=float(self.stock.get() or 0);alert=float(self.alert.get() or 0)
+            try:
+                tax_percent=Decimal(self.tax_rate.get().strip().replace(',','.'))
+            except InvalidOperation:
+                raise ValueError(self.tr('Taux de taxe invalide','نسبة الضريبة غير صالحة'))
+            if not tax_percent.is_finite() or tax_percent<0 or tax_percent>100:
+                raise ValueError(self.tr('Taux de taxe invalide','نسبة الضريبة غير صالحة'))
+            tax_rate_basis_points=int((tax_percent*100).to_integral_value(rounding=ROUND_HALF_UP))
             if not all(math.isfinite(x) for x in (stock,alert)) or min(buy,sell,alert)<0:
                 raise ValueError(self.tr('Valeurs invalides','قيم غير صالحة'))
             selected_cats=[cid for cid,(var,_) in self.cat_vars.items() if var.get()]
@@ -372,11 +389,11 @@ class ProductEditor(tk.Toplevel):
                 c.execute("INSERT OR IGNORE INTO categories(name) VALUES(?)",(cat,))
                 catid=c.execute("SELECT id FROM categories WHERE name=?",(cat,)).fetchone()["id"]
                 if self.pid:
-                    c.execute("""UPDATE products SET name=?,category_id=?,purchase_price_cents=?,sale_price_cents=?,alert_qty=?,image_path=?,show_in_sale_photos=?,updated_at=CURRENT_TIMESTAMP WHERE id=?""",
-                              (name,catid,buy,sell,alert,img,1 if self.show_in_sale_photos.get() else 0,self.pid));pid=self.pid
+                    c.execute("""UPDATE products SET name=?,category_id=?,purchase_price_cents=?,sale_price_cents=?,alert_qty=?,image_path=?,show_in_sale_photos=?,tax_rate_basis_points=?,tax_included=?,updated_at=CURRENT_TIMESTAMP WHERE id=?""",
+                              (name,catid,buy,sell,alert,img,1 if self.show_in_sale_photos.get() else 0,tax_rate_basis_points,1 if self.tax_included.get() else 0,self.pid));pid=self.pid
                 else:
-                    cur=c.execute("""INSERT INTO products(name,category_id,purchase_price_cents,sale_price_cents,stock_qty,alert_qty,image_path,show_in_sale_photos) VALUES(?,?,?,?,?,?,?,?)""",
-                                  (name,catid,buy,sell,0,alert,img,1 if self.show_in_sale_photos.get() else 0));pid=cur.lastrowid
+                    cur=c.execute("""INSERT INTO products(name,category_id,purchase_price_cents,sale_price_cents,stock_qty,alert_qty,image_path,show_in_sale_photos,tax_rate_basis_points,tax_included) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                                  (name,catid,buy,sell,0,alert,img,1 if self.show_in_sale_photos.get() else 0,tax_rate_basis_points,1 if self.tax_included.get() else 0));pid=cur.lastrowid
                 set_product_categories(c,pid,selected_cats or [catid])
                 old=c.execute('SELECT stock_qty FROM products WHERE id=?',(pid,)).fetchone()[0]
                 if abs(stock-self.loaded_stock)>1e-9 and abs(stock-old)>1e-9:

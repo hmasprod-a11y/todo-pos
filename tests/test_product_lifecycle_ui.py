@@ -33,4 +33,11 @@ class ProductLifecycleUiTests(unittest.TestCase):
         self.assertNotIn("NOT EXISTS(SELECT 1 FROM product_barcodes",catalog)
         self.assertIn("show_in_sale_photos INTEGER NOT NULL DEFAULT 0",database)
 
+    def test_product_editor_exposes_persisted_tax_settings(self):
+        text=(ROOT/'todo'/'screens'/'products.py').read_text(encoding='utf-8')
+        self.assertIn('new_product_tax_defaults',text)
+        self.assertIn('Taxe (%)',text)
+        self.assertIn('tax_rate_basis_points',text)
+        self.assertIn('tax_included',text)
+
 if __name__=='__main__':unittest.main()
