@@ -23,7 +23,7 @@ class CountryProfileSettingsTests(unittest.TestCase):
     def test_profile_selection_is_persisted_and_updates_only_future_defaults(self):
         self.assertEqual(current_country_profile().code, "MA")
         selected = select_country_profile("us")
-        self.assertEqual((selected.code, selected.currency_symbol), ("US", "$"))
+        self.assertEqual((selected.code, selected.currency), ("US", "$"))
         with database.connect() as conn:
             self.assertEqual(database.get_setting("country_code", conn=conn), "US")
             self.assertEqual(database.get_setting("currency", conn=conn), "$")

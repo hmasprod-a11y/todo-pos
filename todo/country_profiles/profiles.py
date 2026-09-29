@@ -17,6 +17,7 @@ class CountryProfile:
     date_format: str
     tax_label: str
     default_tax_rate_basis_points: int
+    tax_included_by_default: bool
     default_language: str
 
     def __post_init__(self):
@@ -27,12 +28,12 @@ class CountryProfile:
 
 
 PROFILES = {
-    "MA": CountryProfile("MA", "DH", "suffix", ",", "DD/MM/YYYY", "TVA", 2000, "fr"),
-    "FR": CountryProfile("FR", "€", "suffix", ",", "DD/MM/YYYY", "TVA", 2000, "fr"),
-    "GB": CountryProfile("GB", "£", "prefix", ".", "DD/MM/YYYY", "VAT", 2000, "en"),
-    "AE": CountryProfile("AE", "AED", "suffix", ".", "DD/MM/YYYY", "VAT", 500, "ar"),
-    "SA": CountryProfile("SA", "SAR", "suffix", ".", "DD/MM/YYYY", "VAT", 1500, "ar"),
-    "US": CountryProfile("US", "$", "prefix", ".", "MM/DD/YYYY", "Sales tax", 0, "en"),
+    "MA": CountryProfile("MA", "DH", "suffix", ",", "DD/MM/YYYY", "TVA", 2000, True, "fr"),
+    "FR": CountryProfile("FR", "€", "suffix", ",", "DD/MM/YYYY", "TVA", 2000, True, "fr"),
+    "GB": CountryProfile("GB", "£", "prefix", ".", "DD/MM/YYYY", "VAT", 2000, True, "en"),
+    "AE": CountryProfile("AE", "AED", "suffix", ".", "DD/MM/YYYY", "VAT", 500, True, "ar"),
+    "SA": CountryProfile("SA", "SAR", "suffix", ".", "DD/MM/YYYY", "VAT", 1500, True, "ar"),
+    "US": CountryProfile("US", "$", "prefix", ".", "MM/DD/YYYY", "Sales tax", 0, False, "en"),
 }
 
 

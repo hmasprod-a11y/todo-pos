@@ -32,7 +32,7 @@ def select_country_profile(country_code, conn=None):
             db.commit()
             return profile
     _write_setting(conn, "country_code", profile.code)
-    _write_setting(conn, "currency", profile.currency_symbol)
+    _write_setting(conn, "currency", profile.currency)
     _write_setting(conn, "tax_label", profile.tax_label)
     _write_setting(conn, "tax_default_rate_basis_points", profile.default_tax_rate_basis_points)
     _write_setting(conn, "tax_default_included", 1 if profile.tax_included_by_default else 0)
