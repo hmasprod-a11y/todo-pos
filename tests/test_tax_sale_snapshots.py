@@ -9,6 +9,7 @@ import database as db
 from services.bootstrap import ensure_defaults
 from services.cash import open_session
 from services.sales import complete_sale
+from services.receipts import build_receipt
 from services.security import current_user
 
 
@@ -50,6 +51,16 @@ class TaxSaleSnapshotTests(unittest.TestCase):
         self.assertEqual(tuple(one), (1000, 200, 1200, 1200))
         self.assertEqual(tuple(two), (1000, 200, 1200, 1200))
         self.assertEqual(tuple(sale), ("MA", "Tax", 200))
+
+    def test_receipt_uses_sale_tax_snapshot_breakdown(self):
+        product = self.add_product("TVA product", 2000, 1)
+        sale = complete_sale(self.session_id, self.user_id, [dict(product_id=product, qty=1, unit_price_cents=1200)], "CASH", 1200)
+        with db.connect() as conn:
+            conn.execute("UPDATE sales SET tax_label_snapshot=? WHERE id=?", ("TVA", sale["id"]))
+            conn.commit()
+        receipt = build_receipt(sale["id"])
+        self.assertIn("TVA 20%: 2.00 DH", receipt)
+        self.assertIn("TOTAL: 12.00 DH", receipt)
 
 
 if __name__ == "__main__":

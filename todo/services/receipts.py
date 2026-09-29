@@ -35,6 +35,9 @@ def build_receipt(sale_id):
         s=conn.execute("SELECT s.*,u.display_name FROM sales s JOIN users u ON u.id=s.cashier_user_id WHERE s.id=?",(sale_id,)).fetchone()
         items=conn.execute("SELECT * FROM sale_items WHERE sale_id=? ORDER BY id",(sale_id,)).fetchall()
         payments=conn.execute("SELECT payment_method,amount_cents FROM sale_payments WHERE sale_id=? ORDER BY id",(sale_id,)).fetchall()
+        taxes=conn.execute("""SELECT tax_rate_basis_points,SUM(tax_amount_cents) tax_amount_cents
+                              FROM sale_items WHERE sale_id=? GROUP BY tax_rate_basis_points
+                              HAVING SUM(tax_amount_cents)<>0 ORDER BY tax_rate_basis_points""",(sale_id,)).fetchall()
         client=conn.execute('SELECT name FROM clients WHERE id=?',(s['client_id'],)).fetchone() if s and s['client_id'] is not None else None
     if not s: raise ValueError("Vente introuvable")
     profile=_receipt_profile();lang=profile['lang'];ar=lang=='ar'
@@ -67,8 +70,14 @@ def build_receipt(sale_id):
     lines += [
         dash,
         f"{tr('Remise ticket','تخفيض التذكرة')}: {fmt(s['discount_cents'],cur)}",
-        f"{tr('TOTAL','المجموع')}: {fmt(s['total_cents'],cur)}",
     ]
+    tax_label=s['tax_label_snapshot'] or tr('Taxe','الضريبة')
+    for tax in taxes:
+        rate=f"{tax['tax_rate_basis_points']/100:g}%"
+        lines.append(f"{tax_label} {rate}: {fmt(tax['tax_amount_cents'],cur)}")
+    if not taxes and s['tax_total_cents']:
+        lines.append(f"{tax_label}: {fmt(s['tax_total_cents'],cur)}")
+    lines.append(f"{tr('TOTAL','المجموع')}: {fmt(s['total_cents'],cur)}")
     if get_setting('receipt_show_payment','1')=='1':
         lines.append(f"{tr('Paiement','الأداء')}: {_payment_label(s['payment_method'],lang)}")
     if get_setting('receipt_show_payment','1')=='1' and s['payment_method']=='MIXED':
