@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime
 
 
 DEFAULT_COUNTRY_CODE = "MA"
@@ -57,3 +58,14 @@ def format_money(amount_cents: int, profile: CountryProfile | None = None) -> st
     whole_text = f"{whole:,}".replace(",", grouping)
     number = f"{sign}{whole_text}{profile.decimal_separator}{fraction:02d}"
     return f"{profile.currency}{number}" if profile.currency_position == "prefix" else f"{number} {profile.currency}"
+
+
+def format_date(value: date | datetime | str, profile: CountryProfile | None = None) -> str:
+    """Format a sale date using its country profile's presentation convention."""
+    profile = profile or get_country_profile()
+    if isinstance(value, str):
+        value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+    day = value.date() if isinstance(value, datetime) else value
+    if profile.date_format == 'MM/DD/YYYY':
+        return day.strftime('%m/%d/%Y')
+    return day.strftime('%d/%m/%Y')

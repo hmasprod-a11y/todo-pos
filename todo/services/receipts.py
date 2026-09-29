@@ -2,6 +2,7 @@ from pathlib import Path
 import os, tempfile
 from database import connect, get_setting
 from services.money import fmt
+from country_profiles import format_date, get_country_profile
 
 
 RECEIPT_TEMPLATES={
@@ -46,6 +47,8 @@ def build_receipt(sale_id):
     tr=lambda fr,arabic,english=None: arabic if ar else (english if lang=='en' and english else fr)
     cur=get_setting("currency","DH");width=profile['width'];rule="="*width;dash="-"*width
     lines=[get_setting("shop_name","ToDo"),rule]
+    sale_profile=get_country_profile(s["country_code"] if "country_code" in s.keys() else None)
+    lines.append(f"{tr('Date','التاريخ','Date')}: {format_date(s['created_at'], sale_profile)}")
     if get_setting('receipt_show_ticket_no','1')=='1':
         ticket_value=s['client_ticket_no'] if s['client_ticket_no'] is not None else s['sale_no']
         ticket_value=f"{int(ticket_value):06d}" if isinstance(ticket_value,int) else ticket_value

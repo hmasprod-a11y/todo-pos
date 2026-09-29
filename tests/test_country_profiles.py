@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "todo"))
 
-from country_profiles import PROFILES, format_money, get_country_profile, normalize_country_code
+from country_profiles import PROFILES, format_date, format_money, get_country_profile, normalize_country_code
 
 
 class CountryProfileTests(unittest.TestCase):
@@ -22,6 +22,10 @@ class CountryProfileTests(unittest.TestCase):
         self.assertEqual(format_money(1234, get_country_profile("GB")), "£12.34")
         self.assertEqual(format_money(-1234, get_country_profile("FR")), "-12,34 €")
         self.assertEqual(format_money(500, get_country_profile("AE")), "5.00 AED")
+
+    def test_date_format_uses_country_profile(self):
+        self.assertEqual(format_date('2026-09-30 09:15:00', get_country_profile('MA')), '30/09/2026')
+        self.assertEqual(format_date('2026-09-30 09:15:00', get_country_profile('US')), '09/30/2026')
 
 
 if __name__ == "__main__":
