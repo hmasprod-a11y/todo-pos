@@ -3,6 +3,8 @@ import os
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -89,6 +91,26 @@ class P0EnduranceTests(unittest.TestCase):
             ).fetchone()["n"]
         self.assertEqual(sales, 100)
         self.assertEqual(closures, 50)
+
+    def test_disconnected_serial_devices_raise_recoverable_errors(self):
+        # CI cannot depend on physical peripherals.  A refused COM connection must
+        # give callers a normal, catchable error rather than hang the cashier loop.
+        from services import customer_serial_display, rfid, scale
+
+        class OfflineSerial:
+            def __init__(self, *args, **kwargs):
+                raise OSError("device unavailable")
+
+        offline_serial = SimpleNamespace(Serial=OfflineSerial)
+        with patch.dict(sys.modules, {"serial": offline_serial}):
+            with self.assertRaisesRegex(OSError, "Balance COM99"):
+                scale.read_weight(port="COM99", timeout_ms=100)
+            with self.assertRaisesRegex(OSError, "device unavailable"):
+                rfid.read_tag(port="COM99", timeout_ms=100)
+            with self.assertRaisesRegex(OSError, "device unavailable"):
+                customer_serial_display.write_lines(
+                    "ARTICLE", "TOTAL", port="COM99", timeout_ms=100
+                )
 
 
 if __name__ == "__main__":
