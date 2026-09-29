@@ -140,7 +140,7 @@ class P0EnduranceTests(unittest.TestCase):
     def test_disconnected_serial_devices_raise_recoverable_errors(self):
         # CI cannot depend on physical peripherals.  A refused COM connection must
         # give callers a normal, catchable error rather than hang the cashier loop.
-        from services import customer_serial_display, rfid, scale
+        from services import customer_serial_display, printers, rfid, scale
 
         class OfflineSerial:
             def __init__(self, *args, **kwargs):
@@ -156,6 +156,14 @@ class P0EnduranceTests(unittest.TestCase):
                 customer_serial_display.write_lines(
                     "ARTICLE", "TOTAL", port="COM99", timeout_ms=100
                 )
+
+        # A disconnected Windows receipt printer must fail quickly with a normal
+        # catchable error, so the cashier can keep running after the UI reports it.
+        with patch.object(printers.os, "name", "nt"), patch.dict(
+            sys.modules, {"win32print": offline_serial}
+        ):
+            with self.assertRaisesRegex(OSError, "device unavailable"):
+                printers.test_printer(printer="Offline receipt printer", raw=True)
 
 
 if __name__ == "__main__":
