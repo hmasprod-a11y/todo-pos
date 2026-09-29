@@ -50,6 +50,16 @@ class P0EnduranceTests(unittest.TestCase):
         current_user.reset(self._user_token)
 
     def test_scans_sales_and_cash_closures_remain_consistent(self):
+        # Count relative to the isolated test database state: another endurance
+        # case can legitimately close an empty session before this one runs.
+        with connect() as conn:
+            sales_before = conn.execute(
+                "SELECT COUNT(*) AS n FROM sales WHERE sale_no LIKE 'V-%'"
+            ).fetchone()["n"]
+            closures_before = conn.execute(
+                "SELECT COUNT(*) AS n FROM cash_sessions WHERE status='CLOSED'"
+            ).fetchone()["n"]
+
         # Barcode lookup is intentionally exercised at release-gate volume before
         # the repeated checkout/closure loop starts.
         for _ in range(1000):
@@ -89,8 +99,8 @@ class P0EnduranceTests(unittest.TestCase):
             closures = conn.execute(
                 "SELECT COUNT(*) AS n FROM cash_sessions WHERE status='CLOSED'"
             ).fetchone()["n"]
-        self.assertEqual(sales, 100)
-        self.assertEqual(closures, 50)
+        self.assertEqual(sales, sales_before + 100)
+        self.assertEqual(closures, closures_before + 50)
 
     def test_sale_failure_rolls_back_without_partial_cash_or_stock(self):
         # Simulate a mid-sale device/process failure.  The transactional boundary
