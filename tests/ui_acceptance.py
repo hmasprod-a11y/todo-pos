@@ -660,6 +660,10 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     app.update()
     assert get_setting('language')=='ar'
     assert app.current is not None and app.current.winfo_exists()
+    # P0 endurance: repeated FR/AR shell rebuilds must leave a live cashier UI.
+    for language in ('fr','ar')*10:
+        app.change_language(language);app.update()
+        assert app.current is not None and app.current.winfo_exists()
     app.change_language('fr');app.update()
     print('PASS: UI product/category -> purchase confirmation -> stock 5 -> scan/qty/discount -> visible SOLDER/VALIDER at 1100x640 -> sale 5 DH -> stock 3 -> receipt PDF -> journal',flush=True)
     if os.environ.get('TODO_REVIEW_UI'):
