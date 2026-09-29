@@ -5,6 +5,8 @@ import tkinter as tk
 from tkinter import ttk,messagebox,filedialog,simpledialog
 from database import get_setting,set_setting,connect
 from services.secrets import get_smtp_password,set_smtp_password
+from country_profiles import PROFILES
+from services.globalization import select_country_profile
 from services.backup import create_backup,restore_backup,create_full_backup,restore_full_backup
 from services.security import hash_pin, require_admin, require_permission, audit
 
@@ -145,8 +147,10 @@ class SettingsFrame(ttk.Frame):
         self.payment_window_enabled=tk.BooleanVar(value=get_setting('payment_window_enabled','1')=='1')
         self.search_limit=tk.StringVar(value=get_setting("search_limit","60"))
         self.language=tk.StringVar(value=get_setting("language","fr"))
+        self.country=tk.StringVar(value=get_setting("country_code","MA"))
         ttk.Label(f,text=self.tr('Nom magasin','اسم المتجر')).grid(row=0,column=0,sticky="w");ttk.Entry(f,textvariable=self.shop,width=30).grid(row=0,column=1,padx=8)
-        ttk.Label(f,text=self.tr('Langue','اللغة')).grid(row=0,column=2,sticky="w",padx=(18,4));ttk.Combobox(f,textvariable=self.language,values=("fr","ar"),state="readonly",width=8).grid(row=0,column=3,sticky="w")
+        ttk.Label(f,text=self.tr('Langue','اللغة')).grid(row=0,column=2,sticky="w",padx=(18,4));ttk.Combobox(f,textvariable=self.language,values=("fr","en","ar"),state="readonly",width=8).grid(row=0,column=3,sticky="w")
+        ttk.Label(f,text=self.tr('Pays','البلد')).grid(row=1,column=2,sticky="w",padx=(18,4));ttk.Combobox(f,textvariable=self.country,values=tuple(PROFILES),state="readonly",width=8).grid(row=1,column=3,sticky="w")
         ttk.Label(f,text=self.tr('Devise','العملة')).grid(row=1,column=0,sticky="w",pady=5);ttk.Entry(f,textvariable=self.cur,width=10).grid(row=1,column=1,sticky="w",padx=8)
         ttk.Label(f,text=self.tr('Poste de caisse','رقم محطة الصندوق')).grid(row=1,column=2,sticky='w',padx=(18,4));ttk.Entry(f,textvariable=self.workstation,width=12).grid(row=1,column=3,sticky='w')
         ttk.Checkbutton(f,text=self.tr('Gestion de stock','تدبير المخزون'),variable=self.stock_management_enabled).grid(row=2,column=0,columnspan=2,sticky='w')
@@ -474,7 +478,11 @@ class SettingsFrame(ttk.Frame):
         workstation=self.workstation.get().strip().upper()
         if not workstation or len(workstation)>16 or not all(ch.isalnum() or ch in '-_' for ch in workstation):
             messagebox.showerror('ToDo',self.tr('Identifiant poste invalide (lettres/chiffres, - ou _).','رقم محطة الصندوق غير صالح.'),parent=self);return
-        set_setting("shop_name",self.shop.get().strip() or "ToDo");set_setting("currency",self.cur.get().strip() or "DH");set_setting('workstation_code',workstation);set_setting("allow_negative_stock","1" if self.neg.get() else "0")
+        set_setting("shop_name",self.shop.get().strip() or "ToDo")
+        country_changed=self.country.get()!=get_setting('country_code','MA')
+        if country_changed: select_country_profile(self.country.get())
+        else: set_setting("currency",self.cur.get().strip() or "DH")
+        set_setting('workstation_code',workstation);set_setting("allow_negative_stock","1" if self.neg.get() else "0")
         print_mode=self.print_mode.get() or "ask"
         if print_mode not in ('ask','always','never'):print_mode='ask'
         set_setting("receipt_footer",self.footer.get());set_setting("search_limit",limit);set_setting("printer_name",self.printer.get().strip());set_setting('printer_receipt_name',self.printer.get().strip());set_setting('printer_report_name',self.report_printer.get().strip());set_setting('printer_addition_name',self.addition_printer.get().strip())
