@@ -348,6 +348,15 @@ A release may ship only if:
 ### P0 — Stabilisation
 Freeze new features. Fix crashes/freezes. Add endurance/stress coverage.
 
+#### P0.1 — Reliability gates — complete (2026-09-29)
+Regression coverage now exercises the critical cashier paths without changing shop
+data compatibility: 1000 barcode scans, 100 completed sales, 50 cash closures,
+interrupted-sale rollback, repeated FR/AR shell rebuilds, Tk focus safety,
+disconnected serial peripherals, and the installed frozen application's first
+launch. Evidence commits: `d4014ca`, `cad488a`, `c2f3ecd`, `4448b38`,
+`41a56e7`, and `cadd95f`. The three release workflows (Quick test build,
+ToDo tests, and Windows build) are required green for each change.
+
 ### P1 — Global Core
 English + localization engine + Tax Engine + Country Profiles.
 
