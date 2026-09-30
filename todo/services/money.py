@@ -13,12 +13,14 @@ def fmt(cents, currency=None, profile=None):
     need a currency-less value or a fixed label. New point-of-sale displays
     obtain placement and decimal rules from the selected offline country profile.
     """
-    if currency is not None:
-        return f'{int(cents)/100:.2f} {currency}'.strip()
     if profile is None:
         from services.globalization import current_country_profile
         profile = current_country_profile()
-    from country_profiles import format_money
+    from country_profiles import format_money, format_number
+    if currency == '':
+        return format_number(cents, profile)
+    if currency is not None:
+        return f'{int(cents)/100:.2f} {currency}'.strip()
     return format_money(cents, profile)
 
 def rounded(value):

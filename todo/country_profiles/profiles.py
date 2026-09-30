@@ -47,16 +47,21 @@ def get_country_profile(country_code: str | None = None) -> CountryProfile:
     return PROFILES[normalize_country_code(country_code)]
 
 
-def format_money(amount_cents: int, profile: CountryProfile | None = None) -> str:
-    """Format integer minor units without leaking a country assumption into sales."""
+def format_number(amount_cents: int, profile: CountryProfile | None = None) -> str:
+    """Format integer minor units using the selected country's numeric rules."""
     profile = profile or get_country_profile()
     amount = int(amount_cents)
     sign = "-" if amount < 0 else ""
-    absolute = abs(amount)
-    whole, fraction = divmod(absolute, 100)
+    whole, fraction = divmod(abs(amount), 100)
     grouping = "," if profile.decimal_separator == "." else " "
     whole_text = f"{whole:,}".replace(",", grouping)
-    number = f"{sign}{whole_text}{profile.decimal_separator}{fraction:02d}"
+    return f"{sign}{whole_text}{profile.decimal_separator}{fraction:02d}"
+
+
+def format_money(amount_cents: int, profile: CountryProfile | None = None) -> str:
+    """Format integer minor units without leaking a country assumption into sales."""
+    profile = profile or get_country_profile()
+    number = format_number(amount_cents, profile)
     return f"{profile.currency}{number}" if profile.currency_position == "prefix" else f"{number} {profile.currency}"
 
 
