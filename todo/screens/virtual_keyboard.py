@@ -7,6 +7,7 @@ Utilisation :
 """
 import tkinter as tk
 from tkinter import ttk
+from database import get_setting
 
 # ── Layout AZERTY ─────────────────────────────────────────────────────────
 # Chaque cellule : (label_normal, label_shift, largeur_relative)
