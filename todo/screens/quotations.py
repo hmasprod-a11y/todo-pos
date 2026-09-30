@@ -9,7 +9,7 @@ from services.quotations import create_quotation,list_quotations,quotation_lines
 class QuotationsFrame(ttk.Frame):
     def __init__(self,master,app=None):
         super().__init__(master,padding=16);self.app=app
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        self.lang=get_setting('language','fr');self.currency=get_setting('currency','DH');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         top=ttk.Frame(self);top.pack(fill='x',pady=(0,8))
         ttk.Label(top,text=self.tr('Devis','عروض الأسعار','Quotations'),style='Title.TLabel').pack(side='left')
         ttk.Button(top,text=self.tr('+ Nouveau devis','+ عرض سعر جديد','+ New quotation'),style='Primary.TButton',command=self.new_quote).pack(side='right')
@@ -81,7 +81,7 @@ class QuotationsFrame(ttk.Frame):
             if not s:return
             vals=products.item(s[0],'values');qty=simpledialog.askfloat(self.tr('Quantité','الكمية','Quantity'),self.tr(f"Quantité — {vals[1]} :",f"الكمية — {vals[1]}:"),parent=w,minvalue=0.001)
             if qty is None:return
-            price=simpledialog.askfloat(self.tr('Prix devis','ثمن العرض','Quotation price'),self.tr('Prix unitaire (DH):','ثمن الوحدة (درهم):','Unit price (DH):'),parent=w,initialvalue=float(vals[2]),minvalue=0)
+            price=simpledialog.askfloat(self.tr('Prix devis','ثمن العرض','Quotation price'),self.tr(f'Prix unitaire ({self.currency}):',f'ثمن الوحدة ({self.currency}):',f'Unit price ({self.currency}):'),parent=w,initialvalue=float(vals[2]),minvalue=0)
             if price is None:return
             lines.append(dict(product_id=int(vals[0]),name=vals[1],qty=qty,unit_price_cents=int(round(price*100))));redraw()
         def save():
