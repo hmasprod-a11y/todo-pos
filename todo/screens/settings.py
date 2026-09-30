@@ -737,6 +737,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(w,text=self.tr('Centre d’aide et diagnostic local','مركز المساعدة والتشخيص المحلي'),foreground='#64748B').pack(anchor='w',padx=18,pady=(0,12))
         info=ttk.LabelFrame(w,text=self.tr('Diagnostic','التشخيص'),padding=12);info.pack(fill='x',padx=18,pady=6)
         entries=[
+            (self.tr('Édition','الإصدار'),d['edition']),
             (self.tr('Magasin','المتجر'),d['shop']),
             (self.tr('Poste','المحطة'),d['workstation']),
             ('SQLite / schema',f"{d['sqlite_version']} / {d['schema_version']}"),
