@@ -17,8 +17,12 @@ class FirstRunWizard(tk.Toplevel):
         for label,var,values in [("Language",self.language,("en","fr","ar")),("Country",self.country,tuple(PROFILES))]:
             ttk.Label(body,text=label).pack(anchor="w");ttk.Combobox(body,textvariable=var,values=values,state="readonly").pack(fill="x",pady=(0,12))
         ttk.Label(body,text="Shop name").pack(anchor="w");ttk.Entry(body,textvariable=self.shop).pack(fill="x",pady=(0,12))
-        self.summary=ttk.Label(body);self.summary.pack(anchor="w",pady=8);self.country.trace_add("write",lambda *_:self.refresh());self.refresh()
+        self.summary=ttk.Label(body);self.summary.pack(anchor="w",pady=8);self.country.trace_add("write",lambda *_:self.apply_country_defaults());self.refresh()
         ttk.Button(body,text="Start ToDo",style="Primary.TButton",command=self.finish).pack(anchor="e",pady=14)
+    def apply_country_defaults(self):
+        profile=get_country_profile(self.country.get())
+        self.language.set(profile.default_language)
+        self.refresh()
     def refresh(self):
         p=get_country_profile(self.country.get());self.summary.config(text=f"{p.currency} · {p.tax_label} {p.default_tax_rate_basis_points/100:g}%")
     def finish(self):
