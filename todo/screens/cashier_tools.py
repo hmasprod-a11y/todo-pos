@@ -39,8 +39,8 @@ def calculate(expression):
 class Calculator(tk.Toplevel):
     def __init__(self,master):
         super().__init__(master)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
-        self.title(self.tr('Calculatrice','الآلة الحاسبة'));self.transient(master.winfo_toplevel());self.grab_set()
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        self.title(self.tr('Calculatrice','الآلة الحاسبة','Calculator'));self.transient(master.winfo_toplevel());self.grab_set()
         self.expression=tk.StringVar()
         entry=ttk.Entry(self,textvariable=self.expression,font=('Segoe UI',24,'bold'),justify='right',style='Search.TEntry')
         entry.grid(row=0,column=0,columnspan=4,padx=10,pady=10,sticky='ew')
@@ -49,7 +49,7 @@ class Calculator(tk.Toplevel):
         for index,key in enumerate(('7','8','9','÷','4','5','6','×','1','2','3','-','0',',','=','+','C','⌫','(',')')):
             style='Danger.TButton' if key=='C' else 'Primary.TButton' if key=='=' else 'Soft.TButton'
             ttk.Button(self,text=key,style=style,command=lambda k=key:self.press(k)).grid(row=2+index//4,column=index%4,padx=3,pady=3,ipady=8,sticky='ew')
-        ttk.Button(self,text=self.tr('Fermer','إغلاق'),style='Danger.TButton',command=self.destroy).grid(row=7,column=0,columnspan=4,padx=10,pady=8,sticky='ew')
+        ttk.Button(self,text=self.tr('Fermer','إغلاق','Close'),style='Danger.TButton',command=self.destroy).grid(row=7,column=0,columnspan=4,padx=10,pady=8,sticky='ew')
         entry.bind('<Return>',lambda e:self.press('='));self.bind('<Escape>',lambda e:self.destroy())
         entry.focus_set()
 
@@ -59,35 +59,35 @@ class Calculator(tk.Toplevel):
         elif key=='⌫':self.expression.set(self.expression.get()[:-1])
         elif key=='=':
             try:self.expression.set(calculate(self.expression.get()))
-            except (ValueError,SyntaxError,ArithmeticError,InvalidOperation):self.error.config(text=self.tr('Calcul invalide ou division par zéro.','عملية غير صحيحة أو قسمة على صفر.'))
+            except (ValueError,SyntaxError,ArithmeticError,InvalidOperation):self.error.config(text=self.tr('Calcul invalide ou division par zéro.','عملية غير صحيحة أو قسمة على صفر.','Invalid calculation or division by zero.'))
         else:self.expression.set(self.expression.get()+key)
 
 
 class CashierLock(tk.Toplevel):
     def __init__(self,app):
         super().__init__(app)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.app=app;self.failures=0;self.blocked_until=0
-        self.title(self.tr('Caisse verrouillée','الصندوق مقفل'))
+        self.title(self.tr('Caisse verrouillée','الصندوق مقفل','Cash register locked'))
         self.transient(app);self.grab_set();self.protocol('WM_DELETE_WINDOW',lambda:None);self.configure(bg='#F6F7FB')
         self.pin=tk.StringVar()
         ttk.Label(self,text=app.user['display_name'],font=('Segoe UI',18,'bold')).pack(padx=28,pady=15)
-        ttk.Label(self,text=self.tr('PIN pour reprendre le ticket','الرمز للرجوع للبيع')).pack(padx=20)
+        ttk.Label(self,text=self.tr('PIN pour reprendre le ticket','الرمز للرجوع للبيع','PIN to resume the sale')).pack(padx=20)
         entry=ttk.Entry(self,textvariable=self.pin,show='●',justify='center',font=('Segoe UI',22))
         entry.pack(padx=25,pady=12)
         self.error=ttk.Label(self,foreground='#DC2626');self.error.pack()
-        ttk.Button(self,text=self.tr('Déverrouiller','فتح'),style='Success.TButton',command=self.unlock).pack(fill='x',padx=25,pady=15,ipady=4)
+        ttk.Button(self,text=self.tr('Déverrouiller','فتح','Unlock'),style='Success.TButton',command=self.unlock).pack(fill='x',padx=25,pady=15,ipady=4)
         self.bind('<Return>',lambda e:self.unlock());entry.focus_set()
 
     def unlock(self):
         if time.monotonic()<self.blocked_until:
-            self.error.config(text=self.tr('Patientez 30 secondes.','انتظر 30 ثانية.'));return
+            self.error.config(text=self.tr('Patientez 30 secondes.','انتظر 30 ثانية.','Wait 30 seconds.'));return
         with connect() as conn:
             user=conn.execute('SELECT pin_hash FROM users WHERE id=? AND active=1',(self.app.user['id'],)).fetchone()
             if not user or not verify_pin(self.pin.get(),user['pin_hash']):
                 self.pin.set('');self.failures+=1
                 if self.failures>=5:self.blocked_until=time.monotonic()+30;self.failures=0
-                self.error.config(text=self.tr('PIN incorrect','الرمز غير صحيح'));return
+                self.error.config(text=self.tr('PIN incorrect','الرمز غير صحيح','Incorrect PIN'));return
             audit(conn,'UNLOCK',self.app.user['id'])
         self.app.lock_window=None
         self.destroy()
