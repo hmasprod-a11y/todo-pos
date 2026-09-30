@@ -21,7 +21,7 @@ class HomeFrame(ttk.Frame):
         self.app = app
         from database import get_setting
         self.lang = get_setting("language", "fr")
-        self.tr = lambda fr, ar: ar if self.lang == "ar" else fr
+        self.tr = lambda fr, ar, en=None: ar if self.lang == "ar" else (en if self.lang == "en" and en else fr)
         self._build()
 
     def _build(self):
@@ -34,7 +34,7 @@ class HomeFrame(ttk.Frame):
         banner.pack_propagate(False)
         tk.Label(banner, text=shop, bg=banner_color, fg="white",
                  font=("Segoe UI", 32, "bold")).pack(side="left", padx=30, pady=12)
-        tk.Label(banner, text=self.tr("Point de Vente","نقطة البيع"),
+        tk.Label(banner, text=self.tr("Point de Vente","نقطة البيع","Point of Sale"),
                  bg=banner_color, fg="#DBEAFE",
                  font=("Segoe UI", 11)).pack(side="left", padx=4)
 
@@ -45,10 +45,10 @@ class HomeFrame(ttk.Frame):
         try:
             s = today_summary()
             kpis = [
-                ("💰 Ventes aujourd'hui",  fmt(s["net_sales"])),
-                (self.tr("🎫 Tickets","🎫 التذاكر"),               str(s["tickets"])),
-                (self.tr("📈 Marge brute","📈 الهامش الإجمالي"),           fmt(s["gross_margin"])),
-                (self.tr("⚠️ Stock faible","⚠️ مخزون منخفض"),          str(s["alerts"])),
+                (self.tr("💰 Ventes aujourd'hui","💰 مبيعات اليوم","💰 Today's sales"),  fmt(s["net_sales"])),
+                (self.tr("🎫 Tickets","🎫 التذاكر","🎫 Receipts"),               str(s["tickets"])),
+                (self.tr("📈 Marge brute","📈 الهامش الإجمالي","📈 Gross margin"),           fmt(s["gross_margin"])),
+                (self.tr("⚠️ Stock faible","⚠️ مخزون منخفض","⚠️ Low stock"),          str(s["alerts"])),
             ]
         except Exception:
             kpis = []
@@ -66,9 +66,10 @@ class HomeFrame(ttk.Frame):
         cards_area.pack(fill="both", expand=True, padx=40, pady=32)
 
         row_frame = None
-        nav_labels = {"Vente":"البيع","Stock":"المخزون","Journal":"السجل","Gestion":"الإدارة","Paramètres":"الإعدادات","Statistiques":"الإحصائيات"}
+        nav_labels = {"Vente":("البيع","Sales"),"Stock":("المخزون","Stock"),"Journal":("السجل","Journal"),"Gestion":("الإدارة","Management"),"Paramètres":("الإعدادات","Settings"),"Statistiques":("الإحصائيات","Statistics")}
         for i, (emoji, label, key, bg, fg) in enumerate(NAV_CARDS):
-            label = self.tr(label, nav_labels.get(label, label))
+            arabic, english = nav_labels.get(label, (label, label))
+            label = self.tr(label, arabic, english)
             if i % 3 == 0:
                 row_frame = tk.Frame(cards_area, bg="#F6F7FB")
                 row_frame.pack(anchor="center", pady=8)
@@ -115,5 +116,5 @@ class HomeFrame(ttk.Frame):
             inner.bind("<Button-1>", lambda e, k=key: self.app.show(k))
 
         # ── exit button ──────────────────────────────────────────────────
-        ttk.Button(cards_area, text=self.tr("⏻  Quitter","⏻  خروج"),style="Danger.TButton",
+        ttk.Button(cards_area, text=self.tr("⏻  Quitter","⏻  خروج","⏻  Exit"),style="Danger.TButton",
                    command=self.app.on_close).pack(pady=(18, 0),ipadx=10)
