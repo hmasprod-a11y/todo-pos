@@ -23,7 +23,7 @@ def _internal_product_barcode(product_id):
 class ProductEditor(tk.Toplevel):
     def __init__(self,master,product_id=None,on_saved=None):
         super().__init__(master)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        self.lang=get_setting('language','fr');self.currency=get_setting('currency','DH');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.pid=product_id; self.on_saved=on_saved
         self.loaded_stock=0
         self.img_source="";self.img_rel="";self.img_ref=None
@@ -219,7 +219,7 @@ class ProductEditor(tk.Toplevel):
         ttk.Combobox(row,textvariable=mode_var,values=[self.tr('Prix/unité','ثمن/الوحدة'),self.tr('À partir de Qté','ابتداءً من الكمية')],state='readonly',width=18).pack(side='left')
         ttk.Label(row,text=self.tr("Qté","الكمية")).pack(side="left")
         ttk.Entry(row,textvariable=minimum_var,width=9).pack(side="left",padx=4)
-        ttk.Label(row,text=self.tr("Prix DH","الثمن DH")).pack(side="left")
+        ttk.Label(row,text=self.tr(f"Prix ({self.currency})",f"الثمن ({self.currency})",f"Price ({self.currency})")).pack(side="left")
         ttk.Entry(row,textvariable=price_var,width=12).pack(side="left",padx=4)
         def remove():
             row.destroy();self.offer_rows.remove((minimum_var,price_var,mode_var))
