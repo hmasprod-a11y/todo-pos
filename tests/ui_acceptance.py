@@ -6,6 +6,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'todo'))
 temp=tempfile.TemporaryDirectory()
 os.environ['TODO_DB_PATH']=str(Path(temp.name)/'ui.db')
 from app import ToDoApp
+from screens.onboarding import FirstRunWizard
 from database import connect
 from screens.products import ProductEditor, ProductsFrame
 from screens.payment import PaymentDialog
@@ -29,6 +30,8 @@ def visible(w):
 
 with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showwarning',fail), patch('tkinter.messagebox.showinfo',lambda *a,**k:None):
     app=ToDoApp()
+    wizard=next(w for w in app.winfo_children() if isinstance(w,FirstRunWizard))
+    wizard.finish();app.update_idletasks()
     app.report_callback_exception=lambda t,v,tb: fail('Tk callback',v)
     with patch('tkinter.simpledialog.askstring',side_effect=['9876','9876']):
         app.login_pin.set('1234');app.login()
