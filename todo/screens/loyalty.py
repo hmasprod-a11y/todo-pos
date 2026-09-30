@@ -32,7 +32,7 @@ class LoyaltyFrame(ttk.Frame):
             total+=int(r['points'])
             self.tree.insert('','end',iid=str(r['id']),values=(r['id'],r['name'],r['phone'],r['points'],
                 fmt(int(r['points'])*settings['point_value_cents'],''),fmt(int(r['sales_total_cents'] or 0),'')))
-        self.summary.config(text=self.tr(f'{len(rows)} client(s) · {total} point(s)',f'{len(rows)} زبون · {total} نقطة'))
+        self.summary.config(text=self.tr(f'{len(rows)} client(s) · {total} point(s)',f'{len(rows)} زبون · {total} نقطة',f'{len(rows)} customer(s) · {total} point(s)'))
     def _selected(self):
         s=self.tree.selection();return int(s[0]) if s else None
     def adjust(self,direction):
