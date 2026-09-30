@@ -757,6 +757,8 @@ class SettingsFrame(ttk.Frame):
             ('backup',self.tr('Backup / Restore','النسخ الاحتياطي / الاسترجاع')),
             ('install',self.tr('Installation Windows','تثبيت Windows')),
             ('checklist',self.tr('Checklist livraison','قائمة فحص التسليم')),
+            ('privacy',self.tr('Politique de confidentialité','سياسة الخصوصية')),
+            ('terms',self.tr("Conditions d’utilisation",'شروط الاستخدام')),
         ]
         paths=documentation_paths()
         for i,(key,label) in enumerate(labels):

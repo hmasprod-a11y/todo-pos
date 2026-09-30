@@ -12,6 +12,8 @@ DOCS={
     'backup':'BACKUP_RESTORE.md',
     'install':'INSTALLATION_WINDOWS.md',
     'checklist':'RELEASE_CHECKLIST.md',
+    'privacy':'Privacy_Policy.md',
+    'terms':'Terms_of_Use.md',
 }
 
 def _app_root():
