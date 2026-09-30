@@ -6,4 +6,4 @@ The current application does not send shop data, customer data, sales data, stoc
 
 Optional future services, including Store entitlement refresh, cloud backup and diagnostics, must state their purpose and request consent before transmitting data. Diagnostics must exclude customer names, product names, turnover and barcodes.
 
-Local backups remain under the operator's control. Contact and data-deletion guidance will be published before Microsoft Store release.
+Local backups remain under the operator's control. See the in-app **Support and data** page for current local export and deletion guidance.

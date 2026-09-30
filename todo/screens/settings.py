@@ -759,6 +759,7 @@ class SettingsFrame(ttk.Frame):
             ('checklist',self.tr('Checklist livraison','قائمة فحص التسليم')),
             ('privacy',self.tr('Politique de confidentialité','سياسة الخصوصية')),
             ('terms',self.tr("Conditions d’utilisation",'شروط الاستخدام')),
+            ('support',self.tr('Support et données','الدعم والبيانات')),
         ]
         paths=documentation_paths()
         for i,(key,label) in enumerate(labels):

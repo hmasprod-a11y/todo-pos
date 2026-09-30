@@ -14,6 +14,7 @@ DOCS={
     'checklist':'RELEASE_CHECKLIST.md',
     'privacy':'Privacy_Policy.md',
     'terms':'Terms_of_Use.md',
+    'support':'SUPPORT.md',
 }
 
 def _app_root():
