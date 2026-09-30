@@ -1,0 +1,8 @@
+import unittest
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+class SettingsEnglishTests(unittest.TestCase):
+ def test_core_shop_settings_have_explicit_english(self):
+  source=(ROOT/"todo"/"screens"/"settings.py").read_text(encoding="utf-8")
+  for label in ("Shop and sales","Cash workstation","Stock management","Enable cash closure"):self.assertIn(label,source)
+if __name__=="__main__":unittest.main()
