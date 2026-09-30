@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 from services.money import fmt, to_cents
+from services.globalization import current_country_profile
 from database import get_setting
 from services.supplier_payments import (
     add_supplier_payment, list_supplier_payments,
@@ -16,6 +17,7 @@ class SupplierPaymentsWindow(tk.Toplevel):
         super().__init__(master)
         self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.supplier = supplier
+        self.currency = current_country_profile().currency
         self.title(f"{self.tr('Règlements','التسديدات','Payments')} — {supplier['name']}")
         self.geometry('860x500')
         self.transient(master.winfo_toplevel())
@@ -86,7 +88,7 @@ class SupplierPaymentsWindow(tk.Toplevel):
         purchase_id = None
         sel = self.pur_tree.selection()
         if sel: purchase_id = int(sel[0])
-        amount_str = simpledialog.askstring(self.tr('Règlement','تسديد','Payment'), self.tr('Montant payé (DH) :','المبلغ المؤدى (DH):','Amount paid (DH):'), parent=self)
+        amount_str = simpledialog.askstring(self.tr('Règlement','تسديد','Payment'), self.tr(f'Montant payé ({self.currency}) :',f'المبلغ المؤدى ({self.currency}):',f'Amount paid ({self.currency}):'), parent=self)
         if amount_str is None: return
         note = simpledialog.askstring(self.tr('Règlement','تسديد','Payment'), self.tr('Note (facultatif) :','ملاحظة (اختيارية):','Note (optional):'), parent=self) or ''
         try:
