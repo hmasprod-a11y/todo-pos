@@ -12,7 +12,7 @@ class FirstRunWizard(tk.Toplevel):
     def __init__(self,master,on_done):
         super().__init__(master);self.on_done=on_done;self.transient(master);self.grab_set()
         self.geometry("560x650");self.resizable(False,False)
-        self.language=tk.StringVar(value="fr");self.language_label=tk.StringVar();self.country=tk.StringVar(value="MA");self.shop=tk.StringVar(value="ToDo");self.printer=tk.StringVar();self.barcode=tk.StringVar();self.pin=tk.StringVar();self.pin_confirm=tk.StringVar()
+        self.language=tk.StringVar(value="fr");self.language_label=tk.StringVar();self.country=tk.StringVar(value="MA");self.country_label=tk.StringVar();self.shop=tk.StringVar(value="ToDo");self.printer=tk.StringVar();self.barcode=tk.StringVar();self.pin=tk.StringVar();self.pin_confirm=tk.StringVar()
         self._barcode_key="";self._texts=[];self._text_inputs=[]
         body=ttk.Frame(self,padding=26);body.pack(fill="both",expand=True);self.body=body
         self.welcome=self._label("onboarding.welcome",style="Title.TLabel");self.welcome.pack(fill="x")
@@ -20,7 +20,7 @@ class FirstRunWizard(tk.Toplevel):
         self._label("onboarding.language").pack(fill="x")
         self.language_box=ttk.Combobox(body,textvariable=self.language_label,state="readonly");self.language_box.pack(fill="x",pady=(0,12));self.language_box.bind("<<ComboboxSelected>>",self.select_language)
         self._label("onboarding.country").pack(fill="x")
-        ttk.Combobox(body,textvariable=self.country,values=tuple(PROFILES),state="readonly").pack(fill="x",pady=(0,12))
+        self.country_box=ttk.Combobox(body,textvariable=self.country_label,state="readonly");self.country_box.pack(fill="x",pady=(0,12));self.country_box.bind("<<ComboboxSelected>>",self.select_country)
         self._label("onboarding.shop").pack(fill="x");shop_entry=ttk.Entry(body,textvariable=self.shop);shop_entry.pack(fill="x",pady=(0,12));self._text_inputs.append(shop_entry)
         self._label("onboarding.printer").pack(fill="x");printer_entry=ttk.Entry(body,textvariable=self.printer);printer_entry.pack(fill="x",pady=(0,12));self._text_inputs.append(printer_entry)
         self._label("onboarding.barcode").pack(fill="x");barcode_entry=ttk.Entry(body,textvariable=self.barcode);barcode_entry.pack(fill="x",pady=(0,4));self._text_inputs.append(barcode_entry);barcode_entry.bind("<Return>",lambda e:self.confirm_barcode())
@@ -33,6 +33,10 @@ class FirstRunWizard(tk.Toplevel):
     def select_language(self,event=None):
         code=self._language_codes.get(self.language_label.get())
         if code:self.language.set(code)
+
+    def select_country(self,event=None):
+        code=self._country_codes.get(self.country_label.get())
+        if code:self.country.set(code)
 
     def _label(self,key,**kwargs):
         widget=ttk.Label(self.body,**kwargs);self._texts.append((widget,key));return widget
@@ -47,6 +51,11 @@ class FirstRunWizard(tk.Toplevel):
         self._language_codes={tr(f"language.{code}"):code for code in ("en","fr","ar")}
         self.language_box.configure(values=tuple(self._language_codes))
         self.language_label.set(next(label for label,code in self._language_codes.items() if code==self.language.get()))
+        country_names={"en":{"MA":"Morocco","FR":"France","GB":"United Kingdom","AE":"United Arab Emirates"},"fr":{"MA":"Maroc","FR":"France","GB":"Royaume-Uni","AE":"Émirats arabes unis"},"ar":{"MA":"المغرب","FR":"فرنسا","GB":"المملكة المتحدة","AE":"الإمارات العربية المتحدة"}}
+        names=country_names.get(self.language.get(),country_names["fr"])
+        self._country_codes={names.get(code,code):code for code in PROFILES}
+        self.country_box.configure(values=tuple(self._country_codes))
+        self.country_label.set(next(label for label,code in self._country_codes.items() if code==self.country.get()))
         for widget,key in self._texts:widget.config(text=tr(key),anchor=anchor)
         self.subtitle.config(justify="right" if rtl else "left")
         for entry in self._text_inputs: entry.configure(justify="right" if rtl else "left")
