@@ -28,7 +28,7 @@ class PurchasesFrame(ttk.Frame):
         self.q=tk.StringVar();e=ttk.Entry(p,textvariable=self.q,style='Search.TEntry');e.pack(fill='x',pady=4);e.bind("<KeyRelease>",lambda x:self.search())
         self.prod=ttk.Treeview(p,columns=("id","name","stock","cost"),show="headings")
         for c,h,w in [("id","ID",50),("name",self.tr("Article","المنتوج"),240),("stock",self.tr("Stock","المخزون"),80),("cost",self.tr("Achat","الشراء"),80)]:self.prod.heading(c,text=h);self.prod.column(c,width=w,anchor="center")
-        self.prod.pack(fill="both",expand=True);self.prod.bind("<Double-1>",lambda e=None:self.addline());self.prod.bind("<Return>",lambda e:self.addline());self.search()
+        self.prod.pack(fill="both",expand=True);self.prod.bind("<Double-1>",lambda e=None:self.addline());self.prod.bind("<Return>",lambda e=None:self.addline());self.search()
         r=ttk.Frame(body);body.add(r,weight=3)
         ttk.Button(r,text=self.tr('✓  VALIDER réception','✓  تأكيد المشتريات'),style='Success.TButton',command=self.save).pack(side='bottom',fill='x',pady=6,ipady=6)
         ttk.Button(r,text=self.tr('Enregistrer commande','حفظ الطلب'),style='Primary.TButton',command=self.save_order).pack(side='bottom',fill='x',pady=(0,4),ipady=4)
