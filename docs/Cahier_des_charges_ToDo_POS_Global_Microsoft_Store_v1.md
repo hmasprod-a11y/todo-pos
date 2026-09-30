@@ -371,10 +371,11 @@ settings; and receipt tax breakdowns. Evidence commits: `de215b6`, `9e0ae8e`,
 ### P2 — Commercial Engine — foundations delivered (2026-09-30)
 A central offline-safe `FeatureService`, Local and Microsoft Store cached
 entitlement providers, and durable entitlement/commerce/feature-flag tables are
-in place. Core cashier features stay available offline. Store SDK activation,
-advertising and any user-facing purchase flow remain deliberately deferred until
-Store packaging and publisher identity are ready. Evidence commits: `e623887`,
-`80d2fde`, `63214f9`, and `71872cb`.
+in place. Core cashier features stay available offline. Store SDK activation and any user-facing purchase flow remain deliberately
+deferred until Store packaging and publisher identity are ready. An offline-safe
+ads policy boundary now forbids ads on sale, payment, change, cash closure and
+receipt surfaces. Evidence commits: `e623887`, `80d2fde`, `63214f9`,
+`71872cb`, `3d88d15`, and `a059cba`.
 
 ### P3 — Store Packaging — not started
 MSIX + Store identity + Store update path. This requires the final Store
@@ -389,7 +390,7 @@ of Use, and Support/data guidance are included in the packaged documentation
 and available from in-app Help. Optional import is intentionally not reworked
 without a reproduced Import/Export defect. Evidence commits: `4ce88b`,
 `a79734e`, `8dc1e11`, `54e3118`, `a66aa5c`, `e878246`,
-`3ddbde4`, `b0c94fe`, and `2d12e35`.
+`3ddbde4`, `b0c94fe`, `2d12e35`, `37b77b0`, and `66c6b45`.
 
 ### P5 — Store Launch
 EN/FR/AR listing + Free release.
