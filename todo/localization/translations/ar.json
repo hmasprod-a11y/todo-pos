@@ -33,5 +33,9 @@
   "onboarding.barcode_received": "تم استلام الباركود: {value}",
   "onboarding.barcode_empty": "أدخل أو امسح باركوداً.",
   "onboarding.shop_required": "اسم المتجر إجباري.",
-  "onboarding.pin_invalid": "أدخل رمز PIN نفسه من 4 إلى 12 رقماً مرتين."
+  "onboarding.pin_invalid": "أدخل رمز PIN نفسه من 4 إلى 12 رقماً مرتين.",
+  "login.title": "تسجيل الدخول",
+  "login.subtitle": "تسجيل الدخول إلى الصندوق",
+  "login.enter": "دخول",
+  "login.invalid": "اسم المستخدم أو الرمز غير صحيح."
 }
