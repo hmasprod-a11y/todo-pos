@@ -766,6 +766,9 @@ class SettingsFrame(ttk.Frame):
             state='normal' if paths[key].is_file() else 'disabled'
             ttk.Button(docs,text=label,state=state,command=lambda k=key:self.open_help_document(k,w)).grid(row=i//2,column=i%2,sticky='ew',padx=4,pady=4)
         docs.columnconfigure(0,weight=1);docs.columnconfigure(1,weight=1)
+        from services.demo import launcher_path
+        demo_state='normal' if launcher_path().is_file() else 'disabled'
+        ttk.Button(docs,text=self.tr('Lancer la démo isolée','تشغيل النسخة التجريبية المعزولة'),state=demo_state,command=lambda:self.launch_isolated_demo(w)).grid(row=4,column=0,columnspan=2,sticky='ew',padx=4,pady=(8,4))
         def copy_diag():
             text_value=diagnostic_text();w.clipboard_clear();w.clipboard_append(text_value)
             messagebox.showinfo('ToDo',self.tr('Diagnostic copié.','تم نسخ التشخيص.'),parent=w)
@@ -773,6 +776,16 @@ class SettingsFrame(ttk.Frame):
         ttk.Button(bar,text=self.tr('Copier diagnostic','نسخ التشخيص'),style='Primary.TButton',command=copy_diag).pack(side='left')
         ttk.Button(bar,text=self.tr('Base de Données','قاعدة البيانات'),command=lambda:(w.destroy(),self.database_tools())).pack(side='left',padx=6)
         ttk.Button(bar,text=self.tr('Fermer','إغلاق'),command=w.destroy).pack(side='right')
+
+    def launch_isolated_demo(self,parent):
+        try:
+            from services.demo import launch_demo
+            launch_demo()
+            messagebox.showinfo('ToDo',self.tr('La démo s’ouvre avec sa propre base de données.','سيتم فتح النسخة التجريبية بقاعدة بيانات مستقلة.'),parent=parent)
+        except FileNotFoundError:
+            messagebox.showinfo('ToDo',self.tr('La démo n’est disponible que dans le package Windows qui l’inclut.','النسخة التجريبية متاحة فقط في حزمة Windows التي تتضمنها.'),parent=parent)
+        except Exception as error:
+            messagebox.showerror('ToDo',str(error),parent=parent)
 
     def open_help_document(self,key,parent):
         try:
