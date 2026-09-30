@@ -59,7 +59,7 @@ class TaxSaleSnapshotTests(unittest.TestCase):
             conn.execute("UPDATE sales SET tax_label_snapshot=? WHERE id=?", ("TVA", sale["id"]))
             conn.commit()
         receipt = build_receipt(sale["id"])
-        self.assertIn("TVA 20%: 2.00 DH", receipt)
+        self.assertIn("TVA 20% | HT 10.00 DH | Taxe 2.00 DH | TTC 12.00 DH", receipt)
         self.assertIn("TOTAL: 12.00 DH", receipt)
 
     def test_english_receipt_template_is_available(self):
