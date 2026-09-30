@@ -29,7 +29,7 @@ class SupportTests(unittest.TestCase):
 
     def test_document_catalog_is_complete(self):
         paths=documentation_paths()
-        self.assertEqual(set(paths),{'guide_fr','guide_ar','backup','install','checklist','privacy','privacy_fr','privacy_ar','terms','terms_fr','terms_ar','support'})
+        self.assertEqual(set(paths),{'guide_fr','guide_ar','backup','install','checklist','privacy','privacy_fr','privacy_ar','terms','terms_fr','terms_ar','support','support_fr','support_ar'})
         self.assertTrue(all(p.name.endswith('.md') for p in paths.values()))
 
 if __name__=='__main__':unittest.main()

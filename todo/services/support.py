@@ -20,6 +20,8 @@ DOCS={
     'terms_fr':'Terms_of_Use_FR.md',
     'terms_ar':'Terms_of_Use_AR.md',
     'support':'SUPPORT.md',
+    'support_fr':'SUPPORT_FR.md',
+    'support_ar':'SUPPORT_AR.md',
 }
 
 def _app_root():
@@ -82,7 +84,7 @@ def diagnostic_text():
 
 def open_document(key):
     language=get_setting('language','fr')
-    if key in ('privacy','terms') and language in ('fr','ar'):
+    if key in ('privacy','terms','support') and language in ('fr','ar'):
         key=f'{key}_{language}'
     paths=documentation_paths()
     if key not in paths:raise ValueError('Document inconnu.')
