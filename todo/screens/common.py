@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from database import get_setting
 
 def clear(frame):
     for w in frame.winfo_children():
@@ -62,6 +63,8 @@ class EmbeddedTouchKeyboard:
         if self._is_text_input(self._keyboard_target): self.after_idle(self._keyboard_target.focus_set)
 
     def _build_embedded_keyboard(self):
+        lang=get_setting('language','fr')
+        labels={'en': {'Espace':'Space','Effacer':'Clear','Entrée':'Enter','Fermer':'Close'}, 'ar': {'Espace':'مسافة','Effacer':'مسح','Entrée':'إدخال','Fermer':'إغلاق'}}.get(lang,{})
         rows=[
             ['1','2','3','4','5','6','7','8','9','0','⌫'],
             ['a','z','e','r','t','y','u','i','o','p'],
@@ -72,7 +75,8 @@ class EmbeddedTouchKeyboard:
         for keys in rows:
             row=tk.Frame(self.keyboard_frame,bg='#1E293B');row.pack(fill='x',pady=3)
             for key in keys:
-                tk.Button(row,text=key,font=('Segoe UI',12,'bold'),bg=('#DC2626' if key=='Fermer' else '#2563EB' if key in ('Entrée','Effacer') else '#334155'),fg='white',
+                display=labels.get(key,key)
+                tk.Button(row,text=display,font=('Segoe UI',12,'bold'),bg=('#DC2626' if key=='Fermer' else '#2563EB' if key in ('Entrée','Effacer') else '#334155'),fg='white',
                     activebackground=('#B91C1C' if key=='Fermer' else '#1D4ED8' if key in ('Entrée','Effacer') else '#475569'),activeforeground='white',relief='flat',bd=0,
                     padx=10,pady=9,command=lambda k=key:self._keyboard_press(k)
                 ).pack(side='left',fill='x',expand=True,padx=2)
