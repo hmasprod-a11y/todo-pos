@@ -377,10 +377,8 @@ ads policy boundary now forbids ads on sale, payment, change, cash closure and
 receipt surfaces. Evidence commits: `e623887`, `80d2fde`, `63214f9`,
 `71872cb`, `3d88d15`, and `a059cba`.
 
-### P3 — Store Packaging — not started
-MSIX + Store identity + Store update path. This requires the final Store
-publisher identity, package identity and visual assets; the existing Windows
-portable build and Setup installer remain the tested direct-distribution path.
+### P3 — Store Packaging — scaffold delivered (2026-09-30)
+MSIX manifest template, packaging script, validation tests and Store release checklist are in place. Actual Store publication still requires the final Partner Center publisher/package identity and official visual assets; no identity or assets are invented. The tested portable Windows build and Setup installer remain available for direct distribution until those external inputs are supplied.
 
 ### P4 — Productisation — in progress (2026-09-30)
 The offline first-run wizard now configures language, country defaults, shop
