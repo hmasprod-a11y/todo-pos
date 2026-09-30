@@ -7,26 +7,26 @@ from database import connect, get_setting
 class CashFrame(ttk.Frame):
     def __init__(self,master,app):
         super().__init__(master,padding=15);self.app=app
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
-        ttk.Label(self,text=self.tr('Caisse','الصندوق'),style='Title.TLabel').pack(anchor='w',pady=(0,8))
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        ttk.Label(self,text=self.tr('Caisse','الصندوق','Cash drawer'),style='Title.TLabel').pack(anchor='w',pady=(0,8))
         self.info=ttk.Label(self,text="",font=("Segoe UI",12));self.info.pack(anchor="w",pady=8)
         self.kpis=ttk.Frame(self);self.kpis.pack(fill="x",pady=8);self.kpi_labels={}
-        for key,title in [("expected",self.tr("Cash attendu","النقد المتوقع")),("sales",self.tr("Ventes cash","المبيعات النقدية")),("card",self.tr("Ventes carte","مبيعات البطاقة")),("expenses",self.tr("Dépenses","المصاريف")),("returns",self.tr("Retours cash","المرتجعات النقدية"))]:
+        for key,title in [("expected",self.tr("Cash attendu","النقد المتوقع","Expected cash")),("sales",self.tr("Ventes cash","المبيعات النقدية","Cash sales")),("card",self.tr("Ventes carte","مبيعات البطاقة","Card sales")),("expenses",self.tr("Dépenses","المصاريف","Expenses")),("returns",self.tr("Retours cash","المرتجعات النقدية","Cash returns"))]:
             card=ttk.LabelFrame(self.kpis,text=title,padding=8);card.pack(side="left",fill="x",expand=True,padx=3);lbl=ttk.Label(card,text="—",font=("Segoe UI",16,"bold"));lbl.pack();self.kpi_labels[key]=lbl
         b=ttk.Frame(self);b.pack(anchor="w",pady=8)
-        ttk.Button(b,text=self.tr('Ouvrir caisse','فتح الصندوق'),style='Success.TButton',command=self.open).pack(side='left',padx=4)
-        ttk.Button(b,text=self.tr('Dépense','مصروف'),style='Danger.TButton',command=self.expense).pack(side='left',padx=4)
-        ttk.Button(b,text=self.tr('Cash IN','إدخال نقدي'),style='Soft.TButton',command=lambda:self.cashmove('IN')).pack(side='left',padx=4)
-        ttk.Button(b,text=self.tr('Cash OUT','إخراج نقدي'),style='Soft.TButton',command=lambda:self.cashmove('OUT')).pack(side='left',padx=4)
+        ttk.Button(b,text=self.tr('Ouvrir caisse','فتح الصندوق','Open drawer'),style='Success.TButton',command=self.open).pack(side='left',padx=4)
+        ttk.Button(b,text=self.tr('Dépense','مصروف','Expense'),style='Danger.TButton',command=self.expense).pack(side='left',padx=4)
+        ttk.Button(b,text=self.tr('Cash IN','إدخال نقدي','Cash IN'),style='Soft.TButton',command=lambda:self.cashmove('IN')).pack(side='left',padx=4)
+        ttk.Button(b,text=self.tr('Cash OUT','إخراج نقدي','Cash OUT'),style='Soft.TButton',command=lambda:self.cashmove('OUT')).pack(side='left',padx=4)
         if get_setting('closure_enabled','1')=='1':
-            ttk.Button(b,text=self.tr('Clôturer','إغلاق الصندوق'),style='Primary.TButton',command=self.close).pack(side='left',padx=4)
-        ttk.Button(b,text=self.tr('Journal caisse','سجل الصندوق'),style='Soft.TButton',command=self.cash_journal).pack(side='left',padx=4)
-        ttk.Button(b,text=self.tr('Historique clôtures','سجل الإغلاقات'),style='Soft.TButton',command=self.history).pack(side='left',padx=4)
+            ttk.Button(b,text=self.tr('Clôturer','إغلاق الصندوق','Close drawer'),style='Primary.TButton',command=self.close).pack(side='left',padx=4)
+        ttk.Button(b,text=self.tr('Journal caisse','سجل الصندوق','Cash journal'),style='Soft.TButton',command=self.cash_journal).pack(side='left',padx=4)
+        ttk.Button(b,text=self.tr('Historique clôtures','سجل الإغلاقات','Closure history'),style='Soft.TButton',command=self.history).pack(side='left',padx=4)
         self.details=tk.Text(self,height=16,font=("Consolas",11));self.details.pack(fill="x",pady=15);self.refresh()
     def refresh(self):
         s=get_open_session();self.details.config(state="normal");self.details.delete("1.0","end")
         if not s:
-            self.info.config(text=self.tr('Aucune caisse ouverte','لا يوجد صندوق مفتوح'))
+            self.info.config(text=self.tr('Aucune caisse ouverte','لا يوجد صندوق مفتوح','No open cash drawer'))
             for lbl in self.kpi_labels.values():lbl.config(text="—")
             self.details.config(state="disabled");return
         with connect() as c:t=session_totals(c,s["id"])
