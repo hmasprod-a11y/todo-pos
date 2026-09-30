@@ -32,6 +32,8 @@ from screens.loyalty import LoyaltyFrame
 from screens.supplier_returns import SupplierReturnsFrame
 from screens.customer_orders import CustomerOrdersFrame
 from screens.quotations import QuotationsFrame
+from screens.onboarding import FirstRunWizard
+from services.onboarding import is_complete
 
 class ToDoApp(tk.Tk):
     def __init__(self):
@@ -114,7 +116,7 @@ class ToDoApp(tk.Tk):
         st.configure('Cart.Treeview',rowheight=50,font=('Segoe UI',10,'bold'))
 
         self.apply_theme()
-        self.show_login()
+        self.show_login() if is_complete() else FirstRunWizard(self,self.show_login)
         self.schedule_auto_backup()
 
     def schedule_auto_backup(self):
