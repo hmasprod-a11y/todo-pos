@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog,filedialog
 from database import connect, get_setting
 from services.inventory import apply_stock_movement, stock_activity, reorder_list, stock_summary, stock_products
+from services.money import fmt
 
 class StockFrame(ttk.Frame):
     def __init__(self,master,app=None):
@@ -139,7 +140,7 @@ class StockFrame(ttk.Frame):
         if supplier_values:supplier_var.set(supplier_values[0])
         ttk.Label(footer,text=self.tr('Fournisseur','المورد')).pack(side='left',padx=(0,4))
         ttk.Combobox(footer,textvariable=supplier_var,values=supplier_values,state='readonly',width=24).pack(side='left',padx=(0,8))
-        ttk.Label(footer,text=self.tr(f"Coût total estimé: {total/100:.2f} DH",f"إجمالي التكلفة المقدرة: {total/100:.2f} درهم"),
+        ttk.Label(footer,text=self.tr(f"Coût total estimé: {fmt(total)}",f"إجمالي التكلفة المقدرة: {fmt(total)}",f"Estimated total cost: {fmt(total)}"),
                   font=('Segoe UI',11,'bold')).pack(side='right')
         def export_csv():
             path=filedialog.asksaveasfilename(parent=w,defaultextension='.csv',filetypes=[('CSV','*.csv')],
