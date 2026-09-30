@@ -8,12 +8,12 @@ from services.money import fmt, to_cents
 class PaymentDialog(tk.Toplevel):
     """Collect a payment choice; closing this dialog never writes a sale."""
 
-    def __init__(self, master, total, currency='DH', method='CASH', client_name=None):
+    def __init__(self, master, total, currency=None, method='CASH', client_name=None):
         super().__init__(master)
         self.lang=get_setting('language','fr');self.rtl=self.lang=='ar';self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.client_name = client_name
         self.total = total
-        self.currency = currency
+        self.currency = currency or get_setting('currency', 'DH')
         self.result = None
         self.title(self.tr('Encaissement','الخلاص','Payment'))
         self.geometry(f'620x{min(700,self.winfo_screenheight()-90)}')
@@ -65,7 +65,7 @@ class PaymentDialog(tk.Toplevel):
         denominations = ttk.Frame(body)
         denominations.pack(fill='x', pady=6)
         for index, value in enumerate((200, 100, 50, 20, 10, 5, 2, 1, 0.5)):
-            ttk.Button(denominations, text=f'{value:g} DH', style='Soft.TButton', command=lambda n=value: self.add_cash(n)).grid(
+            ttk.Button(denominations, text=f'{value:g} {self.currency}', style='Soft.TButton', command=lambda n=value: self.add_cash(n)).grid(
                 row=index//5, column=index%5, sticky='nsew', padx=3, pady=3, ipady=5)
         self.cash_breakdown = ttk.Label(body, text='')
         self.cash_breakdown.pack(fill='x', pady=(0,4))
