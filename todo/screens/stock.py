@@ -7,45 +7,45 @@ from services.inventory import apply_stock_movement, stock_activity, reorder_lis
 class StockFrame(ttk.Frame):
     def __init__(self,master,app=None):
         super().__init__(master,padding=16)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         top=ttk.Frame(self);top.pack(fill="x",pady=(0,8))
-        ttk.Label(top,text=self.tr('Stock','المخزون'),style="Title.TLabel").pack(side="left")
-        ttk.Label(self,text=self.tr('Quantités, mouvements et inventaire — nom, prix et photo restent dans Articles.','الكميات والحركات والجرد — تعديل الاسم والثمن والصورة يبقى في المنتجات.'),foreground="#475569").pack(anchor="w",pady=(0,8))
-        ttk.Button(top,text=self.tr('Ajustement','تسوية المخزون'),style="Primary.TButton",command=self.adjust).pack(side="right")
-        ttk.Button(top,text=self.tr('Désactiver','تعطيل'),style='Danger.TButton',command=self.deactivate_selected).pack(side='right',padx=4)
-        ttk.Button(top,text=self.tr('+ Nouveau','+ جديد'),style='Success.TButton',command=self.new_product).pack(side='right',padx=4)
+        ttk.Label(top,text=self.tr('Stock','المخزون','Stock'),style="Title.TLabel").pack(side="left")
+        ttk.Label(self,text=self.tr('Quantités, mouvements et inventaire — nom, prix et photo restent dans Articles.','الكميات والحركات والجرد — تعديل الاسم والثمن والصورة يبقى في المنتجات.','Quantities, movements and inventory — name, price and photo remain in Products.'),foreground="#475569").pack(anchor="w",pady=(0,8))
+        ttk.Button(top,text=self.tr('Ajustement','تسوية المخزون','Adjust stock'),style="Primary.TButton",command=self.adjust).pack(side="right")
+        ttk.Button(top,text=self.tr('Désactiver','تعطيل','Deactivate'),style='Danger.TButton',command=self.deactivate_selected).pack(side='right',padx=4)
+        ttk.Button(top,text=self.tr('+ Nouveau','+ جديد','+ New'),style='Success.TButton',command=self.new_product).pack(side='right',padx=4)
         self.q=tk.StringVar();self.filter=tk.StringVar(value=self.tr('Tous','الكل'))
         self.search_entry=ttk.Entry(top,textvariable=self.q,width=22,style="Search.TEntry");self.search_entry.pack(side="left",padx=(20,8));self.search_entry.bind("<KeyRelease>",lambda e:self.refresh())
-        box=ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل'),self.tr('Alertes stock','تنبيهات المخزون'),self.tr('Stock négatif','مخزون سالب')],state="readonly",width=14);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
+        box=ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل'),self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),self.tr('Stock négatif','مخزون سالب','Negative stock')],state="readonly",width=14);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
         with connect() as c:
             category_rows=c.execute("SELECT id,name FROM categories WHERE active=1 ORDER BY sort_order,name COLLATE NOCASE").fetchall()
-        self.family_values=[(self.tr('Toutes familles','كل الفئات'),None)]+[(r['name'],r['id']) for r in category_rows]
+        self.family_values=[(self.tr('Toutes familles','كل الفئات','All categories'),None)]+[(r['name'],r['id']) for r in category_rows]
         self.family_map={label:cid for label,cid in self.family_values}
         self.family=tk.StringVar(value=self.family_values[0][0])
         family_box=ttk.Combobox(top,textvariable=self.family,values=[label for label,_ in self.family_values],state='readonly',width=18)
         family_box.pack(side='left',padx=(6,0));family_box.bind('<<ComboboxSelected>>',lambda e:self.refresh())
-        ttk.Button(top,text=self.tr('Réapprovisionnement','إعادة الطلب'),style="Soft.TButton",command=self.reorder_window).pack(side="right",padx=8)
-        ttk.Button(top,text=self.tr('Journal global','السجل العام'),style="Soft.TButton",command=self.global_ledger).pack(side="right",padx=8)
-        ttk.Button(top,text=self.tr('Historique','السجل'),style="Soft.TButton",command=self.ledger).pack(side="right",padx=8)
+        ttk.Button(top,text=self.tr('Réapprovisionnement','إعادة الطلب','Reorder'),style="Soft.TButton",command=self.reorder_window).pack(side="right",padx=8)
+        ttk.Button(top,text=self.tr('Journal global','السجل العام','Global journal'),style="Soft.TButton",command=self.global_ledger).pack(side="right",padx=8)
+        ttk.Button(top,text=self.tr('Historique','السجل','History'),style="Soft.TButton",command=self.ledger).pack(side="right",padx=8)
         if app is not None:
             ttk.Button(top,text=self.tr('Articles','المنتجات'),style="Soft.TButton",command=lambda: app.show("products")).pack(side="right",padx=8)
         cols=("code","name","family","purchase","sale","stock","alert","last")
         self.t=ttk.Treeview(self,columns=cols,show="headings",height=14)
         for c,h,w,anchor in [
-            ("code",self.tr("Code","الكود"),120,"center"),
-            ("name",self.tr("Article","المنتوج"),230,"w"),
-            ("family",self.tr("Famille","الفئة"),170,"w"),
-            ("purchase",self.tr("PRIX_A","ثمن الشراء"),90,"e"),
-            ("sale",self.tr("PRIX_V","ثمن البيع"),90,"e"),
+            ("code",self.tr("Code","الكود","Code"),120,"center"),
+            ("name",self.tr("Article","المنتوج","Product"),230,"w"),
+            ("family",self.tr("Famille","الفئة","Category"),170,"w"),
+            ("purchase",self.tr("PRIX_A","ثمن الشراء","BUY PRICE"),90,"e"),
+            ("sale",self.tr("PRIX_V","ثمن البيع","SALE PRICE"),90,"e"),
             ("stock",self.tr("Stock","المخزون"),80,"e"),
-            ("alert",self.tr("Alerte","التنبيه"),75,"e"),
-            ("last",self.tr("Dernier mouvement","آخر حركة"),210,"w"),
+            ("alert",self.tr("Alerte","التنبيه","Alert"),75,"e"),
+            ("last",self.tr("Dernier mouvement","آخر حركة","Last movement"),210,"w"),
         ]:
             self.t.heading(c,text=h);self.t.column(c,width=w,anchor=anchor)
         self.t.pack(fill="both",expand=True)
         self.kpi=tk.Frame(self,bg="#F6F7FB");self.kpi.pack(fill="x",pady=(8,0))
         self.kpi_values=[]
-        for title,bg in [(self.tr("Articles","المنتجات"),"#2563EB"),(self.tr("Alertes","التنبيهات"),"#F59E0B"),(self.tr("Stock négatif","المخزون السالب"),"#DC2626"),(self.tr("Promotions actives","العروض النشطة"),"#BE185D"),(self.tr("Valeur achat","قيمة الشراء"),"#16A34A"),(self.tr("Valeur vente","قيمة البيع"),"#7C3AED")]:
+        for title,bg in [(self.tr("Articles","المنتجات","Products"),"#2563EB"),(self.tr("Alertes","التنبيهات"),"#F59E0B"),(self.tr("Stock négatif","المخزون السالب"),"#DC2626"),(self.tr("Promotions actives","العروض النشطة","Active promotions"),"#BE185D"),(self.tr("Valeur achat","قيمة الشراء"),"#16A34A"),(self.tr("Valeur vente","قيمة البيع"),"#7C3AED")]:
             card=tk.Frame(self.kpi,bg=bg,height=62);card.pack(side="left",fill="x",expand=True,padx=3);card.pack_propagate(False)
             value=tk.Label(card,text="0",bg=bg,fg="white",font=("Segoe UI",15,"bold"));value.pack(anchor="w",padx=10,pady=(5,0));tk.Label(card,text=title,bg=bg,fg="white").pack(anchor="w",padx=10);self.kpi_values.append(value)
         self.refresh()
@@ -121,7 +121,7 @@ class StockFrame(ttk.Frame):
         tree=ttk.Treeview(w,columns=('name','supplier_name','sku','supplier','stock','alert','target','order','cost'),show='headings')
         for key,label,width,anchor_col in [
             ('name',self.tr('Article','المنتوج'),220,'w'),('supplier_name',self.tr('Fournisseur','المورد'),160,'w'),('sku','SKU',90,'center'),
-            ('supplier',self.tr('Code fournisseur','كود المورد'),110,'center'),('stock',self.tr('Stock','المخزون'),70,'e'),
+            ('supplier',self.tr('Code fournisseur','كود المورد'),110,'center'),('stock',self.tr('Stock','المخزون','Stock'),70,'e'),
             ('alert',self.tr('Seuil','الحد'),80,'e'),('target',self.tr('Cible','الهدف'),80,'e'),
             ('order',self.tr('À commander','للطلب'),95,'e'),('cost',self.tr('Coût estimé','التكلفة المقدرة'),110,'e')]:
             tree.heading(key,text=label);tree.column(key,width=width,anchor=anchor_col)
