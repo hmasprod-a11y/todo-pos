@@ -13,3 +13,14 @@ Avant déploiement magasin :
 - [ ] Vente espèces, carte, mixte et retour testés.
 - [ ] Export PDF/Excel/CSV testé.
 - [ ] Restauration sur base de test vérifiée avant migration réelle.
+
+## Microsoft Store / MSIX
+
+Avant une soumission Store :
+- [ ] L'identité et le Publisher proviennent de Partner Center (aucune valeur devinée).
+- [ ] Les trois assets PNG officiels requis par MSIX sont fournis.
+- [ ] Le package MSIX est construit depuis le même artefact Windows testé.
+- [ ] Le MSIX est signé/soumis selon le flux Microsoft Store, sans certificat privé dans le dépôt.
+- [ ] Installation propre, lancement initial et migration/backup sont vérifiés.
+- [ ] Les textes Store EN, FR et AR correspondent aux fonctions effectivement disponibles.
+- [ ] Privacy Policy, Terms of Use et Support/data sont accessibles dans l'application.
