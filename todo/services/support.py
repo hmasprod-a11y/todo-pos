@@ -14,7 +14,11 @@ DOCS={
     'install':'INSTALLATION_WINDOWS.md',
     'checklist':'RELEASE_CHECKLIST.md',
     'privacy':'Privacy_Policy.md',
+    'privacy_fr':'Privacy_Policy_FR.md',
+    'privacy_ar':'Privacy_Policy_AR.md',
     'terms':'Terms_of_Use.md',
+    'terms_fr':'Terms_of_Use_FR.md',
+    'terms_ar':'Terms_of_Use_AR.md',
     'support':'SUPPORT.md',
 }
 
@@ -77,6 +81,9 @@ def diagnostic_text():
     ])
 
 def open_document(key):
+    language=get_setting('language','fr')
+    if key in ('privacy','terms') and language in ('fr','ar'):
+        key=f'{key}_{language}'
     paths=documentation_paths()
     if key not in paths:raise ValueError('Document inconnu.')
     path=paths[key]
