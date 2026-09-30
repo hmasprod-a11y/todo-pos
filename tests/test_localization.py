@@ -23,6 +23,8 @@ class LocalizationTests(unittest.TestCase):
             "sale.title",
             "sale.total",
             "payment.title",
+            "onboarding.welcome",
+            "onboarding.pin_invalid",
         }
         for language in SUPPORTED_LANGUAGES:
             self.assertTrue(required.issubset(load_catalog(language)))

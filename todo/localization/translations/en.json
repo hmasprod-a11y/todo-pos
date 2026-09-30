@@ -19,5 +19,19 @@
   "nav.settings": "Settings",
   "nav.statistics": "Statistics",
   "nav.keyboard": "Keyboard",
-  "nav.customer_display": "Customer display"
+  "nav.customer_display": "Customer display",
+  "onboarding.welcome": "Welcome to ToDo POS",
+  "onboarding.subtitle": "Set up your shop. You can change these settings later.",
+  "onboarding.language": "Language",
+  "onboarding.country": "Country",
+  "onboarding.shop": "Shop name",
+  "onboarding.printer": "Receipt printer (optional)",
+  "onboarding.barcode": "Barcode scanner test (optional)",
+  "onboarding.pin": "New admin PIN",
+  "onboarding.pin_confirm": "Confirm admin PIN",
+  "onboarding.start": "Start ToDo",
+  "onboarding.barcode_received": "Barcode received: {value}",
+  "onboarding.barcode_empty": "Enter or scan a barcode.",
+  "onboarding.shop_required": "Shop name is required.",
+  "onboarding.pin_invalid": "Enter the same 4–12 digit admin PIN twice."
 }

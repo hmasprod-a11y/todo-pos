@@ -19,5 +19,19 @@
   "nav.settings": "Paramètres",
   "nav.statistics": "Statistiques",
   "nav.keyboard": "Clavier",
-  "nav.customer_display": "Écran client"
+  "nav.customer_display": "Écran client",
+  "onboarding.welcome": "Bienvenue dans ToDo POS",
+  "onboarding.subtitle": "Configurez votre magasin. Vous pourrez modifier ces réglages plus tard.",
+  "onboarding.language": "Langue",
+  "onboarding.country": "Pays",
+  "onboarding.shop": "Nom du magasin",
+  "onboarding.printer": "Imprimante ticket (facultative)",
+  "onboarding.barcode": "Test du lecteur code-barres (facultatif)",
+  "onboarding.pin": "Nouveau PIN administrateur",
+  "onboarding.pin_confirm": "Confirmer le PIN administrateur",
+  "onboarding.start": "Démarrer ToDo",
+  "onboarding.barcode_received": "Code-barres reçu : {value}",
+  "onboarding.barcode_empty": "Saisissez ou scannez un code-barres.",
+  "onboarding.shop_required": "Le nom du magasin est obligatoire.",
+  "onboarding.pin_invalid": "Saisissez deux fois le même PIN administrateur de 4 à 12 chiffres."
 }

@@ -19,5 +19,19 @@
   "nav.settings": "الإعدادات",
   "nav.statistics": "الإحصائيات",
   "nav.keyboard": "لوحة المفاتيح",
-  "nav.customer_display": "شاشة الزبون"
+  "nav.customer_display": "شاشة الزبون",
+  "onboarding.welcome": "مرحباً بك في ToDo POS",
+  "onboarding.subtitle": "قم بإعداد متجرك. يمكنك تغيير هذه الإعدادات لاحقاً.",
+  "onboarding.language": "اللغة",
+  "onboarding.country": "البلد",
+  "onboarding.shop": "اسم المتجر",
+  "onboarding.printer": "طابعة الإيصال (اختياري)",
+  "onboarding.barcode": "اختبار قارئ الباركود (اختياري)",
+  "onboarding.pin": "رمز PIN جديد للمدير",
+  "onboarding.pin_confirm": "تأكيد رمز PIN للمدير",
+  "onboarding.start": "ابدأ ToDo",
+  "onboarding.barcode_received": "تم استلام الباركود: {value}",
+  "onboarding.barcode_empty": "أدخل أو امسح باركوداً.",
+  "onboarding.shop_required": "اسم المتجر إجباري.",
+  "onboarding.pin_invalid": "أدخل رمز PIN نفسه من 4 إلى 12 رقماً مرتين."
 }
