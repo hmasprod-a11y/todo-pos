@@ -675,6 +675,10 @@ def migrate(conn):
         conn.execute('UPDATE sale_items SET tax_net_cents=COALESCE(net_total_cents,line_total_cents), tax_amount_cents=0, tax_gross_cents=COALESCE(net_total_cents,line_total_cents)')
         conn.execute("INSERT INTO settings(key,value) VALUES('tax_snapshot_v1','1')")
     conn.execute("CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY, user_id INTEGER, action TEXT NOT NULL, document TEXT NOT NULL, details TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+    conn.execute("CREATE TABLE IF NOT EXISTS feature_flags (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+    conn.execute("CREATE TABLE IF NOT EXISTS commerce_state (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+    conn.execute("CREATE TABLE IF NOT EXISTS app_installation (id INTEGER PRIMARY KEY CHECK(id=1), installation_id TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+    conn.execute("INSERT OR IGNORE INTO app_installation(id) VALUES(1)")
     conn.execute('CREATE INDEX IF NOT EXISTS idx_products_active_name ON products(active,name)')
     conn.execute('CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku)')
     conn.execute('CREATE INDEX IF NOT EXISTS idx_barcodes_product ON product_barcodes(product_id)')
@@ -722,4 +726,4 @@ def migrate(conn):
     # Backfill one payment row for legacy sales; new sales write their split directly.
     conn.execute("INSERT INTO sale_payments(sale_id,payment_method,amount_cents) SELECT s.id,s.payment_method,CASE WHEN s.payment_method='CASH' THEN s.paid_cents-s.change_cents ELSE s.paid_cents END FROM sales s WHERE NOT EXISTS (SELECT 1 FROM sale_payments sp WHERE sp.sale_id=s.id)")
     conn.execute("INSERT INTO return_payments(return_id,payment_method,amount_cents) SELECT r.id,r.refund_method,COALESCE(r.refund_paid_cents,r.total_cents) FROM returns r WHERE r.refund_method IN ('CASH','CARD') AND NOT EXISTS (SELECT 1 FROM return_payments rp WHERE rp.return_id=r.id)")
-    conn.execute('PRAGMA user_version=126')
+    conn.execute('PRAGMA user_version=127')
