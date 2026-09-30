@@ -58,7 +58,7 @@ class ManagementFrame(ttk.Frame):
         super().__init__(master, padding=0)
         self.app = app
         self.lang = get_setting("language","fr")
-        self.tr = lambda fr,ar: ar if self.lang=="ar" else fr
+        self.tr = lambda fr,ar,en=None: ar if self.lang=="ar" else (en if self.lang=="en" and en else fr)
         self._build()
 
     def _build(self):
@@ -66,7 +66,7 @@ class ManagementFrame(ttk.Frame):
         header = tk.Frame(self, bg="#0F172A", height=66)
         header.pack(fill="x")
         header.pack_propagate(False)
-        tk.Label(header, text=self.tr("🗂️  Gestion","🗂️  الإدارة"), bg="#0F172A", fg="white",
+        tk.Label(header, text=self.tr("🗂️  Gestion","🗂️  الإدارة","🗂️  Management"), bg="#0F172A", fg="white",
                  font=("Segoe UI", 19, "bold")).pack(side="left", padx=24, pady=12)
 
         # cards area
@@ -77,7 +77,19 @@ class ManagementFrame(ttk.Frame):
             row = tk.Frame(area, bg="#F6F7FB")
             row.pack(anchor="center", pady=8)
             for emoji, label, key, bg, fg in group:
-                self._card(row, emoji, self.tr(label, dict({'Réceptions':'الاستلامات','Sorties':'الإخراجات','Inventaire':'الجرد','Mouvements de stock':'حركات المخزون','Fournisseurs':'الموردون','Règlements fournisseurs':'دفعات الموردين','État crédits fournisseurs':'ديون الموردين','Clients':'الزبائن','Règlements clients':'دفعات الزبائن','État crédits clients':'ديون الزبائن','Dépenses':'المصاريف','Rendez-vous':'المواعيد','Promotions':'العروض','Inventaires enregistrés':'سجلات الجرد','Fidélité clients':'وفاء الزبائن','Retours fournisseurs':'إرجاع للمورد','Commandes clients':'طلبات الزبائن','Devis':'عروض الأسعار'}).get(label,label)), key, bg, fg)
+                labels = {
+                    'Réceptions': ('الاستلامات', 'Receipts'), 'Sorties': ('الإخراجات', 'Stock out'),
+                    'Inventaire': ('الجرد', 'Inventory'), 'Mouvements de stock': ('حركات المخزون', 'Stock movements'),
+                    'Fournisseurs': ('الموردون', 'Suppliers'), 'Règlements fournisseurs': ('دفعات الموردين', 'Supplier payments'),
+                    'État crédits fournisseurs': ('ديون الموردين', 'Supplier credit status'), 'Clients': ('الزبائن', 'Customers'),
+                    'Règlements clients': ('دفعات الزبائن', 'Customer payments'), 'État crédits clients': ('ديون الزبائن', 'Customer credit status'),
+                    'Dépenses': ('المصاريف', 'Expenses'), 'Rendez-vous': ('المواعيد', 'Appointments'),
+                    'Promotions': ('العروض', 'Promotions'), 'Inventaires enregistrés': ('سجلات الجرد', 'Saved inventories'),
+                    'Fidélité clients': ('وفاء الزبائن', 'Customer loyalty'), 'Retours fournisseurs': ('إرجاع للمورد', 'Supplier returns'),
+                    'Commandes clients': ('طلبات الزبائن', 'Customer orders'), 'Devis': ('عروض الأسعار', 'Quotations'),
+                }
+                arabic, english = labels.get(label, (label, label))
+                self._card(row, emoji, self.tr(label, arabic, english), key, bg, fg)
 
     def _card(self, parent, emoji, label, key, bg, fg):
         is_placeholder = key is None
