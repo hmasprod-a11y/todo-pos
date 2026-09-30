@@ -24,9 +24,9 @@ def _init_table():
 class RendezVousFrame(ttk.Frame):
     def __init__(self, master):
         super().__init__(master, padding=16)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         _init_table()
-        ttk.Label(self, text=self.tr('Rendez-vous','المواعيد'),
+        ttk.Label(self, text=self.tr('Rendez-vous','المواعيد','Appointments'),
                   style='Title.TLabel').pack(anchor='w')
 
         toolbar = ttk.Frame(self); toolbar.pack(fill='x', pady=10)
@@ -35,26 +35,26 @@ class RendezVousFrame(ttk.Frame):
         entry.pack(side='left')
         entry.bind('<KeyRelease>', lambda e: self.refresh())
         self.show_done = tk.BooleanVar(value=False)
-        ttk.Checkbutton(toolbar, text=self.tr('Afficher terminés','إظهار المنتهية'),
+        ttk.Checkbutton(toolbar, text=self.tr('Afficher terminés','إظهار المنتهية','Show completed'),
                         variable=self.show_done,
                         command=self.refresh).pack(side='left', padx=8)
-        ttk.Button(toolbar, text=self.tr('+ Nouveau','+ جديد'),
+        ttk.Button(toolbar, text=self.tr('+ Nouveau','+ جديد','+ New'),
                    style='Primary.TButton',
                    command=self.new_rdv).pack(side='right')
-        ttk.Button(toolbar, text=self.tr('Marquer fait','تحديد كمنجز'), style='Success.TButton',
+        ttk.Button(toolbar, text=self.tr('Marquer fait','تحديد كمنجز','Mark done'), style='Success.TButton',
                    command=self.mark_done).pack(side='right', padx=6)
-        ttk.Button(toolbar, text=self.tr('Supprimer','حذف'), style='Danger.TButton',
+        ttk.Button(toolbar, text=self.tr('Supprimer','حذف','Delete'), style='Danger.TButton',
                    command=self.delete_rdv).pack(side='right')
 
         cols = ('date', 'time', 'title', 'contact', 'notes', 'done')
         self.tree = ttk.Treeview(self, columns=cols, show='headings')
         for col, lbl, w, anc in [
-            ('date',self.tr('Date','التاريخ'),110,'w'),
-            ('time',self.tr('Heure','الوقت'),75,'w'),
-            ('title',self.tr('Objet','الموضوع'),250,'w'),
-            ('contact',self.tr('Contact','جهة الاتصال'),160,'w'),
-            ('notes',self.tr('Notes','ملاحظات'),280,'w'),
-            ('done',self.tr('Statut','الحالة'),80,'center'),
+            ('date',self.tr('Date','التاريخ','Date'),110,'w'),
+            ('time',self.tr('Heure','الوقت','Time'),75,'w'),
+            ('title',self.tr('Objet','الموضوع','Subject'),250,'w'),
+            ('contact',self.tr('Contact','جهة الاتصال','Contact'),160,'w'),
+            ('notes',self.tr('Notes','ملاحظات','Notes'),280,'w'),
+            ('done',self.tr('Statut','الحالة','Status'),80,'center'),
         ]:
             self.tree.heading(col, text=lbl)
             self.tree.column(col, width=w, anchor=anc)
@@ -94,7 +94,7 @@ class RendezVousFrame(ttk.Frame):
                 tag = 'today'
             else:
                 tag = ''
-            status = self.tr('Fait','منجز') if r['done'] else (self.tr('Passé','فات') if r['rdv_date'] < today else self.tr('À venir','قادم'))
+            status = self.tr('Fait','منجز','Done') if r['done'] else (self.tr('Passé','فات','Past') if r['rdv_date'] < today else self.tr('À venir','قادم','Upcoming'))
             self.tree.insert('', 'end', iid=key,
                 values=(r['rdv_date'], r['rdv_time'], r['title'],
                         r['contact'], r['notes'], status),
@@ -119,8 +119,8 @@ class RendezVousFrame(ttk.Frame):
     def delete_rdv(self):
         r = self._selected()
         if not r: return
-        msg = self.tr('Supprimer ce rendez-vous ?','حذف هذا الموعد؟')
-        if messagebox.askyesno(self.tr('Supprimer','حذف'), msg, parent=self):
+        msg = self.tr('Supprimer ce rendez-vous ?','حذف هذا الموعد؟','Delete this appointment?')
+        if messagebox.askyesno(self.tr('Supprimer','حذف','Delete'), msg, parent=self):
             with connect() as conn:
                 conn.execute('DELETE FROM rendez_vous WHERE id=?', (r['id'],))
             self.refresh()
@@ -129,22 +129,22 @@ class RendezVousFrame(ttk.Frame):
 class RdvEditor(tk.Toplevel):
     def __init__(self, master_frame, rdv=None):
         super().__init__(master_frame)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.master_frame = master_frame
         self.rdv_id = rdv['id'] if rdv else None
-        self.title(self.tr('Rendez-vous','المواعيد'))
+        self.title(self.tr('Rendez-vous','المواعيد','Appointments'))
         self.resizable(False, False)
         self.transient(master_frame.winfo_toplevel())
         self.grab_set()
 
         f = ttk.Frame(self, padding=20); f.pack(fill='both', expand=True)
         fields = [
-            (self.tr('Objet *','الموضوع *'),  'title',   rdv['title']    if rdv else ''),
-            (self.tr('Date *','التاريخ *'),   'date',    rdv['rdv_date']  if rdv else
+            (self.tr('Objet *','الموضوع *','Subject *'),  'title',   rdv['title']    if rdv else ''),
+            (self.tr('Date *','التاريخ *','Date *'),   'date',    rdv['rdv_date']  if rdv else
              datetime.date.today().isoformat()),
-            (self.tr('Heure','الوقت'),    'time',    rdv['rdv_time']  if rdv else '09:00'),
-            (self.tr('Contact','الاتصال'),  'contact', rdv['contact']   if rdv else ''),
-            (self.tr('Notes','ملاحظات'),    'notes',   rdv['notes']     if rdv else ''),
+            (self.tr('Heure','الوقت','Time'),    'time',    rdv['rdv_time']  if rdv else '09:00'),
+            (self.tr('Contact','الاتصال','Contact'),  'contact', rdv['contact']   if rdv else ''),
+            (self.tr('Notes','ملاحظات','Notes'),    'notes',   rdv['notes']     if rdv else ''),
         ]
         self.vars = {}
         for row, (label, key, val) in enumerate(fields):
@@ -154,7 +154,7 @@ class RdvEditor(tk.Toplevel):
                 row=row, column=1, sticky='ew', padx=12)
             self.vars[key] = var
 
-        ttk.Button(f, text=self.tr('Enregistrer','حفظ'), style='Primary.TButton',
+        ttk.Button(f, text=self.tr('Enregistrer','حفظ','Save'), style='Primary.TButton',
                    command=self.save).grid(
                        row=len(fields), column=0, columnspan=2,
                        sticky='ew', pady=14)
@@ -166,8 +166,8 @@ class RdvEditor(tk.Toplevel):
         contact = self.vars['contact'].get().strip()
         notes   = self.vars['notes'].get().strip()
         if not title or not date:
-            messagebox.showerror(self.tr('Rendez-vous','المواعيد'),
-                                 self.tr('Objet et date obligatoires.','الموضوع والتاريخ إجباريان.'), parent=self)
+            messagebox.showerror(self.tr('Rendez-vous','المواعيد','Appointments'),
+                                 self.tr('Objet et date obligatoires.','الموضوع والتاريخ إجباريان.','Subject and date are required.'), parent=self)
             return
         with connect() as conn:
             if self.rdv_id:
