@@ -15,8 +15,8 @@ from screens.common import EmbeddedTouchKeyboard
 class ClientEditor(EmbeddedTouchKeyboard, tk.Toplevel):
     def __init__(self, master, client=None, on_saved=None):
         super().__init__(master)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
-        self.title(self.tr('Client','زبون'))
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        self.title(self.tr('Client','زبون','Customer'))
         self.transient(master.winfo_toplevel())
         self.grab_set()
         self.client_id = client['id'] if client else None
@@ -28,21 +28,21 @@ class ClientEditor(EmbeddedTouchKeyboard, tk.Toplevel):
         form = ttk.Frame(self, padding=20)
         form.pack(fill='both', expand=True)
         for row, (label, var) in enumerate([
-            (self.tr('Nom','الاسم'), self.name),
-            (self.tr('Téléphone','الهاتف'), self.phone),
+            (self.tr('Nom','الاسم','Name'), self.name),
+            (self.tr('Téléphone','الهاتف','Phone'), self.phone),
             ('RFID Tag', self.rfid_tag),
         ]):
             ttk.Label(form, text=label).grid(row=row, column=0, sticky='w', pady=8)
             entry=ttk.Entry(form, textvariable=var, width=36);entry.grid(row=row, column=1, padx=12)
             if row==0:self.first_entry=entry
-        ttk.Label(form, text=self.tr('Notes','ملاحظات')).grid(row=3, column=0, sticky='nw')
+        ttk.Label(form, text=self.tr('Notes','ملاحظات','Notes')).grid(row=3, column=0, sticky='nw')
         self.notes = tk.Text(form, width=36, height=4)
         self.notes.grid(row=3, column=1, padx=12)
         self.notes.insert('1.0', (client or {}).get('notes', ''))
-        ttk.Button(form, text=self.tr('Enregistrer','حفظ'), style='Primary.TButton',
+        ttk.Button(form, text=self.tr('Enregistrer','حفظ','Save'), style='Primary.TButton',
                    command=self.save).grid(row=4, column=1, sticky='ew', padx=12, pady=16)
-        ttk.Button(form, text=self.tr('Annuler','إلغاء'), style='Danger.TButton', command=self.destroy).grid(row=4, column=0)
-        ttk.Button(form,text=self.tr('⌨ Clavier','⌨ لوحة المفاتيح'),style='Primary.TButton',command=self.toggle_embedded_keyboard).grid(row=5,column=0,columnspan=2,pady=(0,8),sticky='ew')
+        ttk.Button(form, text=self.tr('Annuler','إلغاء','Cancel'), style='Danger.TButton', command=self.destroy).grid(row=4, column=0)
+        ttk.Button(form,text=self.tr('⌨ Clavier','⌨ لوحة المفاتيح','⌨ Keyboard'),style='Primary.TButton',command=self.toggle_embedded_keyboard).grid(row=5,column=0,columnspan=2,pady=(0,8),sticky='ew')
         self.init_touch_keyboard(self.first_entry)
 
     def save(self):
@@ -51,7 +51,7 @@ class ClientEditor(EmbeddedTouchKeyboard, tk.Toplevel):
             from services.rfid import bind_tag
             bind_tag(self.rfid_tag.get().strip(),'CLIENT',cid)
         except (ValueError, PermissionError) as e:
-            messagebox.showerror(self.tr('Client','زبون'), str(e), parent=self); return
+            messagebox.showerror(self.tr('Client','زبون','Customer'), str(e), parent=self); return
         self.destroy()
         if self.on_saved: self.on_saved(cid)
 
@@ -61,10 +61,10 @@ class ClientEditor(EmbeddedTouchKeyboard, tk.Toplevel):
 class PaymentsWindow(tk.Toplevel):
     def __init__(self, master, client):
         super().__init__(master)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.client   = client
         self.currency = 'DH'
-        self.title(f"{self.tr('Règlements','التسديدات')} — {client['name']}")
+        self.title(f"{self.tr('Règlements','التسديدات','Payments')} — {client['name']}")
         self.geometry('820x520')
         self.transient(master.winfo_toplevel())
         self._build()
@@ -74,21 +74,21 @@ class PaymentsWindow(tk.Toplevel):
         top.pack(fill='x')
         self.lbl_balance = ttk.Label(top, font=('Segoe UI', 14, 'bold'))
         self.lbl_balance.pack(side='left')
-        ttk.Button(top, text=self.tr('+ Ajouter un règlement','+ إضافة تسديد'), style='Primary.TButton',
+        ttk.Button(top, text=self.tr('+ Ajouter un règlement','+ إضافة تسديد','+ Add payment'), style='Primary.TButton',
                    command=self._add).pack(side='right')
 
         paned = ttk.Panedwindow(self, orient='horizontal')
         paned.pack(fill='both', expand=True, padx=16, pady=12)
 
         # Left: sales
-        lf = ttk.LabelFrame(paned, text=self.tr('Ventes','الفواتير'), padding=8)
+        lf = ttk.LabelFrame(paned, text=self.tr('Ventes','الفواتير','Sales'), padding=8)
         paned.add(lf, weight=3)
         self.sales_tree = ttk.Treeview(lf,
             columns=('no', 'date', 'total', 'paid', 'balance'),
             show='headings', height=14)
         for col, label, w in [
-            ('no','Ticket',110),('date','Date',130),
-            ('total','Montant',90),('paid','Payé',90),('balance','Reste',90),
+            ('no',self.tr('Ticket','التذكرة','Receipt'),110),('date',self.tr('Date','التاريخ','Date'),130),
+            ('total',self.tr('Montant','المبلغ','Amount'),90),('paid',self.tr('Payé','المدفوع','Paid'),90),('balance',self.tr('Reste','المتبقي','Balance'),90),
         ]:
             self.sales_tree.heading(col, text=label)
             self.sales_tree.column(col, width=w, anchor='e' if w==90 else 'w')
@@ -101,11 +101,11 @@ class PaymentsWindow(tk.Toplevel):
         self.sales_tree.pack(fill='both', expand=True)
 
         # Right: payments
-        rf = ttk.LabelFrame(paned, text=self.tr('Paiements reçus','التسديدات'), padding=8)
+        rf = ttk.LabelFrame(paned, text=self.tr('Paiements reçus','التسديدات','Payments received'), padding=8)
         paned.add(rf, weight=2)
         self.pay_tree = ttk.Treeview(rf,
             columns=('date', 'amount', 'note'), show='headings', height=14)
-        for col, label, w in [('date',self.tr('Date','التاريخ'),120),('amount',self.tr('Montant','المبلغ'),90),('note',self.tr('Note','ملاحظة'),180)]:
+        for col, label, w in [('date',self.tr('Date','التاريخ','Date'),120),('amount',self.tr('Montant','المبلغ','Amount'),90),('note',self.tr('Note','ملاحظة','Note'),180)]:
             self.pay_tree.heading(col, text=label)
             self.pay_tree.column(col, width=w, anchor='e' if col=='amount' else 'w')
         sb2 = ttk.Scrollbar(rf, orient='vertical', command=self.pay_tree.yview)
@@ -119,7 +119,7 @@ class PaymentsWindow(tk.Toplevel):
         c = get_client(self.client['id'])
         balance = c['billed_cents'] - c['paid_cents']
         self.lbl_balance.config(
-            text=f"{self.tr('Solde dû','الرصيد المستحق')} : {fmt(balance, self.currency)}",
+            text=f"{self.tr('Solde dû','الرصيد المستحق','Amount due')} : {fmt(balance, self.currency)}",
             foreground='#dc2626' if balance > 0 else '#16a34a')
 
         self.sales_tree.delete(*self.sales_tree.get_children())
@@ -143,18 +143,18 @@ class PaymentsWindow(tk.Toplevel):
         if sel:
             sale_id = int(sel[0])
         amount_str = simpledialog.askstring(
-            self.tr('Règlement','التسديد'), self.tr('Montant reçu (DH) :','المبلغ المقبوض (DH):'), parent=self)
+            self.tr('Règlement','التسديد','Payment'), self.tr('Montant reçu (DH) :','المبلغ المقبوض (DH):','Amount received (DH):'), parent=self)
         if amount_str is None: return
-        method=simpledialog.askstring(self.tr('Mode de paiement','طريقة الأداء'),self.tr('CASH ou CARD :','CASH أو CARD:'),initialvalue='CASH',parent=self)
+        method=simpledialog.askstring(self.tr('Mode de paiement','طريقة الأداء','Payment method'),self.tr('CASH ou CARD :','CASH أو CARD:','CASH or CARD:'),initialvalue='CASH',parent=self)
         if method is None:return
         method=method.strip().upper()
-        note = simpledialog.askstring(self.tr('Règlement','التسديد'), self.tr('Note (facultatif) :','ملاحظة (اختيارية):'), parent=self) or ''
+        note = simpledialog.askstring(self.tr('Règlement','التسديد','Payment'), self.tr('Note (facultatif) :','ملاحظة (اختيارية):','Note (optional):'), parent=self) or ''
         try:
             from services.money import to_cents
             add_payment(self.client['id'], to_cents(amount_str), note, sale_id, method)
             self._refresh()
         except (ValueError, PermissionError) as e:
-            messagebox.showerror(self.tr('Règlement','التسديد'), str(e), parent=self)
+            messagebox.showerror(self.tr('Règlement','التسديد','Payment'), str(e), parent=self)
 
 
 # ── État des crédits ──────────────────────────────────────────────────────────
@@ -162,8 +162,8 @@ class PaymentsWindow(tk.Toplevel):
 class CreditStateWindow(tk.Toplevel):
     def __init__(self, master):
         super().__init__(master)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
-        self.title(self.tr('État des crédits clients','حالة ديون الزبائن'))
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        self.title(self.tr('État des crédits clients','حالة ديون الزبائن','Customer credit status'))
         self.geometry('720x460')
         self.transient(master.winfo_toplevel())
         self._build()
@@ -171,18 +171,18 @@ class CreditStateWindow(tk.Toplevel):
     def _build(self):
         top = ttk.Frame(self, padding=(16, 12, 16, 0))
         top.pack(fill='x')
-        ttk.Label(top, text=self.tr('Clients avec solde impayé','زبائن برصيد غير مؤدى'), font=('Segoe UI', 14, 'bold')).pack(side='left')
-        ttk.Button(top, text=self.tr('Actualiser ↺','تحديث ↺'), command=self._refresh).pack(side='right')
+        ttk.Label(top, text=self.tr('Clients avec solde impayé','زبائن برصيد غير مؤدى','Customers with unpaid balance'), font=('Segoe UI', 14, 'bold')).pack(side='left')
+        ttk.Button(top, text=self.tr('Actualiser ↺','تحديث ↺','Refresh ↺'), command=self._refresh).pack(side='right')
 
         self.tree = ttk.Treeview(self,
             columns=('name', 'phone', 'billed', 'paid', 'balance'),
             show='headings')
         for col, label, w, anchor in [
-            ('name',    'Client',         200, 'w'),
-            ('phone',   'Téléphone',      130, 'w'),
-            ('billed',  'Total facturé',  110, 'e'),
-            ('paid',    'Total payé',     110, 'e'),
-            ('balance', 'Solde dû',       110, 'e'),
+            ('name', self.tr('Client','زبون','Customer'), 200, 'w'),
+            ('phone', self.tr('Téléphone','الهاتف','Phone'), 130, 'w'),
+            ('billed', self.tr('Total facturé','إجمالي المفوتر','Total billed'), 110, 'e'),
+            ('paid', self.tr('Total payé','إجمالي المدفوع','Total paid'), 110, 'e'),
+            ('balance', self.tr('Solde dû','الرصيد المستحق','Amount due'), 110, 'e'),
         ]:
             self.tree.heading(col, text=label)
             self.tree.column(col, width=w, anchor=anchor)
@@ -209,7 +209,7 @@ class CreditStateWindow(tk.Toplevel):
                 values=(r['name'], r['phone'],
                         fmt(r['billed_cents'], ''), fmt(r['paid_cents'], ''), fmt(bal, '')),
                 tags=(tag,))
-        self.lbl_total.config(text=f"{self.tr('Total dû global','إجمالي الرصيد المستحق')} : {fmt(grand, 'DH')}")
+        self.lbl_total.config(text=f"{self.tr('Total dû global','إجمالي الرصيد المستحق','Total amount due')} : {fmt(grand, 'DH')}")
 
 
 # ── Écran principal clients ───────────────────────────────────────────────────
@@ -217,9 +217,9 @@ class CreditStateWindow(tk.Toplevel):
 class ClientsFrame(ttk.Frame):
     def __init__(self, master, app=None):
         super().__init__(master, padding=16)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.app = app
-        ttk.Label(self, text=self.tr('Clients','الزبائن'), style='Title.TLabel').pack(anchor='w')
+        ttk.Label(self, text=self.tr('Clients','الزبائن','Customers'), style='Title.TLabel').pack(anchor='w')
 
         toolbar = ttk.Frame(self)
         toolbar.pack(fill='x', pady=12)
@@ -229,10 +229,10 @@ class ClientsFrame(ttk.Frame):
         entry.bind('<KeyRelease>', lambda e: self.refresh())
 
         client_actions=[
-            (self.tr('Nouveau','جديد'),lambda: ClientEditor(self, on_saved=self.refresh),'Primary.TButton'),
-            (self.tr('Modifier','تعديل'),self.edit,'Soft.TButton'),
-            (self.tr('Règlements','التسديدات'),self.payments,'Soft.TButton'),
-            (self.tr('État crédits','حالة الديون'),self.credit_state,'Soft.TButton'),
+            (self.tr('Nouveau','جديد','New'),lambda: ClientEditor(self, on_saved=self.refresh),'Primary.TButton'),
+            (self.tr('Modifier','تعديل','Edit'),self.edit,'Soft.TButton'),
+            (self.tr('Règlements','التسديدات','Payments'),self.payments,'Soft.TButton'),
+            (self.tr('État crédits','حالة الديون','Credit status'),self.credit_state,'Soft.TButton'),
         ]
         for label,cmd,style in client_actions:
             ttk.Button(toolbar,text=label,style=style,command=cmd).pack(side='left',padx=4)
@@ -241,11 +241,11 @@ class ClientsFrame(ttk.Frame):
             columns=('name', 'phone', 'billed', 'paid', 'balance'),
             show='headings')
         for col, label, w, anchor in [
-            ('name',    'Nom',             220, 'w'),
-            ('phone',   'Téléphone',       140, 'w'),
-            ('billed',  'Facturé',          95, 'e'),
-            ('paid',    'Payé',             95, 'e'),
-            ('balance', 'Solde',            95, 'e'),
+            ('name', self.tr('Nom','الاسم','Name'), 220, 'w'),
+            ('phone', self.tr('Téléphone','الهاتف','Phone'), 140, 'w'),
+            ('billed', self.tr('Facturé','المفوتر','Billed'), 95, 'e'),
+            ('paid', self.tr('Payé','المدفوع','Paid'), 95, 'e'),
+            ('balance', self.tr('Solde','الرصيد','Balance'), 95, 'e'),
         ]:
             self.tree.heading(col, text=label)
             self.tree.column(col, width=w, anchor=anchor)
@@ -283,7 +283,7 @@ class ClientsFrame(ttk.Frame):
     def payments(self):
         c = self._selected()
         if not c:
-            messagebox.showinfo(self.tr('Clients','الزبائن'), self.tr('Sélectionnez un client.','اختر زبوناً.'), parent=self); return
+            messagebox.showinfo(self.tr('Clients','الزبائن','Customers'), self.tr('Sélectionnez un client.','اختر زبوناً.','Select a customer.'), parent=self); return
         PaymentsWindow(self, c)
 
     def credit_state(self):
