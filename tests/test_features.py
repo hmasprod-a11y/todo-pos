@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"todo"))
 import database
 from services.features import FeatureService
+from services.licensing import MicrosoftStoreLicenseProvider
 
 class FeatureServiceTests(unittest.TestCase):
     def setUp(self):
@@ -19,5 +20,6 @@ class FeatureServiceTests(unittest.TestCase):
     def test_pro_plan_unlocks_the_central_pro_feature_set(self):
         database.set_setting("commercial_plan","PRO")
         self.assertTrue(FeatureService().can("PROMOTIONS"))
+        self.assertTrue(FeatureService(provider=MicrosoftStoreLicenseProvider()).can("PROMOTIONS"))
         self.assertTrue(FeatureService().can("CUSTOMER_DISPLAY"))
 if __name__=="__main__":unittest.main()
