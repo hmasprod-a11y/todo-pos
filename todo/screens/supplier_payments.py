@@ -14,9 +14,9 @@ class SupplierPaymentsWindow(tk.Toplevel):
     """Règlements d'un fournisseur: factures à gauche, paiements à droite."""
     def __init__(self, master, supplier):
         super().__init__(master)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.supplier = supplier
-        self.title(f"{self.tr('Règlements','التسديدات')} — {supplier['name']}")
+        self.title(f"{self.tr('Règlements','التسديدات','Payments')} — {supplier['name']}")
         self.geometry('860x500')
         self.transient(master.winfo_toplevel())
         self._build()
@@ -25,7 +25,7 @@ class SupplierPaymentsWindow(tk.Toplevel):
         top = ttk.Frame(self, padding=(16, 10, 16, 0)); top.pack(fill='x')
         self.lbl_balance = ttk.Label(top, font=('Segoe UI', 14, 'bold'))
         self.lbl_balance.pack(side='left')
-        ttk.Button(top, text=self.tr('+ Ajouter règlement','+ إضافة تسديد'), style='Primary.TButton',
+        ttk.Button(top, text=self.tr('+ Ajouter règlement','+ إضافة تسديد','+ Add payment'), style='Primary.TButton',
                    command=self._add).pack(side='right')
         self.payment_method=tk.StringVar(value='CASH')
         ttk.Combobox(top,textvariable=self.payment_method,values=('CASH','CARD'),state='readonly',width=8).pack(side='right',padx=8)
@@ -33,12 +33,12 @@ class SupplierPaymentsWindow(tk.Toplevel):
         paned = ttk.Panedwindow(self, orient='horizontal')
         paned.pack(fill='both', expand=True, padx=16, pady=10)
 
-        lf = ttk.LabelFrame(paned, text=self.tr('Achats','الفواتير'), padding=6)
+        lf = ttk.LabelFrame(paned, text=self.tr('Achats','الفواتير','Purchases'), padding=6)
         paned.add(lf, weight=3)
         self.pur_tree = ttk.Treeview(lf,
             columns=('inv','date','total','paid','balance'), show='headings', height=14)
-        for col,lbl,w,anc in [('inv',self.tr('Facture','الفاتورة'),120,'w'),('date',self.tr('Date','التاريخ'),120,'w'),
-                               ('total',self.tr('Montant','المبلغ'),90,'e'),('paid',self.tr('Payé','المؤدى'),90,'e'),('balance',self.tr('Reste','الباقي'),90,'e')]:
+        for col,lbl,w,anc in [('inv',self.tr('Facture','الفاتورة','Invoice'),120,'w'),('date',self.tr('Date','التاريخ','Date'),120,'w'),
+                               ('total',self.tr('Montant','المبلغ','Amount'),90,'e'),('paid',self.tr('Payé','المؤدى','Paid'),90,'e'),('balance',self.tr('Reste','الباقي','Balance'),90,'e')]:
             self.pur_tree.heading(col, text=lbl); self.pur_tree.column(col, width=w, anchor=anc)
         self.pur_tree.tag_configure('settled', foreground='#16a34a')
         self.pur_tree.tag_configure('partial', foreground='#d97706')
@@ -47,10 +47,10 @@ class SupplierPaymentsWindow(tk.Toplevel):
         sb.pack(side='right', fill='y')
         self.pur_tree.configure(yscrollcommand=sb.set); self.pur_tree.pack(fill='both', expand=True)
 
-        rf = ttk.LabelFrame(paned, text=self.tr('Paiements effectués','التسديدات المنجزة'), padding=6)
+        rf = ttk.LabelFrame(paned, text=self.tr('Paiements effectués','التسديدات المنجزة','Payments made'), padding=6)
         paned.add(rf, weight=2)
         self.pay_tree = ttk.Treeview(rf, columns=('date','amount','note'), show='headings', height=14)
-        for col,lbl,w in [('date',self.tr('Date','التاريخ'),120),('amount',self.tr('Montant','المبلغ'),90),('note',self.tr('Note','ملاحظة'),180)]:
+        for col,lbl,w in [('date',self.tr('Date','التاريخ','Date'),120),('amount',self.tr('Montant','المبلغ','Amount'),90),('note',self.tr('Note','ملاحظة','Note'),180)]:
             self.pay_tree.heading(col, text=lbl); self.pay_tree.column(col, width=w, anchor='e' if col=='amount' else 'w')
         sb2 = ttk.Scrollbar(rf, orient='vertical', command=self.pay_tree.yview)
         sb2.pack(side='right', fill='y')
@@ -86,40 +86,40 @@ class SupplierPaymentsWindow(tk.Toplevel):
         purchase_id = None
         sel = self.pur_tree.selection()
         if sel: purchase_id = int(sel[0])
-        amount_str = simpledialog.askstring(self.tr('Règlement','تسديد'), self.tr('Montant payé (DH) :','المبلغ المؤدى (DH):'), parent=self)
+        amount_str = simpledialog.askstring(self.tr('Règlement','تسديد','Payment'), self.tr('Montant payé (DH) :','المبلغ المؤدى (DH):','Amount paid (DH):'), parent=self)
         if amount_str is None: return
-        note = simpledialog.askstring(self.tr('Règlement','تسديد'), self.tr('Note (facultatif) :','ملاحظة (اختيارية):'), parent=self) or ''
+        note = simpledialog.askstring(self.tr('Règlement','تسديد','Payment'), self.tr('Note (facultatif) :','ملاحظة (اختيارية):','Note (optional):'), parent=self) or ''
         try:
             add_supplier_payment(self.supplier['id'], to_cents(amount_str), note, purchase_id, self.payment_method.get())
             self._refresh()
         except (ValueError, PermissionError) as e:
-            messagebox.showerror(self.tr('Règlement','تسديد'), str(e), parent=self)
+            messagebox.showerror(self.tr('Règlement','تسديد','Payment'), str(e), parent=self)
 
 
 class SupplierCreditStateWindow(tk.Toplevel):
     """État des crédits fournisseurs — ce qu'on doit."""
     def __init__(self, master):
         super().__init__(master)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
-        self.title(self.tr('État crédits fournisseurs','حالة ديون الموردين'))
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        self.title(self.tr('État crédits fournisseurs','حالة ديون الموردين','Supplier credit status'))
         self.geometry('720x440')
         self.transient(master.winfo_toplevel())
         self._build()
 
     def _build(self):
         top = ttk.Frame(self, padding=(16, 12, 16, 0)); top.pack(fill='x')
-        ttk.Label(top, text=self.tr('Fournisseurs avec solde impayé','موردون برصيد غير مؤدى'),
+        ttk.Label(top, text=self.tr('Fournisseurs avec solde impayé','موردون برصيد غير مؤدى','Suppliers with unpaid balance'),
                   font=('Segoe UI', 14, 'bold')).pack(side='left')
-        ttk.Button(top, text=self.tr('↺ Actualiser','↺ تحديث'), command=self._refresh).pack(side='right')
+        ttk.Button(top, text=self.tr('↺ Actualiser','↺ تحديث','↺ Refresh'), command=self._refresh).pack(side='right')
 
         self.tree = ttk.Treeview(self,
             columns=('name','phone','billed','paid','balance'), show='headings')
         for col,lbl,w,anc in [
-            ('name',self.tr('Fournisseur','المورد'),200,'w'),
-            ('phone',self.tr('Téléphone','الهاتف'),130,'w'),
-            ('billed',self.tr('Total achats','إجمالي المشتريات'),110,'e'),
-            ('paid',self.tr('Total payé','إجمالي المؤدى'),110,'e'),
-            ('balance',self.tr('Solde dû','الرصيد المستحق'),110,'e'),
+            ('name',self.tr('Fournisseur','المورد','Supplier'),200,'w'),
+            ('phone',self.tr('Téléphone','الهاتف','Phone'),130,'w'),
+            ('billed',self.tr('Total achats','إجمالي المشتريات','Total purchases'),110,'e'),
+            ('paid',self.tr('Total payé','إجمالي المؤدى','Total paid'),110,'e'),
+            ('balance',self.tr('Solde dû','الرصيد المستحق','Amount due'),110,'e'),
         ]:
             self.tree.heading(col, text=lbl); self.tree.column(col, width=w, anchor=anc)
         self.tree.tag_configure('high',   foreground='#dc2626')
@@ -149,8 +149,8 @@ class SupplierReglementFrame(ttk.Frame):
     """Page principale règlements fournisseurs."""
     def __init__(self, master):
         super().__init__(master, padding=16)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
-        ttk.Label(self, text=self.tr('Règlements fournisseurs','تسديدات الموردين'),
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        ttk.Label(self, text=self.tr('Règlements fournisseurs','تسديدات الموردين','Supplier payments'),
                   style='Title.TLabel').pack(anchor='w')
 
         toolbar = ttk.Frame(self); toolbar.pack(fill='x', pady=10)
@@ -158,17 +158,17 @@ class SupplierReglementFrame(ttk.Frame):
         entry = ttk.Entry(toolbar, textvariable=self.query, style='Search.TEntry')
         entry.pack(side='left', fill='x', expand=True)
         entry.bind('<KeyRelease>', lambda e: self.refresh())
-        ttk.Button(toolbar, text=self.tr('Règlements','التسديدات'), style='Primary.TButton', command=self.payments).pack(side='left', padx=4)
-        ttk.Button(toolbar, text=self.tr('État crédits','حالة الديون'), style='Soft.TButton', command=self.credit_state).pack(side='left', padx=4)
+        ttk.Button(toolbar, text=self.tr('Règlements','التسديدات','Payments'), style='Primary.TButton', command=self.payments).pack(side='left', padx=4)
+        ttk.Button(toolbar, text=self.tr('État crédits','حالة الديون','Credit status'), style='Soft.TButton', command=self.credit_state).pack(side='left', padx=4)
 
         self.tree = ttk.Treeview(self,
             columns=('name','phone','billed','paid','balance'), show='headings')
         for col,lbl,w,anc in [
-            ('name',self.tr('Fournisseur','المورد'),230,'w'),
-            ('phone',self.tr('Téléphone','الهاتف'),140,'w'),
-            ('billed',self.tr('Achats','المشتريات'),95,'e'),
-            ('paid',self.tr('Payé','المؤدى'),95,'e'),
-            ('balance',self.tr('Solde','الرصيد'),95,'e'),
+            ('name',self.tr('Fournisseur','المورد','Supplier'),230,'w'),
+            ('phone',self.tr('Téléphone','الهاتف','Phone'),140,'w'),
+            ('billed',self.tr('Achats','المشتريات','Purchases'),95,'e'),
+            ('paid',self.tr('Payé','المؤدى','Paid'),95,'e'),
+            ('balance',self.tr('Solde','الرصيد','Balance'),95,'e'),
         ]:
             self.tree.heading(col, text=lbl); self.tree.column(col, width=w, anchor=anc)
         self.tree.tag_configure('debt',    foreground='#dc2626')
@@ -208,7 +208,7 @@ class SupplierReglementFrame(ttk.Frame):
 
     def payments(self):
         s = self._selected()
-        if not s: messagebox.showinfo(self.tr('Règlements','التسديدات'), self.tr('Sélectionnez un fournisseur.','اختر مورداً.'), parent=self); return
+        if not s: messagebox.showinfo(self.tr('Règlements','التسديدات','Payments'), self.tr('Sélectionnez un fournisseur.','اختر مورداً.'), parent=self); return
         SupplierPaymentsWindow(self, s)
 
     def credit_state(self):
