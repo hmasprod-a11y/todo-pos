@@ -368,14 +368,28 @@ settings; and receipt tax breakdowns. Evidence commits: `de215b6`, `9e0ae8e`,
 `f353a0e`, `bfdcb3a`, `3847307`, `223aad8`, `39b8313`, `7434866`,
 `f4ddc6b`, `dde3b6c`, and `0a64280`.
 
-### P2 — Commercial Engine
-Free/Pro + FeatureService + Microsoft Store entitlement + ads framework.
+### P2 — Commercial Engine — foundations delivered (2026-09-30)
+A central offline-safe `FeatureService`, Local and Microsoft Store cached
+entitlement providers, and durable entitlement/commerce/feature-flag tables are
+in place. Core cashier features stay available offline. Store SDK activation,
+advertising and any user-facing purchase flow remain deliberately deferred until
+Store packaging and publisher identity are ready. Evidence commits: `e623887`,
+`80d2fde`, `63214f9`, and `71872cb`.
 
-### P3 — Store Packaging
-MSIX + Store identity + Store update path.
+### P3 — Store Packaging — not started
+MSIX + Store identity + Store update path. This requires the final Store
+publisher identity, package identity and visual assets; the existing Windows
+portable build and Setup installer remain the tested direct-distribution path.
 
-### P4 — Productisation
-First-run wizard + Demo + privacy + support/legal pages.
+### P4 — Productisation — in progress (2026-09-30)
+The offline first-run wizard now configures language, country defaults, shop
+name, receipt printer, barcode test and a mandatory replacement admin PIN.
+The optional demo remains isolated in its own database. Privacy Policy, Terms
+of Use, and Support/data guidance are included in the packaged documentation
+and available from in-app Help. Optional import is intentionally not reworked
+without a reproduced Import/Export defect. Evidence commits: `4ce88b`,
+`a79734e`, `8dc1e11`, `54e3118`, `a66aa5c`, `e878246`,
+`3ddbde4`, `b0c94fe`, and `2d12e35`.
 
 ### P5 — Store Launch
 EN/FR/AR listing + Free release.
@@ -393,11 +407,11 @@ Cloud backup + multi-store + subscriptions.
 
 # Current execution rule
 
-The current priority is **P1 — Global Core**. P0.1 is complete.
-
-Continue localization, country profiles and the tax engine in small compatible
-commits. Do not start Store commerce, ads, licensing gates, or MSIX packaging
-until their respective roadmap phases.
+The current priority is **finish the remaining P1 localization work and P4
+first-run usability**, while preserving the completed P0.1 reliability gate.
+P2 foundations and the implemented P4 items must not be repeated. Do not start
+Store commerce, ads, licensing gates, or MSIX packaging until their respective
+roadmap phases and publisher inputs are ready.
 
 Workflow:
 1. Read exact `main` HEAD.
