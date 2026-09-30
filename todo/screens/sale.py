@@ -417,7 +417,7 @@ class SaleFrame(ttk.Frame):
         price_var=tk.StringVar()
         qty_var=tk.StringVar(value='1')
 
-        ttk.Label(form,text=self.tr('Prix (DH)','الثمن (درهم)'),font=('Segoe UI',11,'bold')).pack(anchor='w')
+        ttk.Label(form,text=self.tr(f'Prix ({self.currency})',f'الثمن ({self.currency})',f'Price ({self.currency})'),font=('Segoe UI',11,'bold')).pack(anchor='w')
         price_entry=ttk.Entry(form,textvariable=price_var,font=('Segoe UI',22,'bold'),justify='right',style='Search.TEntry')
         price_entry.pack(fill='x',pady=(4,12),ipady=5)
 
@@ -935,7 +935,7 @@ class SaleFrame(ttk.Frame):
         line=self.cart[index]
         if line.get('qty_multiplier',1)!=1:
             messagebox.showinfo('ToDo',self.tr('Pour un pack, utilisez la remise ligne.','بالنسبة للعلبة، استعمل تخفيض السطر.'),parent=self);return
-        amount=simpledialog.askstring(self.tr('Modifier prix','تعديل الثمن'),self.tr(f"{line['name']}\nNouveau prix unitaire (DH) :",f"{line['name']}\nالثمن الجديد للوحدة (DH):"),initialvalue=f"{Decimal(line['unit_price_cents'])/100:.2f}",parent=self)
+        amount=simpledialog.askstring(self.tr('Modifier prix','تعديل الثمن'),self.tr(f"{line['name']}\nNouveau prix unitaire ({self.currency}) :",f"{line['name']}\nالثمن الجديد للوحدة ({self.currency}):",f"{line['name']}\nNew unit price ({self.currency}):"),initialvalue=f"{Decimal(line['unit_price_cents'])/100:.2f}",parent=self)
         if amount is None:return
         try:
             price=to_cents(amount)
