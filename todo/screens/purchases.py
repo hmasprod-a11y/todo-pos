@@ -9,7 +9,7 @@ from screens.suppliers import SupplierEditor
 class PurchasesFrame(ttk.Frame):
     def __init__(self,master,app=None):
         super().__init__(master,padding=16);self.lines=[];self.app=app
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        self.lang=get_setting('language','fr');self.currency=get_setting('currency','DH');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         top=ttk.Frame(self);top.pack(fill="x")
         ttk.Label(top,text=self.tr('Réceptions','المشتريات','Purchases'),style='Title.TLabel').pack(side='left')
         self.supplier=tk.StringVar();self.invoice=tk.StringVar()
@@ -38,12 +38,12 @@ class PurchasesFrame(ttk.Frame):
         line_actions=ttk.Frame(r);line_actions.pack(fill="x",pady=4)
         ttk.Button(line_actions,text=self.tr('Modifier ligne','تعديل السطر','Edit line'),command=self.edit_line).pack(side="left")
         ttk.Button(line_actions,text=self.tr('Supprimer ligne','حذف السطر','Delete line'),style='Danger.TButton',command=self.remove_line).pack(side='left',padx=6)
-        self.total_label=ttk.Label(line_actions,text=self.tr("Total : 0.00 DH","المجموع: 0.00 DH","Total: 0.00 DH"),font=("Segoe UI",12,"bold"));self.total_label.pack(side="right")
+        self.total_label=ttk.Label(line_actions,text=self.tr(f"Total : 0.00 {self.currency}",f"المجموع: 0.00 {self.currency}",f"Total: 0.00 {self.currency}"),font=("Segoe UI",12,"bold"));self.total_label.pack(side="right")
         self.paid=tk.StringVar(value="0")
         ttk.Entry(line_actions,textvariable=self.paid,width=10).pack(side="right",padx=5)
         self.payment_method=tk.StringVar(value='CASH')
         ttk.Combobox(line_actions,textvariable=self.payment_method,values=('CASH','CARD'),state='readonly',width=7).pack(side='right',padx=5)
-        ttk.Label(line_actions,text=self.tr("Payé maintenant (DH)","المؤدى الآن (درهم)","Paid now (DH)")).pack(side="right")
+        ttk.Label(line_actions,text=self.tr(f"Payé maintenant ({self.currency})",f"المؤدى الآن ({self.currency})",f"Paid now ({self.currency})")).pack(side="right")
         self._load_pending_reorder()
     def _load_pending_reorder(self):
         if self.app is None:return
