@@ -5,6 +5,7 @@ from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'todo'))
 temp=tempfile.TemporaryDirectory();os.environ['TODO_DB_PATH']=str(Path(temp.name)/'ui.db')
 from app import ToDoApp
+from screens.onboarding import FirstRunWizard
 from database import connect
 from screens.products import ProductEditor
 from screens.settings import CategoryEditor
@@ -20,7 +21,9 @@ def descendants(w):
 def button(w,label):
     return next(c for c in descendants(w) if c.winfo_class() in ('Button','TButton') and c.cget('text')==label)
 with patch('tkinter.messagebox.showerror',fail):
-    app=ToDoApp();app.report_callback_exception=lambda t,v,tb:fail(v)
+    app=ToDoApp()
+wizard=next(w for w in app.winfo_children() if isinstance(w,FirstRunWizard))
+wizard.finish();app.update_idletasks();app.report_callback_exception=lambda t,v,tb:fail(v)
     with patch('tkinter.simpledialog.askstring',side_effect=['9876','9876']):
         app.login_pin.set('1234');app.login();app.geometry('1100x640');app.update()
     with connect() as c:
