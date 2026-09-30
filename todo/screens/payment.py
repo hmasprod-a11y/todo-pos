@@ -10,7 +10,7 @@ class PaymentDialog(tk.Toplevel):
 
     def __init__(self, master, total, currency='DH', method='CASH', client_name=None):
         super().__init__(master)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        self.lang=get_setting('language','fr');self.rtl=self.lang=='ar';self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.client_name = client_name
         self.total = total
         self.currency = currency
@@ -52,7 +52,7 @@ class PaymentDialog(tk.Toplevel):
         if client_name:ttk.Label(body,text=self.tr('Client : ','الزبون: ','Customer: ')+client_name).pack(anchor='w')
         for label, value in choices:
             ttk.Radiobutton(modes, text=label, variable=self.method, value=value,
-                            command=self.update_amount).pack(side='left', expand=True, padx=8)
+                            command=self.update_amount).pack(side='right' if self.rtl else 'left', expand=True, padx=8)
         self.method.trace_add('write', self.method_changed)
         ttk.Label(body, text=self.tr('Montant reçu','المبلغ المدفوع','Amount received')).pack(anchor='w')
         self.entry = ttk.Entry(body, textvariable=self.amount, font=('Segoe UI', 24, 'bold'), justify='right', style='Search.TEntry')
@@ -79,11 +79,11 @@ class PaymentDialog(tk.Toplevel):
         summary=ttk.Frame(body)
         summary.pack(fill='x',pady=(10,4))
         self.summary_total=tk.Label(summary,bg='#E2E8F0',fg='#0F172A',font=('Segoe UI',11,'bold'),padx=8,pady=8)
-        self.summary_total.pack(side='left',expand=True,fill='x',padx=(0,3))
+        self.summary_total.pack(side='right' if self.rtl else 'left',expand=True,fill='x',padx=(0,3))
         self.summary_paid=tk.Label(summary,bg='#DBEAFE',fg='#1D4ED8',font=('Segoe UI',11,'bold'),padx=8,pady=8)
-        self.summary_paid.pack(side='left',expand=True,fill='x',padx=3)
+        self.summary_paid.pack(side='right' if self.rtl else 'left',expand=True,fill='x',padx=3)
         self.summary_diff=tk.Label(summary,bg='#DCFCE7',fg='#166534',font=('Segoe UI',11,'bold'),padx=8,pady=8)
-        self.summary_diff.pack(side='left',expand=True,fill='x',padx=(3,0))
+        self.summary_diff.pack(side='right' if self.rtl else 'left',expand=True,fill='x',padx=(3,0))
         self.error = ttk.Label(body, foreground='#DC2626', wraplength=500)
         self.error.pack(fill='x')
         ttk.Checkbutton(body, text=self.tr('Imprimer le ticket','طباعة التذكرة','Print receipt'), variable=self.print_ticket).pack(anchor='w', pady=12)
