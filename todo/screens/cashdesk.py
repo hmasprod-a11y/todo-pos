@@ -2,12 +2,13 @@ import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog
 from services.cash import get_open_session,open_session,close_session,session_totals,record_cash,cash_activity
 from services.money import to_cents,fmt
+from services.globalization import current_country_profile
 from database import connect, get_setting
 
 class CashFrame(ttk.Frame):
     def __init__(self,master,app):
         super().__init__(master,padding=15);self.app=app
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        self.lang=get_setting('language','fr');self.currency=current_country_profile().currency;self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         ttk.Label(self,text=self.tr('Caisse','الصندوق','Cash drawer'),style='Title.TLabel').pack(anchor='w',pady=(0,8))
         self.info=ttk.Label(self,text="",font=("Segoe UI",12));self.info.pack(anchor="w",pady=8)
         self.kpis=ttk.Frame(self);self.kpis.pack(fill="x",pady=8);self.kpi_labels={}
@@ -50,7 +51,7 @@ Cash OUT       : {fmt(t['cash_out'])}
 """)
         self.details.insert("1.0",txt);self.details.config(state="disabled")
     def open(self):
-        v=simpledialog.askfloat(self.tr("Ouverture","فتح الصندوق"),self.tr("Fond de caisse (DH):","رصيد الافتتاح (DH):"),parent=self,minvalue=0)
+        v=simpledialog.askfloat(self.tr("Ouverture","فتح الصندوق"),self.tr(f"Fond de caisse ({self.currency}):",f"رصيد الافتتاح ({self.currency}):",f"Opening cash ({self.currency}):"),parent=self,minvalue=0)
         if v is None:return
         try:open_session(self.app.user["id"],to_cents(v));self.refresh()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
@@ -59,7 +60,7 @@ Cash OUT       : {fmt(t['cash_out'])}
         if not s:messagebox.showerror("ToDo",self.tr("Ouvrez la caisse.","افتح الصندوق أولاً."),parent=self);return
         label=simpledialog.askstring(self.tr("Dépense","مصروف"),self.tr("Libellé:","البيان:"),parent=self)
         if not label:return
-        amount=simpledialog.askfloat(self.tr("Dépense","مصروف"),self.tr("Montant (DH):","المبلغ (DH):"),parent=self,minvalue=0.01)
+        amount=simpledialog.askfloat(self.tr("Dépense","مصروف"),self.tr(f"Montant ({self.currency}):",f"المبلغ ({self.currency}):",f"Amount ({self.currency}):"),parent=self,minvalue=0.01)
         if amount is None:return
         try:record_cash(s['id'],self.app.user['id'],to_cents(amount),'EXPENSE',label)
         except Exception as e:messagebox.showerror('ToDo',str(e),parent=self);return
@@ -67,7 +68,7 @@ Cash OUT       : {fmt(t['cash_out'])}
     def cashmove(self,typ):
         s=get_open_session()
         if not s:return
-        amount=simpledialog.askfloat(typ,self.tr("Montant (DH):","المبلغ (DH):"),parent=self,minvalue=0.01)
+        amount=simpledialog.askfloat(typ,self.tr(f"Montant ({self.currency}):",f"المبلغ ({self.currency}):",f"Amount ({self.currency}):"),parent=self,minvalue=0.01)
         if amount is None:return
         note=simpledialog.askstring(typ,self.tr("Note:","ملاحظة:"),parent=self) or ""
         try:record_cash(s['id'],self.app.user['id'],to_cents(amount),typ,note)
@@ -160,7 +161,7 @@ Cash OUT       : {fmt(t['cash_out'])}
             refresh()
         for i,v in enumerate(values):
             box=ttk.Frame(grid);box.grid(row=i//3,column=i%3,sticky='nsew',padx=4,pady=4)
-            ttk.Button(box,text=f'+ {v:g} DH',command=lambda x=v:add(x),width=13).pack(fill='x')
+            ttk.Button(box,text=f'+ {v:g} {self.currency}',command=lambda x=v:add(x),width=13).pack(fill='x')
             ttk.Button(box,text=self.tr('Retirer','نقص')+f' {v:g}',command=lambda x=v:add(x,-1),width=13).pack(fill='x',pady=(2,0))
         for c in range(3):grid.columnconfigure(c,weight=1)
         def clear():
@@ -171,12 +172,12 @@ Cash OUT       : {fmt(t['cash_out'])}
                 exp,diff,_=close_session(get_open_session()['id'],actual_cents)
             except Exception as e:
                 messagebox.showerror('ToDo',str(e),parent=w);return
-            actual=actual_cents/100
             messagebox.showinfo(
                 self.tr('Clôture','إغلاق الصندوق'),
                 self.tr(
-                    f'Attendu: {fmt(exp)}\nRéel: {actual:.2f} DH\nDifférence: {fmt(diff)}',
-                    f'المتوقع: {fmt(exp)}\nالفعلي: {actual:.2f} DH\nالفرق: {fmt(diff)}'
+                    f'Attendu: {fmt(exp)}\nRéel: {fmt(actual_cents)}\nDifférence: {fmt(diff)}',
+                    f'المتوقع: {fmt(exp)}\nالفعلي: {fmt(actual_cents)}\nالفرق: {fmt(diff)}',
+                    f'Expected: {fmt(exp)}\nActual: {fmt(actual_cents)}\nDifference: {fmt(diff)}'
                 ),
                 parent=w
             )
