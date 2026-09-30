@@ -25,7 +25,7 @@ with patch('tkinter.messagebox.showerror',fail):
     wizard=next(w for w in app.winfo_children() if isinstance(w,FirstRunWizard))
     wizard.pin.set('9876');wizard.pin_confirm.set('9876');wizard.finish();app.update_idletasks();app.report_callback_exception=lambda t,v,tb:fail(v)
     with patch('tkinter.simpledialog.askstring',side_effect=['9876','9876']):
-        app.login_pin.set('1234');app.login();app.geometry('1100x640');app.update()
+        app.login_pin.set('9876');app.login();app.geometry('1100x640');app.update()
     with connect() as c:
         ids=[c.execute('INSERT INTO categories(name) VALUES(?)',(f'Family {i:02}',)).lastrowid for i in range(30)]
     editor=ProductEditor(app);editor.name.set('TEST multi family');editor.sell.set('15');editor.buy.set('8')

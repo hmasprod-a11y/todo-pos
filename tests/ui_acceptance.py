@@ -34,7 +34,7 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     wizard.pin.set('9876');wizard.pin_confirm.set('9876');wizard.finish();app.update_idletasks()
     app.report_callback_exception=lambda t,v,tb: fail('Tk callback',v)
     with patch('tkinter.simpledialog.askstring',side_effect=['9876','9876']):
-        app.login_pin.set('1234');app.login()
+        app.login_pin.set('9876');app.login()
     app.geometry('1100x640');app.update()
     done=__import__('tkinter').BooleanVar(value=False)
     app.after(200,lambda:done.set(True));app.wait_variable(done)

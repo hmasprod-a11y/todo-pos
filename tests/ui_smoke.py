@@ -32,7 +32,7 @@ assert app.customer_slides==[] and app.customer_after_id is None
 app.toggle_customer_display();app.update_idletasks()
 assert app.customer_window is None and app.customer_video is None
 with patch('tkinter.simpledialog.askstring',side_effect=['9876','9876']):
- app.login_pin.set('1234');app.login();app.withdraw();app.update_idletasks()
+ app.login_pin.set('9876');app.login();app.withdraw();app.update_idletasks()
 app.show('sale');app.update_idletasks()
 with connect() as c:
  pid=c.execute("INSERT INTO products(name,sale_price_cents) VALUES('UI Smoke',1200)").lastrowid
