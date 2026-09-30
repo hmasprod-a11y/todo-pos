@@ -22,7 +22,7 @@ assert callable(inventory_screen.require_permission)
 app=ToDoApp()
 from screens.onboarding import FirstRunWizard
 wizard=next(w for w in app.winfo_children() if isinstance(w,FirstRunWizard))
-wizard.finish();app.update_idletasks()
+wizard.pin.set('9876');wizard.pin_confirm.set('9876');wizard.finish();app.update_idletasks()
 app.withdraw()
 assert app.customer_video is None and app.customer_video_delay==33
 # Customer display must be safe to open/close before any media has played.

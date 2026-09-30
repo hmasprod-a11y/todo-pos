@@ -23,7 +23,7 @@ def button(w,label):
 with patch('tkinter.messagebox.showerror',fail):
     app=ToDoApp()
     wizard=next(w for w in app.winfo_children() if isinstance(w,FirstRunWizard))
-    wizard.finish();app.update_idletasks();app.report_callback_exception=lambda t,v,tb:fail(v)
+    wizard.pin.set('9876');wizard.pin_confirm.set('9876');wizard.finish();app.update_idletasks();app.report_callback_exception=lambda t,v,tb:fail(v)
     with patch('tkinter.simpledialog.askstring',side_effect=['9876','9876']):
         app.login_pin.set('1234');app.login();app.geometry('1100x640');app.update()
     with connect() as c:
