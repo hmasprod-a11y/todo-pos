@@ -7,7 +7,7 @@ from services.loyalty import loyalty_clients,loyalty_history,adjust_points,loyal
 class LoyaltyFrame(ttk.Frame):
     def __init__(self,master,app=None):
         super().__init__(master,padding=16);self.app=app
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        self.lang=get_setting('language','fr');self.currency=get_setting('currency','DH');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         top=ttk.Frame(self);top.pack(fill='x',pady=(0,8))
         ttk.Label(top,text=self.tr('Fidélité clients','وفاء الزبائن','Customer loyalty'),style='Title.TLabel').pack(side='left')
         ttk.Button(top,text=self.tr('Paramètres fidélité','إعدادات الوفاء','Loyalty settings'),style='Soft.TButton',command=self.settings).pack(side='right')
@@ -61,8 +61,8 @@ class LoyaltyFrame(ttk.Frame):
         enabled=tk.BooleanVar(value=s['enabled']);earn=tk.StringVar(value=f"{s['earn_every_cents']/100:.2f}");value=tk.StringVar(value=f"{s['point_value_cents']/100:.2f}")
         f=ttk.Frame(w,padding=18);f.pack(fill='both',expand=True)
         ttk.Checkbutton(f,text=self.tr('Activer la fidélité','تفعيل نظام الوفاء','Enable loyalty'),variable=enabled).grid(row=0,column=0,columnspan=2,sticky='w',pady=8)
-        ttk.Label(f,text=self.tr('1 point tous les (DH)','نقطة واحدة لكل (درهم)','1 point for every (DH)')).grid(row=1,column=0,sticky='w',pady=8);ttk.Entry(f,textvariable=earn).grid(row=1,column=1,sticky='ew')
-        ttk.Label(f,text=self.tr('Valeur de 1 point (DH)','قيمة النقطة (درهم)','Value of 1 point (DH)')).grid(row=2,column=0,sticky='w',pady=8);ttk.Entry(f,textvariable=value).grid(row=2,column=1,sticky='ew')
+        ttk.Label(f,text=self.tr(f'1 point tous les ({self.currency})',f'نقطة واحدة لكل ({self.currency})',f'1 point for every ({self.currency})')).grid(row=1,column=0,sticky='w',pady=8);ttk.Entry(f,textvariable=earn).grid(row=1,column=1,sticky='ew')
+        ttk.Label(f,text=self.tr(f'Valeur de 1 point ({self.currency})',f'قيمة النقطة ({self.currency})',f'Value of 1 point ({self.currency})')).grid(row=2,column=0,sticky='w',pady=8);ttk.Entry(f,textvariable=value).grid(row=2,column=1,sticky='ew')
         f.columnconfigure(1,weight=1)
         def save():
             try:
