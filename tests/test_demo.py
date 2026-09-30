@@ -12,8 +12,9 @@ class DemoLauncherTests(unittest.TestCase):
             self.assertEqual(launcher_path(),Path(tmp)/"TEST_TODO.bat")
             with self.assertRaises(FileNotFoundError):launch_demo()
     def test_windows_launches_only_the_isolated_demo_batch(self):
-        with TemporaryDirectory() as tmp,patch("services.demo._app_root",return_value=Path(tmp)),patch("services.demo.os.name","nt"),patch("services.demo.subprocess.Popen") as popen:
+        with TemporaryDirectory() as tmp:
             path=Path(tmp)/"TEST_TODO.bat";path.write_text("@echo off",encoding="ascii")
-            launch_demo()
-            popen.assert_called_once_with(["cmd","/c",str(path)],cwd=str(path.parent))
+            with patch("services.demo._app_root",return_value=Path(tmp)),patch("services.demo.os.name","nt"),patch("services.demo.subprocess.Popen") as popen:
+                launch_demo()
+                popen.assert_called_once_with(["cmd","/c",str(path)],cwd=str(path.parent))
 if __name__=="__main__":unittest.main()
