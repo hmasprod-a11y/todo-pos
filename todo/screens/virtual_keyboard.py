@@ -111,6 +111,7 @@ class VirtualKeyboard(tk.Toplevel):
     def __init__(self, master, target):
         super().__init__(master)
         self.target     = target
+        self.lang = get_setting('language', 'fr')
         self._shift     = False
         self._page      = 'alpha'
         self._minimized = False
@@ -123,7 +124,7 @@ class VirtualKeyboard(tk.Toplevel):
         # ── header draggable ───────────────────────────────────────────────
         self._hdr = tk.Frame(self, bg='#0F172A', height=40, cursor='fleur')
         self._hdr.pack(fill='x')
-        tk.Label(self._hdr, text='⌨  Clavier', bg='#0F172A', fg='#94A3B8',
+        tk.Label(self._hdr, text={'en':'⌨  Keyboard','ar':'⌨  لوحة المفاتيح'}.get(self.lang,'⌨  Clavier'), bg='#0F172A', fg='#94A3B8',
                  font=('Segoe UI', 11, 'bold')).pack(side='left', padx=12, pady=7)
         tk.Button(self._hdr, text='—', bg='#1E293B', fg='white', bd=0,
                   activebackground='#334155', activeforeground='white',
