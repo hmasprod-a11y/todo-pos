@@ -4,7 +4,7 @@ from .profiles import (
     DEFAULT_COUNTRY_CODE,
     PROFILES,
     CountryProfile,
-    format_money,
+    format_money, format_number,
     format_date,
     get_country_profile,
     normalize_country_code,
