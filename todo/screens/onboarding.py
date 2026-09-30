@@ -10,7 +10,7 @@ class FirstRunWizard(tk.Toplevel):
     """Minimal offline first-run setup before normal sign-in."""
     def __init__(self,master,on_done):
         super().__init__(master);self.on_done=on_done;self.transient(master);self.grab_set()
-        self.title("ToDo POS — First setup");self.geometry("520x420");self.resizable(False,False)
+        self.title("ToDo POS — First setup");self.geometry("560x650");self.resizable(False,False)
         self.language=tk.StringVar(value="fr");self.country=tk.StringVar(value="MA");self.shop=tk.StringVar(value="ToDo");self.printer=tk.StringVar();self.barcode=tk.StringVar();self.pin=tk.StringVar();self.pin_confirm=tk.StringVar()
         body=ttk.Frame(self,padding=26);body.pack(fill="both",expand=True)
         ttk.Label(body,text="Welcome to ToDo POS",style="Title.TLabel").pack(anchor="w")
