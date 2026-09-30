@@ -441,7 +441,7 @@ class ProductsFrame(ttk.Frame):
         top=ttk.Frame(self);top.pack(fill="x",pady=(0,8))
         ttk.Label(top,text=self.tr('Articles','المنتجات','Products'),style='Title.TLabel').pack(side='left')
         ttk.Label(self,text=self.tr('Fiche article, codes-barres, images, prix et offres.','بطاقة المنتوج، الباركودات، الصور، الأثمنة والعروض.','Product details, barcodes, images, prices and offers.'),foreground="#475569").pack(anchor="w",pady=(0,8))
-        self.q=tk.StringVar();self.search_entry=ttk.Entry(top,textvariable=self.q,width=30,style='Search.TEntry');self.search_entry.pack(side='left',padx=15);self.search_entry.bind('<KeyRelease>',lambda x:self.go_page(0))
+        self.q=tk.StringVar();self.search_entry=ttk.Entry(top,textvariable=self.q,width=30,style='Search.TEntry');self.search_entry.pack(side='left',padx=15);self.search_entry.bind('<KeyRelease>',lambda x=None:self.go_page(0))
         self.filter=tk.StringVar(value=self.tr('Tous','الكل'))
         ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل'),self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),self.tr('Stock négatif','مخزون سالب','Negative stock'),self.tr('Promotions','العروض','Promotions')],state='readonly',width=18).pack(side='left',padx=4)
         self.filter.trace_add("write",lambda *_:self.go_page(0))
