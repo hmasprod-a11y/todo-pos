@@ -56,7 +56,7 @@ class BarChart(tk.Canvas):
                              font=('Segoe UI', 9, 'bold'), fill='#1e293b')
 
         if not self._values or not any(self._values):
-            self.create_text(W//2, H//2, text=getattr(self.master, 'tr', lambda fr,ar: fr)('Aucune donnée','لا توجد بيانات'),
+            self.create_text(W//2, H//2, text=getattr(self.master, 'tr', lambda fr,ar,en=None: en or fr)('Aucune donnée','لا توجد بيانات','No data'),
                              fill='#94a3b8', font=('Segoe UI', 10))
             return
 
@@ -172,7 +172,7 @@ class HBarChart(tk.Canvas):
 class StatisticsFrame(ttk.Frame):
     def __init__(self, master):
         super().__init__(master, padding=16)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self._period = 'month'
         import datetime
         self._year = datetime.date.today().year
@@ -180,21 +180,21 @@ class StatisticsFrame(ttk.Frame):
         # ── Header ────────────────────────────────────────────────────────────
         header = ttk.Frame(self)
         header.pack(fill='x', pady=(0, 14))
-        ttk.Label(header, text=self.tr('Statistiques','الإحصائيات'),
+        ttk.Label(header, text=self.tr('Statistiques','الإحصائيات','Statistics'),
                   style='Title.TLabel').pack(side='left')
-        ttk.Label(header, text=self.tr('Évolution ventes · Top articles · Top caissiers · Familles','تطور المبيعات · أفضل المنتجات · أفضل الكاشيرات · الفئات'),
+        ttk.Label(header, text=self.tr('Évolution ventes · Top articles · Top caissiers · Familles','تطور المبيعات · أفضل المنتجات · أفضل الكاشيرات · الفئات','Sales trends · Top products · Top cashiers · Categories'),
                   foreground='#475569').pack(side='left', padx=16)
 
         # period selector
         period_bar = ttk.Frame(header)
         period_bar.pack(side='right')
         self._period_btns = {}
-        for label, key in [(self.tr('Semaine','أسبوع'),'week'),(self.tr('Mois','شهر'),'month'),(self.tr('Année','سنة'),'year')]:
+        for label, key in [(self.tr('Semaine','أسبوع','Week'),'week'),(self.tr('Mois','شهر','Month'),'month'),(self.tr('Année','سنة','Year'),'year')]:
             btn = ttk.Button(period_bar, text=label,
                              command=lambda k=key: self._set_period(k))
             btn.pack(side='left', padx=2)
             self._period_btns[key] = btn
-        ttk.Button(header, text=self.tr('↺ Actualiser','↺ تحديث'),
+        ttk.Button(header, text=self.tr('↺ Actualiser','↺ تحديث','↺ Refresh'),
                    command=self.refresh).pack(side='right', padx=8)
         year_box = ttk.Frame(header)
         year_box.pack(side='right', padx=6)
@@ -206,26 +206,26 @@ class StatisticsFrame(ttk.Frame):
         custom=ttk.Frame(self);custom.pack(fill='x',pady=(0,10))
         self._date_from=tk.StringVar(value=str(datetime.date.today().replace(day=1)))
         self._date_to=tk.StringVar(value=str(datetime.date.today()))
-        ttk.Label(custom,text=self.tr('Période personnalisée','فترة مخصصة')).pack(side='left')
+        ttk.Label(custom,text=self.tr('Période personnalisée','فترة مخصصة','Custom period')).pack(side='left')
         ttk.Entry(custom,textvariable=self._date_from,width=11).pack(side='left',padx=(8,3))
         ttk.Label(custom,text='→').pack(side='left')
         ttk.Entry(custom,textvariable=self._date_to,width=11).pack(side='left',padx=3)
-        ttk.Button(custom,text=self.tr('Résumé','ملخص'),style='Soft.TButton',command=self._custom_summary).pack(side='left',padx=6)
+        ttk.Button(custom,text=self.tr('Résumé','ملخص','Summary'),style='Soft.TButton',command=self._custom_summary).pack(side='left',padx=6)
 
         # ── KPI cards row ─────────────────────────────────────────────────────
         self.kpi_frame = ttk.Frame(self)
         self.kpi_frame.pack(fill='x', pady=(0, 14))
         self._kpi_labels = {}
         kpi_defs = [
-            ('net_sales',    self.tr('Total ventes','إجمالي المبيعات'),   '#2563EB'),
-            ('gross_margin', self.tr('Marge brute','الهامش الإجمالي'),    '#16A34A'),
-            ('tickets',      self.tr('Tickets','التذاكر'),        '#D97706'),
-            ('alerts',       self.tr('Stock faible','مخزون منخفض'),   '#DC2626'),
-            ('stock_value',   self.tr('Valeur stock','قيمة المخزون'),    '#7C3AED'),
-            ('returns',       self.tr('Retours','المرتجعات'),         '#0891B2'),
-            ('return_cash',   self.tr('Retours remboursés','مرتجعات مسترجعة نقداً'),'#DC2626'),
-            ('return_credit', self.tr('Retours crédit','مرتجعات على الرصيد'),    '#2563EB'),
-            ('top_month',     self.tr('Top mois','أفضل شهر'),        '#6B7280'),
+            ('net_sales',    self.tr('Total ventes','إجمالي المبيعات','Total sales'),   '#2563EB'),
+            ('gross_margin', self.tr('Marge brute','الهامش الإجمالي','Gross margin'),    '#16A34A'),
+            ('tickets',      self.tr('Tickets','التذاكر','Receipts'),        '#D97706'),
+            ('alerts',       self.tr('Stock faible','مخزون منخفض','Low stock'),   '#DC2626'),
+            ('stock_value',   self.tr('Valeur stock','قيمة المخزون','Stock value'),    '#7C3AED'),
+            ('returns',       self.tr('Retours','المرتجعات','Returns'),         '#0891B2'),
+            ('return_cash',   self.tr('Retours remboursés','مرتجعات مسترجعة نقداً','Refunded returns'),'#DC2626'),
+            ('return_credit', self.tr('Retours crédit','مرتجعات على الرصيد','Credit returns'),    '#2563EB'),
+            ('top_month',     self.tr('Top mois','أفضل شهر','Top month'),        '#6B7280'),
         ]
         for i, (key, title, color) in enumerate(kpi_defs):
             card = tk.Frame(self.kpi_frame, bg=color, height=76)
@@ -249,32 +249,32 @@ class StatisticsFrame(ttk.Frame):
         charts.rowconfigure(2, weight=2)
 
         # Evolution bar chart (big, top-left)
-        evo_card = ttk.LabelFrame(charts, text=self.tr('Évolution des ventes','تطور المبيعات'), padding=4)
+        evo_card = ttk.LabelFrame(charts, text=self.tr('Évolution des ventes','تطور المبيعات','Sales trend'), padding=4)
         evo_card.grid(row=0, column=0, sticky='nsew', padx=(0, 6), pady=(0, 6))
         self.evo_chart = BarChart(evo_card, [], [], color='#2563EB',
                                   height=200)
         self.evo_chart.pack(fill='both', expand=True)
 
         # Category breakdown (top-right)
-        cat_card = ttk.LabelFrame(charts, text=self.tr('Ventes par famille','المبيعات حسب الفئة'), padding=4)
+        cat_card = ttk.LabelFrame(charts, text=self.tr('Ventes par famille','المبيعات حسب الفئة','Sales by category'), padding=4)
         cat_card.grid(row=0, column=1, sticky='nsew', pady=(0, 6))
         self.cat_chart = HBarChart(cat_card, [], height=200)
         self.cat_chart.pack(fill='both', expand=True)
 
         # Top products (bottom-left)
-        top_card = ttk.LabelFrame(charts, text=self.tr('Top 10 articles','أفضل 10 منتجات'), padding=4)
+        top_card = ttk.LabelFrame(charts, text=self.tr('Top 10 articles','أفضل 10 منتجات','Top 10 products'), padding=4)
         top_card.grid(row=1, column=0, sticky='nsew', padx=(0, 6))
         self.top_chart = HBarChart(top_card, [], height=160)
         self.top_chart.pack(fill='both', expand=True)
 
         # Top cashiers (bottom-right)
-        cash_card = ttk.LabelFrame(charts, text=self.tr('Top caissiers','أفضل الكاشيرات'), padding=4)
+        cash_card = ttk.LabelFrame(charts, text=self.tr('Top caissiers','أفضل الكاشيرات','Top cashiers'), padding=4)
         cash_card.grid(row=1, column=1, sticky='nsew')
         self.cashier_chart = HBarChart(cash_card, [], height=160)
         self.cashier_chart.pack(fill='both', expand=True)
 
         # Article evolution selector
-        article_card = ttk.LabelFrame(charts, text=self.tr('Évolution article','تطور المنتوج'), padding=6)
+        article_card = ttk.LabelFrame(charts, text=self.tr('Évolution article','تطور المنتوج','Product trend'), padding=6)
         article_card.grid(row=2, column=0, sticky='nsew', padx=(0, 6), pady=(6, 0))
         article_head = ttk.Frame(article_card)
         article_head.pack(fill='x')
@@ -285,33 +285,33 @@ class StatisticsFrame(ttk.Frame):
         self.article_chart.pack(fill='both', expand=True, pady=(4, 0))
 
         # Top clients (third row, full width)
-        client_card = ttk.LabelFrame(charts, text=self.tr('Top 10 clients','أفضل 10 زبائن'), padding=4)
+        client_card = ttk.LabelFrame(charts, text=self.tr('Top 10 clients','أفضل 10 زبائن','Top 10 customers'), padding=4)
         client_card.grid(row=2, column=1, sticky='nsew', pady=(6, 0))
         self.client_chart = HBarChart(client_card, [], height=150)
         self.client_chart.pack(fill='both', expand=True)
 
         # recent transactions sidebar
-        recent_card = ttk.LabelFrame(self, text=self.tr('Dernières opérations','آخر العمليات'), padding=6)
+        recent_card = ttk.LabelFrame(self, text=self.tr('Dernières opérations','آخر العمليات','Recent transactions'), padding=6)
         recent_card.pack(fill='x', pady=(10, 0))
         self.recent_tree = ttk.Treeview(recent_card,
             columns=('doc', 'amount', 'kind', 'time'), show='headings', height=5)
         for col, lbl, w, anchor in [
             ('doc',    'N°',       110, 'w'),
-            ('amount', self.tr('Montant','المبلغ'),   90, 'e'),
-            ('kind',   self.tr('Type','النوع'),      65, 'w'),
-            ('time',   self.tr('Heure','الوقت'),    110, 'w'),
+            ('amount', self.tr('Montant','المبلغ','Amount'),   90, 'e'),
+            ('kind',   self.tr('Type','النوع','Type'),      65, 'w'),
+            ('time',   self.tr('Heure','الوقت','Time'),    110, 'w'),
         ]:
             self.recent_tree.heading(col, text=lbl)
             self.recent_tree.column(col, width=w, anchor=anchor)
         self.recent_tree.tag_configure('return', foreground='#DC2626')
         self.recent_tree.pack(fill='x')
 
-        pay_card = ttk.LabelFrame(self, text=self.tr('Paiements nets','صافي الدفعات'), padding=6)
+        pay_card = ttk.LabelFrame(self, text=self.tr('Paiements nets','صافي الدفعات','Net payments'), padding=6)
         pay_card.pack(fill='x', pady=(8, 0))
         self.payment_summary = ttk.Label(pay_card, text='—', font=('Segoe UI', 11, 'bold'))
         self.payment_summary.pack(anchor='w')
 
-        finance_card = ttk.LabelFrame(self, text=self.tr('Vue financière','نظرة مالية'), padding=6)
+        finance_card = ttk.LabelFrame(self, text=self.tr('Vue financière','نظرة مالية','Financial overview'), padding=6)
         finance_card.pack(fill='x', pady=(8, 0))
         self.finance_summary = ttk.Label(finance_card, text='—', font=('Segoe UI', 11, 'bold'))
         self.finance_summary.pack(anchor='w')
@@ -341,7 +341,7 @@ class StatisticsFrame(ttk.Frame):
             start=datetime.date.fromisoformat(self._date_from.get());end=datetime.date.fromisoformat(self._date_to.get())
             if start>end: raise ValueError
         except ValueError:
-            messagebox.showerror(self.tr('Statistiques','الإحصائيات'),self.tr('Période invalide. Format YYYY-MM-DD.','الفترة غير صالحة. الصيغة YYYY-MM-DD.'),parent=self);return
+            messagebox.showerror(self.tr('Statistiques','الإحصائيات'),self.tr('Période invalide. Format YYYY-MM-DD.','الفترة غير صالحة. الصيغة YYYY-MM-DD.','Invalid period. Use YYYY-MM-DD.'),parent=self);return
         with connect() as conn:
             row=conn.execute("""SELECT COUNT(*) tickets,COALESCE(SUM(s.total_cents-COALESCE((SELECT SUM(r.total_cents) FROM returns r WHERE r.sale_id=s.id),0)),0) sales FROM sales s WHERE s.status='COMPLETED' AND date(s.created_at)>=? AND date(s.created_at)<=?""",(str(start),str(end))).fetchone()
             ret=conn.execute("""SELECT COALESCE(SUM(refund_paid_cents),0) refunded,COALESCE(SUM(total_cents-COALESCE(refund_paid_cents,total_cents)),0) credit FROM returns WHERE date(created_at)>=? AND date(created_at)<=?""",(str(start),str(end))).fetchone()
@@ -391,7 +391,7 @@ class StatisticsFrame(ttk.Frame):
         self._kpi_labels['return_cash'].config(text=fmt(return_cash))
         self._kpi_labels['return_credit'].config(text=fmt(return_credit))
         best=top_month(self._year)
-        month_names=(['يناير','فبراير','مارس','أبريل','ماي','يونيو','يوليوز','غشت','شتنبر','أكتوبر','نونبر','دجنبر'] if self.lang=='ar' else ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'])
+        month_names=(['يناير','فبراير','مارس','أبريل','ماي','يونيو','يوليوز','غشت','شتنبر','أكتوبر','نونبر','دجنبر'] if self.lang=='ar' else (['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] if self.lang=='en' else ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc']))
         label='—' if not best['month'] else f"{month_names[best['month']-1]} · {fmt(best['revenue'])}"
         self._kpi_labels['top_month'].config(text=label)
 
@@ -399,17 +399,18 @@ class StatisticsFrame(ttk.Frame):
         data=finance_overview(self._period, self._year if self._period=='year' else None)
         self.finance_summary.config(text=self.tr(
             f"Achats période: {fmt(data['purchases'])}   ·   Créances clients: {fmt(data['client_debt'])}   ·   Dettes fournisseurs: {fmt(data['supplier_debt'])}",
+            f"Period purchases: {fmt(data['purchases'])}   ·   Customer debt: {fmt(data['client_debt'])}   ·   Supplier debt: {fmt(data['supplier_debt'])}",
             f"مشتريات الفترة: {fmt(data['purchases'])}   ·   ديون الزبناء: {fmt(data['client_debt'])}   ·   ديون الموردين: {fmt(data['supplier_debt'])}"
         ))
 
     def _load_payments(self):
         data=payment_breakdown(self._period, self._year if self._period=='year' else None)
         parts=[]
-        for method,label in [('CASH',self.tr('Espèces','نقداً')),('CARD',self.tr('Carte','بطاقة')),('CREDIT',self.tr('Crédit','دين'))]:
+        for method,label in [('CASH',self.tr('Espèces','نقداً','Cash')),('CARD',self.tr('Carte','بطاقة','Card')),('CREDIT',self.tr('Crédit','دين','Credit'))]:
             amount=data.get(method,0)
             if amount or method in ('CASH','CARD'):
                 parts.append(f'{label}: {fmt(amount)}')
-        self.payment_summary.config(text='   ·   '.join(parts) if parts else self.tr('Aucun paiement','لا توجد دفعات'))
+        self.payment_summary.config(text='   ·   '.join(parts) if parts else self.tr('Aucun paiement','لا توجد دفعات','No payments'))
 
     def _load_evolution(self):
         labels, values = sales_evolution(self._period, self._year if self._period=='year' else None)
