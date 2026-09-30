@@ -7,6 +7,7 @@ from services.clients import (
     add_payment, list_payments, client_sales, credit_statement,
 )
 from services.money import fmt
+from services.globalization import current_country_profile
 from screens.common import EmbeddedTouchKeyboard
 
 
@@ -63,7 +64,7 @@ class PaymentsWindow(tk.Toplevel):
         super().__init__(master)
         self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.client   = client
-        self.currency = 'DH'
+        self.currency = current_country_profile().currency
         self.title(f"{self.tr('Règlements','التسديدات','Payments')} — {client['name']}")
         self.geometry('820x520')
         self.transient(master.winfo_toplevel())
@@ -143,7 +144,7 @@ class PaymentsWindow(tk.Toplevel):
         if sel:
             sale_id = int(sel[0])
         amount_str = simpledialog.askstring(
-            self.tr('Règlement','التسديد','Payment'), self.tr('Montant reçu (DH) :','المبلغ المقبوض (DH):','Amount received (DH):'), parent=self)
+            self.tr('Règlement','التسديد','Payment'), self.tr(f'Montant reçu ({self.currency}) :',f'المبلغ المقبوض ({self.currency}):',f'Amount received ({self.currency}):'), parent=self)
         if amount_str is None: return
         method=simpledialog.askstring(self.tr('Mode de paiement','طريقة الأداء','Payment method'),self.tr('CASH ou CARD :','CASH أو CARD:','CASH or CARD:'),initialvalue='CASH',parent=self)
         if method is None:return
@@ -163,6 +164,7 @@ class CreditStateWindow(tk.Toplevel):
     def __init__(self, master):
         super().__init__(master)
         self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        self.currency=current_country_profile().currency
         self.title(self.tr('État des crédits clients','حالة ديون الزبائن','Customer credit status'))
         self.geometry('720x460')
         self.transient(master.winfo_toplevel())
@@ -209,7 +211,7 @@ class CreditStateWindow(tk.Toplevel):
                 values=(r['name'], r['phone'],
                         fmt(r['billed_cents'], ''), fmt(r['paid_cents'], ''), fmt(bal, '')),
                 tags=(tag,))
-        self.lbl_total.config(text=f"{self.tr('Total dû global','إجمالي الرصيد المستحق','Total amount due')} : {fmt(grand, 'DH')}")
+        self.lbl_total.config(text=f"{self.tr('Total dû global','إجمالي الرصيد المستحق','Total amount due')} : {fmt(grand)}")
 
 
 # ── Écran principal clients ───────────────────────────────────────────────────
