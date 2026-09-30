@@ -23,11 +23,11 @@ def _internal_product_barcode(product_id):
 class ProductEditor(tk.Toplevel):
     def __init__(self,master,product_id=None,on_saved=None):
         super().__init__(master)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.pid=product_id; self.on_saved=on_saved
         self.loaded_stock=0
         self.img_source="";self.img_rel="";self.img_ref=None
-        self.title('ToDo — '+self.tr('Article','المنتوج'));self.geometry("1100x900");self.resizable(True,True);self.transient(master)
+        self.title('ToDo — '+self.tr('Article','المنتوج','Product'));self.geometry("1100x900");self.resizable(True,True);self.transient(master)
         # Do not grab the whole application: a modal grab prevents the global
         # virtual keyboard (another Toplevel) from receiving mouse/touch events.
         # The editor remains transient, while its own embedded keyboard works
@@ -45,12 +45,12 @@ class ProductEditor(tk.Toplevel):
         self._keyboard_target = None
         self.bind_all('<FocusIn>', self._remember_keyboard_target, add='+')
         left=ttk.Frame(root);left.pack(side="left",fill="both",expand=True,padx=(0,18))
-        right=ttk.LabelFrame(root,text=self.tr('Image produit','صورة المنتوج'),padding=8);right.pack(side="right",fill="y")
-        self.e_bar=labeled_entry(left,self.tr('CODE-BARRES','الباركود'),self.bar,0,bold=True)
-        self.e_name=labeled_entry(left,self.tr('Article','المنتوج'),self.name,1)
-        ttk.Label(left,text=self.tr('Familles','العائلات')).grid(row=2,column=0,sticky='nw',pady=4)
+        right=ttk.LabelFrame(root,text=self.tr('Image produit','صورة المنتوج','Product image'),padding=8);right.pack(side="right",fill="y")
+        self.e_bar=labeled_entry(left,self.tr('CODE-BARRES','الباركود','BARCODE'),self.bar,0,bold=True)
+        self.e_name=labeled_entry(left,self.tr('Article','المنتوج','Product'),self.name,1)
+        ttk.Label(left,text=self.tr('Familles','العائلات','Categories')).grid(row=2,column=0,sticky='nw',pady=4)
         cat_outer=ttk.Frame(left);cat_outer.grid(row=2,column=1,columnspan=2,sticky='ew',pady=4)
-        ttk.Button(cat_outer,text=self.tr('+ Famille','+ عائلة'),command=self.add_category).pack(side='bottom',anchor='w',pady=(4,0))
+        ttk.Button(cat_outer,text=self.tr('+ Famille','+ عائلة','+ Category'),command=self.add_category).pack(side='bottom',anchor='w',pady=(4,0))
         cat_canvas=tk.Canvas(cat_outer,height=100,highlightthickness=0)
         cat_canvas.pack(side='left',fill='x',expand=True)
         scrollbar=ttk.Scrollbar(cat_outer,orient='vertical',command=cat_canvas.yview)
@@ -60,17 +60,17 @@ class ProductEditor(tk.Toplevel):
         self.cat_scroll_frame.bind('<Configure>',lambda e:cat_canvas.configure(scrollregion=cat_canvas.bbox('all')))
         self.cat_vars={}
         self.refresh_categories()
-        self.e_buy=labeled_entry(left,self.tr("Prix achat","ثمن الشراء"),self.buy,3)
-        self.e_sell=labeled_entry(left,self.tr("Prix vente","ثمن البيع"),self.sell,4)
-        self.e_stock=labeled_entry(left,self.tr("Stock","المخزون"),self.stock,5)
-        self.e_alert=labeled_entry(left,self.tr("Alerte stock","تنبيه المخزون"),self.alert,6)
+        self.e_buy=labeled_entry(left,self.tr("Prix achat","ثمن الشراء","Purchase price"),self.buy,3)
+        self.e_sell=labeled_entry(left,self.tr("Prix vente","ثمن البيع","Sale price"),self.sell,4)
+        self.e_stock=labeled_entry(left,self.tr("Stock","المخزون","Stock"),self.stock,5)
+        self.e_alert=labeled_entry(left,self.tr("Alerte stock","تنبيه المخزون","Stock alert"),self.alert,6)
         left.columnconfigure(1,weight=1)
         self.e_bar.bind("<Return>",lambda e:self.e_name.focus_set())
         chain=[(self.e_name,self.e_buy),(self.e_buy,self.e_sell),(self.e_sell,self.e_stock),(self.e_stock,self.e_alert)]
         for a,b in chain:a.bind("<Return>",lambda e,n=b:n.focus_set())
-        ttk.Label(left,text=self.tr("Codes-barres / Packs","الباركود / الحزم"),font=("Segoe UI",10,"bold")).grid(row=7,column=0,columnspan=2,sticky="w",pady=(14,4))
+        ttk.Label(left,text=self.tr("Codes-barres / Packs","الباركود / الحزم","Barcodes / packs"),font=("Segoe UI",10,"bold")).grid(row=7,column=0,columnspan=2,sticky="w",pady=(14,4))
         self.barcodes_frame=ttk.Frame(left);self.barcodes_frame.grid(row=8,column=0,columnspan=2,sticky="ew")
-        ttk.Button(left,text=self.tr("+ Ajouter barcode / pack","+ إضافة باركود / حزمة"),command=self.add_barcode_row).grid(row=9,column=0,columnspan=2,sticky="w",pady=4)
+        ttk.Button(left,text=self.tr("+ Ajouter barcode / pack","+ إضافة باركود / حزمة","+ Add barcode / pack"),command=self.add_barcode_row).grid(row=9,column=0,columnspan=2,sticky="w",pady=4)
         ttk.Label(left,text=self.tr("Carton/pack : multiplicateur + prix total optionnel.","الكرتونة/الحزمة: المضاعف + الثمن الإجمالي اختياري."),wraplength=520).grid(row=10,column=0,columnspan=2,sticky="w")
         ttk.Label(left,text=self.tr("Promotions et prix par quantité","العروض والأثمنة حسب الكمية"),font=("Segoe UI",10,"bold")).grid(row=11,column=0,columnspan=2,sticky="w",pady=(10,4))
         self.offer_rows=[]
@@ -79,12 +79,12 @@ class ProductEditor(tk.Toplevel):
         ttk.Button(left,text=self.tr("+ Ajouter une offre","+ إضافة عرض"),command=self.add_offer_row).grid(row=13,column=0,columnspan=2,sticky="w",pady=4)
         ttk.Label(left,text=self.tr("Prix/unité : dès la quantité indiquée.\nLot : groupes complets, reste au prix normal.\nSi plusieurs offres : le plus grand seuil atteint s'applique.","ثمن الوحدة: ابتداءً من الكمية المحددة.\nالحزمة: مجموعات كاملة والباقي بالثمن العادي.\nعند تعدد العروض يطبق أكبر حد تم بلوغه."),wraplength=440).grid(row=14,column=0,columnspan=2,sticky="w",pady=6)
         b=ttk.Frame(left);b.grid(row=15,column=0,columnspan=2,sticky="e",pady=16)
-        ttk.Button(b,text=self.tr('Enregistrer','حفظ'),style='Success.TButton',command=self.save).pack(side='left',padx=4,ipadx=8)
-        ttk.Button(b,text=self.tr('Annuler','إلغاء'),style='Danger.TButton',command=self.destroy).pack(side='left',padx=4)
+        ttk.Button(b,text=self.tr('Enregistrer','حفظ','Save'),style='Success.TButton',command=self.save).pack(side='left',padx=4,ipadx=8)
+        ttk.Button(b,text=self.tr('Annuler','إلغاء','Cancel'),style='Danger.TButton',command=self.destroy).pack(side='left',padx=4)
         ttk.Button(b,text=self.tr('⌨ Clavier','⌨ لوحة المفاتيح'),style='Primary.TButton',command=self.toggle_embedded_keyboard).pack(side='left',padx=(10,0))
         self.preview=tk.Label(right,text=self.tr("Aucune image","لا توجد صورة"),bg="white",relief="groove",width=25,height=13);self.preview.pack()
-        ttk.Button(right,text=self.tr('Choisir image','اختيار صورة'),style='Soft.TButton',command=self.choose_image).pack(fill='x',pady=8)
-        ttk.Checkbutton(right,text=self.tr('Afficher dans les photos de vente','إظهار الصورة في شاشة البيع'),variable=self.show_in_sale_photos).pack(anchor='w',fill='x',pady=(0,8))
+        ttk.Button(right,text=self.tr('Choisir image','اختيار صورة','Choose image'),style='Soft.TButton',command=self.choose_image).pack(fill='x',pady=8)
+        ttk.Checkbutton(right,text=self.tr('Afficher dans les photos de vente','إظهار الصورة في شاشة البيع','Show in sale photos'),variable=self.show_in_sale_photos).pack(anchor='w',fill='x',pady=(0,8))
         fields=ttk.LabelFrame(right,text=self.tr('Recherche','معلومات إضافية'),padding=8);fields.pack(fill='x',pady=10)
         for label,variable in [(self.tr('Référence','المرجع'),self.sku),(self.tr('Code fournisseur','رمز المورد'),self.supplier_code),(self.tr('Alias','اسم بديل'),self.alias)]:
             ttk.Label(fields,text=label).pack(anchor='w')
@@ -436,7 +436,7 @@ class ProductEditor(tk.Toplevel):
 class ProductsFrame(ttk.Frame):
     def __init__(self,master):
         super().__init__(master,padding=16)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.page=0
         top=ttk.Frame(self);top.pack(fill="x",pady=(0,8))
         ttk.Label(top,text=self.tr('Articles','المنتجات'),style='Title.TLabel').pack(side='left')
@@ -453,7 +453,7 @@ class ProductsFrame(ttk.Frame):
         ttk.Button(top,text=self.tr('Désactiver','تعطيل'),style='Danger.TButton',command=self.deactivate).pack(side='right',padx=3)
         cols=("id","barcode","name","cat","buy","sell","stock","alert","img")
         self.t=ttk.Treeview(self,columns=cols,show='headings',height=14)
-        cfg=[("id","ID",50),("barcode",self.tr("Barcode","الباركود"),145),("name",self.tr("Article","المنتوج"),260),("cat",self.tr("Famille","العائلة"),130),("buy",self.tr("Achat","الشراء"),85),("sell",self.tr("Vente","البيع"),85),("stock",self.tr("Stock","المخزون"),80),("alert",self.tr("Alerte","التنبيه"),80),("img",self.tr("Img","صورة"),45)]
+        cfg=[("id","ID",50),("barcode",self.tr("Barcode","الباركود"),145),("name",self.tr("Article","المنتوج"),260),("cat",self.tr("Famille","العائلة"),130),("buy",self.tr("Achat","الشراء"),85),("sell",self.tr("Vente","البيع"),85),("stock",self.tr("Stock","المخزون","Stock"),80),("alert",self.tr("Alerte","التنبيه"),80),("img",self.tr("Img","صورة"),45)]
         for c,h,w in cfg:self.t.heading(c,text=h);self.t.column(c,width=w,anchor="center")
         self.t.pack(fill="both",expand=True);self.t.bind("<Double-1>",lambda e:self.edit())
         self.kpi_bar=tk.Frame(self,bg='#F6F7FB');self.kpi_bar.pack(fill='x',pady=(8,2))
@@ -746,7 +746,7 @@ class ProductsFrame(ttk.Frame):
                 messagebox.showerror(self.tr("Import Excel","استيراد Excel"),self.tr("Import annulé: le fichier contient des groupes produit incohérents ou des barcodes dupliqués dans le même produit.\n","تم إلغاء الاستيراد: الملف يحتوي مجموعات منتوج غير متناسقة أو باركود مكرر داخل نفس المنتوج.\n")+"\n".join(errors[:15]),parent=self);return
             w=tk.Toplevel(self);w.title(self.tr("Aperçu import Excel","معاينة استيراد Excel"));w.geometry("980x560");w.transient(self.winfo_toplevel());w.grab_set()
             tree=ttk.Treeview(w,columns=("line","barcode","name","cat","buy","sell","stock","alert"),show="headings")
-            for key,title,width in [("line",self.tr("Ligne","السطر"),55),("barcode",self.tr("Barcode","الباركود"),145),("name",self.tr("Article","المنتوج"),220),("cat",self.tr("Famille","العائلة"),120),("buy",self.tr("Achat","الشراء"),75),("sell",self.tr("Vente","البيع"),75),("stock",self.tr("Stock","المخزون"),70),("alert",self.tr("Alerte","التنبيه"),70)]:tree.heading(key,text=title);tree.column(key,width=width,anchor="center")
+            for key,title,width in [("line",self.tr("Ligne","السطر"),55),("barcode",self.tr("Barcode","الباركود"),145),("name",self.tr("Article","المنتوج"),220),("cat",self.tr("Famille","العائلة"),120),("buy",self.tr("Achat","الشراء"),75),("sell",self.tr("Vente","البيع"),75),("stock",self.tr("Stock","المخزون","Stock"),70),("alert",self.tr("Alerte","التنبيه"),70)]:tree.heading(key,text=title);tree.column(key,width=width,anchor="center")
             tree.pack(fill="both",expand=True,padx=10,pady=10)
             for row in preview[:500]:tree.insert("","end",values=(row[0],row[1],row[2]," | ".join(row[3]),f"{row[4]/100:.2f}",f"{row[5]/100:.2f}",("" if row[6] is None else f"{row[6]:g}"),f"{row[7]:g}"))
             warning=ttk.Label(w,text=(self.tr(f"⚠ {len(conflicts)} barcode(s) partagé(s) détecté(s). Ils seront conservés et demanderont un choix à la vente.",f"⚠ تم اكتشاف {len(conflicts)} باركود مشترك. سيتم الاحتفاظ بها وسيطلب الاختيار عند البيع.") if conflicts else self.tr("✓ Aucun barcode partagé détecté.","✓ لم يتم اكتشاف أي باركود مشترك.")),foreground="#B45309" if conflicts else "#15803D",wraplength=930)
