@@ -3,6 +3,7 @@ import os,sqlite3,sys,subprocess
 import database
 from database import connect,get_setting
 from services.security import verify_pin
+from services.features import FeatureService
 
 APP_VERSION='1.1.0'
 
@@ -46,6 +47,7 @@ def diagnostics():
     backup=latest_backup()
     return {
         'version':APP_VERSION,
+        'edition':FeatureService().plan,
         'shop':get_setting('shop_name','ToDo'),
         'workstation':get_setting('workstation_code','01'),
         'db_path':str(db_path.resolve()),
@@ -62,6 +64,7 @@ def diagnostic_text():
     d=diagnostics()
     return '\n'.join([
         f"ToDo POS {d['version']}",
+        f"Édition: {d['edition']}",
         f"Magasin: {d['shop']}",
         f"Poste: {d['workstation']}",
         f"SQLite: {d['sqlite_version']} / schema {d['schema_version']}",

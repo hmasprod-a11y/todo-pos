@@ -16,10 +16,10 @@ class SupportTests(unittest.TestCase):
         database.DB_PATH=self.old_db;backup.DB_PATH=self.old_db;backup.BASE=self.old_base;self.tmp.cleanup()
     def test_diagnostics_contains_safe_runtime_information(self):
         d=diagnostics()
-        self.assertEqual(d['version'],APP_VERSION);self.assertEqual(d['shop'],'TODO TEST');self.assertEqual(d['workstation'],'09')
+        self.assertEqual(d['version'],APP_VERSION);self.assertEqual(d['edition'],'FREE');self.assertEqual(d['shop'],'TODO TEST');self.assertEqual(d['workstation'],'09')
         self.assertEqual(d['integrity'],'ok');self.assertGreater(d['tables'],10);self.assertGreater(d['db_size_bytes'],0)
         self.assertTrue(d['default_admin_pin'])
-        text=diagnostic_text();self.assertIn('Poste: 09',text);self.assertIn('Intégrité: ok',text)
+        text=diagnostic_text();self.assertIn('Édition: FREE',text);self.assertIn('Poste: 09',text);self.assertIn('Intégrité: ok',text)
         self.assertIn('PIN admin par défaut: À CHANGER',text);self.assertNotIn('smtp_app_password',text)
     def test_default_admin_pin_status_clears_after_change(self):
         with database.connect() as conn:
