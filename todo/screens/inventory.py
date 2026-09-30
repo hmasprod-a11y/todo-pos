@@ -14,10 +14,10 @@ class InventaireFrame(ttk.Frame):
 
     def __init__(self, master):
         super().__init__(master, padding=16)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
-        ttk.Label(self, text=self.tr('📝  Inventaire','📝  الجرد'),
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        ttk.Label(self, text=self.tr('📝  Inventaire','📝  الجرد','📝  Inventory'),
                   style='Title.TLabel').pack(anchor='w')
-        ttk.Label(self, text=self.tr('Saisissez la quantité réelle comptée. Validez pour ajuster le stock.','أدخل الكمية الحقيقية المحسوبة ثم أكد لتعديل المخزون.'),
+        ttk.Label(self, text=self.tr('Saisissez la quantité réelle comptée. Validez pour ajuster le stock.','أدخل الكمية الحقيقية المحسوبة ثم أكد لتعديل المخزون.','Enter the actual count. Confirm to adjust stock.'),
                   foreground='#475569').pack(anchor='w', pady=(0, 10))
 
         toolbar = ttk.Frame(self); toolbar.pack(fill='x', pady=(0, 8))
@@ -25,18 +25,18 @@ class InventaireFrame(ttk.Frame):
         entry = ttk.Entry(toolbar, textvariable=self.query, width=32, style='Search.TEntry')
         entry.pack(side='left')
         entry.bind('<KeyRelease>', lambda e: self.refresh())
-        ttk.Button(toolbar, text=self.tr('✔  Valider les écarts','✔  تأكيد الفروقات'),
+        ttk.Button(toolbar, text=self.tr('✔  Valider les écarts','✔  تأكيد الفروقات','✔  Confirm differences'),
                    style='Primary.TButton', command=self.apply_all).pack(side='right')
-        ttk.Button(toolbar, text=self.tr('↺ Actualiser','↺ تحديث'), style='Soft.TButton', command=self.refresh).pack(side='right', padx=8)
+        ttk.Button(toolbar, text=self.tr('↺ Actualiser','↺ تحديث','↺ Refresh'), style='Soft.TButton', command=self.refresh).pack(side='right', padx=8)
 
         cols = ('id', 'name', 'theory', 'counted', 'diff')
         self.tree = ttk.Treeview(self, columns=cols, show='headings')
         for col, lbl, w, anc in [
             ('id',      'ID',       55,  'center'),
-            ('name',    self.tr('Article','المنتوج'),  350, 'w'),
-            ('theory',  self.tr('Théorique','النظري'),95,  'e'),
-            ('counted', self.tr('Compté ✏','المعدود ✏'), 95,  'e'),
-            ('diff',    self.tr('Écart','الفرق'),    85,  'e'),
+            ('name',    self.tr('Article','المنتوج','Product'),  350, 'w'),
+            ('theory',  self.tr('Théorique','النظري','Expected'),95,  'e'),
+            ('counted', self.tr('Compté ✏','المعدود ✏','Counted ✏'), 95,  'e'),
+            ('diff',    self.tr('Écart','الفرق','Difference'),    85,  'e'),
         ]:
             self.tree.heading(col, text=lbl)
             self.tree.column(col, width=w, anchor=anc)
@@ -51,7 +51,7 @@ class InventaireFrame(ttk.Frame):
 
         self.counted = {}   # product_id → float
         self.products = []
-        self.pending_label=ttk.Label(toolbar,text=self.tr('0 écart','0 فرق'),foreground='#475569');self.pending_label.pack(side='right',padx=12)
+        self.pending_label=ttk.Label(toolbar,text=self.tr('0 écart','0 فرق','0 differences'),foreground='#475569');self.pending_label.pack(side='right',padx=12)
         self.tree.bind('<Return>', self._edit_cell)
         self.refresh()
 
@@ -80,7 +80,7 @@ class InventaireFrame(ttk.Frame):
                         f'{diff:+g}' if abs(diff) > 0.001 else '—'),
                 tags=(tag,))
         pending=sum(1 for p in self.products if abs(self.counted.get(p['id'],float(p['stock_qty']))-float(p['stock_qty']))>0.001)
-        self.pending_label.config(text=self.tr(f'{pending} écart(s) à valider',f'{pending} فرق في انتظار التأكيد'))
+        self.pending_label.config(text=self.tr(f'{pending} écart(s) à valider',f'{pending} فرق في انتظار التأكيد',f'{pending} difference(s) to confirm'))
 
     def _edit_cell(self, event):
         sel = self.tree.selection()
@@ -88,7 +88,7 @@ class InventaireFrame(ttk.Frame):
         pid = int(sel[0])
         pname = self.tree.item(sel[0], 'values')[1]
         val = simpledialog.askfloat(
-            self.tr('Inventaire','الجرد'), self.tr(f'Quantité comptée — {pname} :',f'الكمية المعدودة — {pname}:'), parent=self)
+            self.tr('Inventaire','الجرد','Inventory'), self.tr(f'Quantité comptée — {pname} :',f'الكمية المعدودة — {pname}:',f'Counted quantity — {pname}:'), parent=self)
         if val is None: return
         self.counted[pid] = val
         self._redraw()
@@ -96,12 +96,12 @@ class InventaireFrame(ttk.Frame):
     def apply_all(self):
         diffs = {pid: cnt for pid, cnt in self.counted.items()}
         if not diffs:
-            messagebox.showinfo(self.tr('Inventaire','الجرد'), self.tr('Aucun écart saisi.','لم يتم إدخال أي فرق.'), parent=self); return
+            messagebox.showinfo(self.tr('Inventaire','الجرد','Inventory'), self.tr('Aucun écart saisi.','لم يتم إدخال أي فرق.','No difference entered.'), parent=self); return
         pending=[p for p in self.products if p['id'] in diffs and abs(diffs[p['id']]-float(p['stock_qty']))>0.001]
         if not pending:
-            messagebox.showinfo(self.tr('Inventaire','الجرد'), self.tr('Aucun écart à appliquer.','لا يوجد فرق للتطبيق.'), parent=self); return
-        if not messagebox.askyesno(self.tr('Valider inventaire','تأكيد الجرد'),
-            self.tr(f'Appliquer {len(pending)} écart(s) de stock en une seule opération ?',f'تطبيق {len(pending)} فروق في المخزون دفعة واحدة؟'),parent=self):return
+            messagebox.showinfo(self.tr('Inventaire','الجرد','Inventory'), self.tr('Aucun écart à appliquer.','لا يوجد فرق للتطبيق.','No difference to apply.'), parent=self); return
+        if not messagebox.askyesno(self.tr('Valider inventaire','تأكيد الجرد','Confirm inventory'),
+            self.tr(f'Appliquer {len(pending)} écart(s) de stock en une seule opération ?',f'تطبيق {len(pending)} فروق في المخزون دفعة واحدة؟',f'Apply {len(pending)} stock difference(s) in one operation?'),parent=self):return
         n_adj = 0
         try:
             with connect() as conn:
@@ -117,8 +117,8 @@ class InventaireFrame(ttk.Frame):
                     n_adj+=1
                 conn.commit()
         except Exception as e:
-            messagebox.showerror(self.tr('Inventaire','الجرد'),str(e),parent=self);return
-        messagebox.showinfo(self.tr('Inventaire','الجرد'), self.tr(f'{n_adj} article(s) ajusté(s).',f'تمت تسوية {n_adj} منتج.'), parent=self)
+            messagebox.showerror(self.tr('Inventaire','الجرد','Inventory'),str(e),parent=self);return
+        messagebox.showinfo(self.tr('Inventaire','الجرد','Inventory'), self.tr(f'{n_adj} article(s) ajusté(s).',f'تمت تسوية {n_adj} منتج.',f'{n_adj} product(s) adjusted.'), parent=self)
         self.counted.clear();self.refresh()
 
 
@@ -129,10 +129,10 @@ class SortiesFrame(ttk.Frame):
 
     def __init__(self, master):
         super().__init__(master, padding=16)
-        self.lang=get_setting('language','fr');self.tr=lambda fr,ar: ar if self.lang=='ar' else fr
-        ttk.Label(self, text=self.tr('📤  Sorties de stock','📤  إخراج المخزون'),
+        self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
+        ttk.Label(self, text=self.tr('📤  Sorties de stock','📤  إخراج المخزون','📤  Stock out'),
                   style='Title.TLabel').pack(anchor='w')
-        ttk.Label(self, text=self.tr('Casse, perte, don, consommation interne.','كسر، ضياع، تبرع، استهلاك داخلي.'),
+        ttk.Label(self, text=self.tr('Casse, perte, don, consommation interne.','كسر، ضياع، تبرع، استهلاك داخلي.','Breakage, loss, donation, internal use.'),
                   foreground='#475569').pack(anchor='w', pady=(0, 10))
 
         toolbar = ttk.Frame(self); toolbar.pack(fill='x', pady=(0, 8))
@@ -140,7 +140,7 @@ class SortiesFrame(ttk.Frame):
         entry = ttk.Entry(toolbar, textvariable=self.query, width=32, style='Search.TEntry')
         entry.pack(side='left')
         entry.bind('<KeyRelease>', lambda e: self.refresh())
-        ttk.Button(toolbar, text=self.tr('📤 Enregistrer une sortie','📤 تسجيل إخراج'),
+        ttk.Button(toolbar, text=self.tr('📤 Enregistrer une sortie','📤 تسجيل إخراج','📤 Record stock out'),
                    style='Danger.TButton', command=self.add_exit).pack(side='right')
 
         cols = ('id', 'name', 'stock', 'last_exit')
@@ -159,7 +159,7 @@ class SortiesFrame(ttk.Frame):
         self.tree.pack(fill='both', expand=True)
 
         # Recent exits log
-        ttk.Label(self, text=self.tr('Dernières sorties','آخر عمليات الإخراج'),
+        ttk.Label(self, text=self.tr('Dernières sorties','آخر عمليات الإخراج','Recent stock out'),
                   font=('Segoe UI', 11, 'bold')).pack(anchor='w', pady=(10, 4))
         log_cols = ('date', 'product', 'qty', 'reason')
         self.log = ttk.Treeview(self, columns=log_cols, show='headings', height=5)
@@ -199,20 +199,20 @@ class SortiesFrame(ttk.Frame):
     def add_exit(self):
         sel = self.tree.selection()
         if not sel:
-            messagebox.showinfo(self.tr('Sorties','الإخراج'), self.tr('Sélectionnez un article.','اختر منتجاً.'), parent=self); return
+            messagebox.showinfo(self.tr('Sorties','الإخراج','Stock out'), self.tr('Sélectionnez un article.','اختر منتجاً.','Select a product.'), parent=self); return
         selected=list(sel)
-        reason = simpledialog.askstring(self.tr('Sortie','إخراج'), self.tr('Raison obligatoire (casse, perte, don…) :','السبب إجباري (كسر، ضياع، تبرع…):'), parent=self)
+        reason = simpledialog.askstring(self.tr('Sortie','إخراج','Stock out'), self.tr('Raison obligatoire (casse, perte, don…) :','السبب إجباري (كسر، ضياع، تبرع…):','Reason required (breakage, loss, donation…):'), parent=self)
         if reason is None or not reason.strip():
-            messagebox.showinfo(self.tr('Sorties','الإخراج'),self.tr('La raison est obligatoire.','السبب إلزامي.'),parent=self); return
+            messagebox.showinfo(self.tr('Sorties','الإخراج','Stock out'),self.tr('La raison est obligatoire.','السبب إلزامي.','A reason is required.'),parent=self); return
         entries=[]
         for key in selected:
             pname=self.rows[key]['name']
-            qty=simpledialog.askfloat(self.tr('Sortie','إخراج'),self.tr(f'Quantité sortie — {pname} :',f'الكمية المخرجة — {pname}:'),parent=self)
+            qty=simpledialog.askfloat(self.tr('Sortie','إخراج','Stock out'),self.tr(f'Quantité sortie — {pname} :',f'الكمية المخرجة — {pname}:'),parent=self)
             if qty is None:return
             if qty<=0:
-                messagebox.showerror(self.tr('Sortie','إخراج'),self.tr('Quantité invalide.','الكمية غير صالحة.'),parent=self);return
+                messagebox.showerror(self.tr('Sortie','إخراج','Stock out'),self.tr('Quantité invalide.','الكمية غير صالحة.','Invalid quantity.'),parent=self);return
             entries.append((int(key),qty))
-        if not messagebox.askyesno(self.tr('Sorties','الإخراج'),self.tr(f'Enregistrer {len(entries)} sortie(s) en une seule opération ?',f'تسجيل {len(entries)} عمليات إخراج دفعة واحدة؟'),parent=self):return
+        if not messagebox.askyesno(self.tr('Sorties','الإخراج','Stock out'),self.tr(f'Enregistrer {len(entries)} sortie(s) en une seule opération ?',f'تسجيل {len(entries)} عمليات إخراج دفعة واحدة؟'),parent=self):return
         try:
             with connect() as conn:
                 require_permission('STOCK_EDIT', conn)
@@ -221,4 +221,4 @@ class SortiesFrame(ttk.Frame):
                 conn.commit()
             self.refresh()
         except Exception as e:
-            messagebox.showerror(self.tr('Sortie','إخراج'), str(e), parent=self)
+            messagebox.showerror(self.tr('Sortie','إخراج','Stock out'), str(e), parent=self)
