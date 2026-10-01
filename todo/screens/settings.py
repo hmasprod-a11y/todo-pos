@@ -394,14 +394,14 @@ class SettingsFrame(ttk.Frame):
             set_setting('start_with_windows','1' if enabled else '0')
         except Exception as error:
             self.start_with_windows.set(not enabled)
-            messagebox.showerror('ToDo',self.tr(f"Impossible de modifier le démarrage Windows: {error}",f"تعذر تعديل تشغيل Windows: {error}"),parent=self)
+            messagebox.showerror('ToDo',self.tr(f"Impossible de modifier le démarrage Windows: {error}",f"تعذر تعديل تشغيل Windows: {error}",f"Unable to change Windows startup: {error}"),parent=self)
 
     def toggle_windows_mode(self):
         enabled=bool(self.windows_mode.get())
         set_setting('windows_mode','1' if enabled else '0')
         try:self.app.apply_window_mode(enabled)
         except Exception as error:
-            messagebox.showerror('ToDo',self.tr(f'Impossible de changer le mode fenêtre: {error}',f'تعذر تغيير وضع النافذة: {error}'),parent=self)
+            messagebox.showerror('ToDo',self.tr(f'Impossible de changer le mode fenêtre: {error}',f'تعذر تغيير وضع النافذة: {error}',f'Unable to change window mode: {error}'),parent=self)
 
 
     def sync_stock_options(self):
@@ -484,10 +484,10 @@ class SettingsFrame(ttk.Frame):
             limit=int(self.search_limit.get())
             if limit<1 or limit>1000:raise ValueError()
         except ValueError:
-            messagebox.showerror("ToDo",self.tr("Limite de recherche entre 1 et 1000.","حد البحث بين 1 و1000."),parent=self);return
+            messagebox.showerror("ToDo",self.tr("Limite de recherche entre 1 et 1000.","حد البحث بين 1 و1000.","Search limit must be between 1 and 1000."),parent=self);return
         workstation=self.workstation.get().strip().upper()
         if not workstation or len(workstation)>16 or not all(ch.isalnum() or ch in '-_' for ch in workstation):
-            messagebox.showerror('ToDo',self.tr('Identifiant poste invalide (lettres/chiffres, - ou _).','رقم محطة الصندوق غير صالح.'),parent=self);return
+            messagebox.showerror('ToDo',self.tr('Identifiant poste invalide (lettres/chiffres, - ou _).','رقم محطة الصندوق غير صالح.','Invalid workstation identifier (letters, numbers, - or _).'),parent=self);return
         set_setting("shop_name",self.shop.get().strip() or "ToDo")
         country_changed=self.country.get()!=get_setting('country_code','MA')
         if country_changed: select_country_profile(self.country.get())
@@ -502,7 +502,7 @@ class SettingsFrame(ttk.Frame):
         try:
             next_ticket=max(1,int(self.next_client_ticket.get()))
         except ValueError:
-            messagebox.showerror('ToDo',self.tr('N° Ticket Client invalide.','رقم تذكرة الزبون غير صالح.'),parent=self);return
+            messagebox.showerror('ToDo',self.tr('N° Ticket Client invalide.','رقم تذكرة الزبون غير صالح.','Invalid customer receipt number.'),parent=self);return
         set_setting('receipt_show_payment','1' if self.receipt_show_payment.get() else '0');set_setting('receipt_show_ticket_no','1' if self.receipt_show_ticket_no.get() else '0');set_setting('receipt_show_sale_mode','1' if self.receipt_show_sale_mode.get() else '0');set_setting('receipt_show_barcode','1' if self.receipt_show_barcode.get() else '0');set_setting('receipt_next_client_ticket',str(next_ticket))
         set_setting('receipt_template',template);set_setting("print_mode",print_mode)
         set_setting('thermal_raw','1' if self.thermal_raw.get() else '0');set_setting('receipt_chars',self.receipt_chars.get() if self.receipt_chars.get() in ('32','42','48') else '42');set_setting('drawer_enabled','1' if self.drawer_enabled.get() else '0');set_setting('drawer_pin',self.drawer_pin.get());set_setting('block_insufficient_stock','1' if self.block_insufficient.get() else '0');set_setting('manual_stock_edit_enabled','1' if self.manual_stock_edit_enabled.get() else '0');set_setting('stock_management_enabled','1' if self.stock_management_enabled.get() else '0');set_setting('credit_enabled','1' if self.credit_enabled.get() else '0');set_setting('closure_enabled','1' if self.closure_enabled.get() else '0');set_setting('sans_ticket_enabled','1' if self.sans_ticket_enabled.get() else '0');set_setting('payment_window_enabled','1' if self.payment_window_enabled.get() else '0');set_setting('require_client_on_sale','1' if self.require_client.get() else '0');set_setting('choose_seller_on_sale','1' if self.choose_seller.get() else '0');new_language=self.language.get();language_changed=new_language!=get_setting('language','fr');set_setting('language',new_language)
