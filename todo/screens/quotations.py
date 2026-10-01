@@ -48,7 +48,7 @@ class QuotationsFrame(ttk.Frame):
     def details(self):
         qid=self._selected()
         if not qid:return
-        w=tk.Toplevel(self);w.title(self.tr(f'Devis #{qid}',f'عرض السعر #{qid}'));w.geometry('700x460');w.transient(self.winfo_toplevel())
+        w=tk.Toplevel(self);w.title(self.tr(f'Devis #{qid}',f'عرض السعر #{qid}',f'Quotation #{qid}'));w.geometry('700x460');w.transient(self.winfo_toplevel())
         tree=ttk.Treeview(w,columns=('name','qty','price','total'),show='headings')
         for k,h,width in [('name',self.tr('Article','المنتوج','Product'),280),('qty',self.tr('Qté','الكمية','Qty'),80),('price',self.tr('Prix','الثمن','Price'),100),('total',self.tr('Total','المجموع','Total'),110)]:
             tree.heading(k,text=h);tree.column(k,width=width,anchor='center' if k!='name' else 'w')
@@ -79,7 +79,7 @@ class QuotationsFrame(ttk.Frame):
         def add(event=None):
             s=products.selection()
             if not s:return
-            vals=products.item(s[0],'values');qty=simpledialog.askfloat(self.tr('Quantité','الكمية','Quantity'),self.tr(f"Quantité — {vals[1]} :",f"الكمية — {vals[1]}:"),parent=w,minvalue=0.001)
+            vals=products.item(s[0],'values');qty=simpledialog.askfloat(self.tr('Quantité','الكمية','Quantity'),self.tr(f"Quantité — {vals[1]} :",f"الكمية — {vals[1]}:",f"Quantity — {vals[1]}:"),parent=w,minvalue=0.001)
             if qty is None:return
             price=simpledialog.askfloat(self.tr('Prix devis','ثمن العرض','Quotation price'),self.tr(f'Prix unitaire ({self.currency}):',f'ثمن الوحدة ({self.currency}):',f'Unit price ({self.currency}):'),parent=w,initialvalue=float(vals[2]),minvalue=0)
             if price is None:return
@@ -88,7 +88,7 @@ class QuotationsFrame(ttk.Frame):
             try:
                 cid=None if client_var.get()==self.tr('Passage','عابر','Walk-in') else int(client_var.get().rsplit('#',1)[1])
                 qid,total=create_quotation(lines,cid,valid.get() or None)
-                messagebox.showinfo('ToDo',self.tr(f'Devis #{qid} enregistré · {fmt(total)}',f'تم حفظ عرض السعر #{qid} · {fmt(total)}'),parent=w);w.destroy();self.refresh()
+                messagebox.showinfo('ToDo',self.tr(f'Devis #{qid} enregistré · {fmt(total)}',f'تم حفظ عرض السعر #{qid} · {fmt(total)}',f'Quotation #{qid} saved · {fmt(total)}'),parent=w);w.destroy();self.refresh()
             except Exception as ex:messagebox.showerror('ToDo',str(ex),parent=w)
         search.trace_add('write',search_products);products.bind('<Double-1>',add);products.bind('<Return>',add);search_products()
         ttk.Button(w,text=self.tr('Enregistrer devis','حفظ عرض السعر','Save quotation'),style='Success.TButton',command=save).pack(pady=(4,12))
