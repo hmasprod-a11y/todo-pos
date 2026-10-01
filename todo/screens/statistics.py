@@ -341,7 +341,7 @@ class StatisticsFrame(ttk.Frame):
             start=datetime.date.fromisoformat(self._date_from.get());end=datetime.date.fromisoformat(self._date_to.get())
             if start>end: raise ValueError
         except ValueError:
-            messagebox.showerror(self.tr('Statistiques','الإحصائيات'),self.tr('Période invalide. Format YYYY-MM-DD.','الفترة غير صالحة. الصيغة YYYY-MM-DD.','Invalid period. Use YYYY-MM-DD.'),parent=self);return
+            messagebox.showerror(self.tr('Statistiques','الإحصائيات','Statistics'),self.tr('Période invalide. Format YYYY-MM-DD.','الفترة غير صالحة. الصيغة YYYY-MM-DD.','Invalid period. Use YYYY-MM-DD.'),parent=self);return
         with connect() as conn:
             row=conn.execute("""SELECT COUNT(*) tickets,COALESCE(SUM(s.total_cents-COALESCE((SELECT SUM(r.total_cents) FROM returns r WHERE r.sale_id=s.id),0)),0) sales FROM sales s WHERE s.status='COMPLETED' AND date(s.created_at)>=? AND date(s.created_at)<=?""",(str(start),str(end))).fetchone()
             ret=conn.execute("""SELECT COALESCE(SUM(refund_paid_cents),0) refunded,COALESCE(SUM(total_cents-COALESCE(refund_paid_cents,total_cents)),0) credit FROM returns WHERE date(created_at)>=? AND date(created_at)<=?""",(str(start),str(end))).fetchone()
@@ -349,7 +349,7 @@ class StatisticsFrame(ttk.Frame):
         self._kpi_labels['tickets'].config(text=str(row['tickets']))
         self._kpi_labels['return_cash'].config(text=fmt(ret['refunded']))
         self._kpi_labels['return_credit'].config(text=fmt(ret['credit']))
-        messagebox.showinfo(self.tr('Statistiques','الإحصائيات'),self.tr(f"Période {start} → {end}\\nTickets: {row['tickets']}\\nVentes nettes: {fmt(row['sales'])}\\nRetours remboursés: {fmt(ret['refunded'])}\\nRetours avoir: {fmt(ret['credit'])}",f"الفترة {start} → {end}\\nالتذاكر: {row['tickets']}\\nصافي المبيعات: {fmt(row['sales'])}\\nالمرتجعات المسترجعة: {fmt(ret['refunded'])}\\nمرتجعات الرصيد: {fmt(ret['credit'])}"),parent=self)
+        messagebox.showinfo(self.tr('Statistiques','الإحصائيات','Statistics'),self.tr(f"Période {start} → {end}\\nTickets: {row['tickets']}\\nVentes nettes: {fmt(row['sales'])}\\nRetours remboursés: {fmt(ret['refunded'])}\\nRetours avoir: {fmt(ret['credit'])}",f"الفترة {start} → {end}\\nالتذاكر: {row['tickets']}\\nصافي المبيعات: {fmt(row['sales'])}\\nالمرتجعات المسترجعة: {fmt(ret['refunded'])}\\nمرتجعات الرصيد: {fmt(ret['credit'])}",f"Period {start} → {end}\\nReceipts: {row['tickets']}\\nNet sales: {fmt(row['sales'])}\\nRefunded returns: {fmt(ret['refunded'])}\\nCredit returns: {fmt(ret['credit'])}"),parent=self)
 
     def refresh(self):
         try:
@@ -365,7 +365,7 @@ class StatisticsFrame(ttk.Frame):
             self._load_finance()
         except Exception as e:
             from tkinter import messagebox
-            messagebox.showerror(self.tr('Statistiques','الإحصائيات'),str(e),parent=self)
+            messagebox.showerror(self.tr('Statistiques','الإحصائيات','Statistics'),str(e),parent=self)
 
     def _load_kpis(self):
         data = period_summary(self._period, self._year if self._period=='year' else None)
