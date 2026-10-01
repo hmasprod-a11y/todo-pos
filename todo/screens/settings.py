@@ -170,7 +170,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Checkbutton(f,text=self.tr('Afficher la fenêtre de paiement','إظهار نافذة الأداء','Show payment window'),variable=self.payment_window_enabled).grid(row=13,column=0,columnspan=3,sticky="w",pady=(3,0))
         ttk.Label(f,text=self.tr('Message bas du ticket','رسالة أسفل التذكرة','Receipt footer message')).grid(row=14,column=0,sticky="w",pady=5);ttk.Entry(f,textvariable=self.footer,width=34).grid(row=14,column=1,padx=8)
         ttk.Label(f,text=self.tr('Limite résultats recherche','حد نتائج البحث','Search result limit')).grid(row=15,column=0,sticky="w");ttk.Entry(f,textvariable=self.search_limit,width=10).grid(row=15,column=1,sticky="w",padx=8)
-        ttk.Button(f,text=self.tr('Enregistrer','حفظ'),style='Primary.TButton',command=self.save).grid(row=16,column=0,pady=8,sticky='ew')
+        ttk.Button(f,text=self.tr('Enregistrer','حفظ','Save'),style='Primary.TButton',command=self.save).grid(row=16,column=0,pady=8,sticky='ew')
         pg=ttk.LabelFrame(body,text=self.tr('Grilles de prix','لوائح الأثمان','Price lists'),padding=10);pg.pack(fill="x",pady=10)
         ttk.Label(pg,text=self.tr('Créez les grilles ici, puis définissez le prix de chaque article dans sa fiche.','أنشئ لوائح الأثمان هنا، ثم حدد ثمن كل منتوج في بطاقته.','Create price lists here, then set each product price in its record.')).pack(anchor="w")
         self.price_grids_frame=ttk.Frame(pg);self.price_grids_frame.pack(fill="x",pady=6)
@@ -384,7 +384,7 @@ class SettingsFrame(ttk.Frame):
                 messagebox.showinfo('ToDo',self.tr('Raccourcis enregistrés.','تم حفظ الاختصارات.'),parent=w);w.destroy()
             except Exception as error:messagebox.showerror('ToDo',str(error),parent=w)
         bar=ttk.Frame(w);bar.pack(fill='x',padx=16,pady=16)
-        ttk.Button(bar,text=self.tr('Enregistrer','حفظ'),style='Primary.TButton',command=save).pack(side='right')
+        ttk.Button(bar,text=self.tr('Enregistrer','حفظ','Save'),style='Primary.TButton',command=save).pack(side='right')
         ttk.Button(bar,text=self.tr('Annuler','إلغاء'),command=w.destroy).pack(side='right',padx=6)
 
     def toggle_windows_startup(self):
@@ -414,7 +414,7 @@ class SettingsFrame(ttk.Frame):
         for r in rows:
             line=ttk.Frame(self.sellers_frame);line.pack(fill="x",pady=2)
             ttk.Label(line,text=r["name"],width=30).pack(side="left")
-            ttk.Label(line,text=self.tr("Actif","نشط") if r["active"] else self.tr("Inactif","معطل"),width=12).pack(side="left")
+            ttk.Label(line,text=self.tr("Actif","نشط","Active") if r["active"] else self.tr("Inactif","معطل"),width=12).pack(side="left")
             ttk.Button(line,text=self.tr("Désactiver","تعطيل") if r["active"] else self.tr("Activer","تفعيل"),command=lambda sid=r["id"],a=r["active"]:self.toggle_seller(sid,a)).pack(side="left",padx=4)
     def add_seller(self):
         name=self.new_seller_name.get().strip()
@@ -863,41 +863,41 @@ class SettingsFrame(ttk.Frame):
         refresh()
 
     def new_user(self):
-        user=simpledialog.askstring(self.tr("Utilisateur","المستخدم"),self.tr("Username:","اسم المستخدم:"),parent=self)
+        user=simpledialog.askstring(self.tr("Utilisateur","المستخدم","User"),self.tr("Username:","اسم المستخدم:","Username:"),parent=self)
         if not user:return
-        name=simpledialog.askstring(self.tr("Utilisateur","المستخدم"),self.tr("Nom affiché:","الاسم المعروض:"),parent=self) or user
-        pin=simpledialog.askstring(self.tr("Utilisateur","المستخدم"),"PIN:",parent=self,show="*")
+        name=simpledialog.askstring(self.tr("Utilisateur","المستخدم","User"),self.tr("Nom affiché:","الاسم المعروض:","Display name:"),parent=self) or user
+        pin=simpledialog.askstring(self.tr("Utilisateur","المستخدم","User"),"PIN:",parent=self,show="*")
         if not pin:return
         if not pin.isdigit() or len(pin)<4:
-            messagebox.showerror("ToDo",self.tr("PIN : au moins 4 chiffres","PIN: أربعة أرقام على الأقل"),parent=self);return
-        role=simpledialog.askstring(self.tr("Utilisateur","المستخدم"),self.tr("Rôle (admin/cashier):","الصلاحية (admin/cashier):"),parent=self) or "cashier"
+            messagebox.showerror("ToDo",self.tr("PIN : au moins 4 chiffres","PIN: أربعة أرقام على الأقل","PIN: at least 4 digits"),parent=self);return
+        role=simpledialog.askstring(self.tr("Utilisateur","المستخدم","User"),self.tr("Rôle (admin/cashier):","الصلاحية (admin/cashier):","Role (admin/cashier):"),parent=self) or "cashier"
         if role not in ("admin","cashier"):
-            messagebox.showerror("ToDo",self.tr("Rôle invalide","صلاحية غير صالحة"),parent=self);return
+            messagebox.showerror("ToDo",self.tr("Rôle invalide","صلاحية غير صالحة","Invalid role"),parent=self);return
         try:
             with connect() as c:c.execute("INSERT INTO users(username,display_name,pin_hash,role) VALUES(?,?,?,?)",(user,name,hash_pin(pin),role));c.commit()
-            messagebox.showinfo("ToDo",self.tr("Utilisateur créé.","تم إنشاء المستخدم."),parent=self)
+            messagebox.showinfo("ToDo",self.tr("Utilisateur créé.","تم إنشاء المستخدم.","User created."),parent=self)
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
 
     def manage_users(self):
         with connect() as conn: require_admin(conn)
-        w=tk.Toplevel(self);w.title(self.tr("Utilisateurs","المستخدمون"));w.geometry("720x500");w.transient(self.winfo_toplevel())
+        w=tk.Toplevel(self);w.title(self.tr("Utilisateurs","المستخدمون","Users"));w.geometry("720x500");w.transient(self.winfo_toplevel())
         tree=ttk.Treeview(w,columns=("id","username","name","role","active"),show="headings")
-        for key,label,width in [("id","ID",55),("username",self.tr("Utilisateur","المستخدم"),150),("name",self.tr("Nom","الاسم"),190),("role",self.tr("Rôle","الصلاحية"),100),("active",self.tr("Actif","نشط"),70)]:tree.heading(key,text=label);tree.column(key,width=width,anchor="center" if key in ("id","role","active") else "w")
+        for key,label,width in [("id","ID",55),("username",self.tr("Utilisateur","المستخدم","User"),150),("name",self.tr("Nom","الاسم","Name"),190),("role",self.tr("Rôle","الصلاحية","Role"),100),("active",self.tr("Actif","نشط","Active"),70)]:tree.heading(key,text=label);tree.column(key,width=width,anchor="center" if key in ("id","role","active") else "w")
         tree.pack(fill="both",expand=True,padx=12,pady=12);bar=ttk.Frame(w);bar.pack(fill="x",padx=12,pady=(0,12))
         def reload():
             tree.delete(*tree.get_children())
             with connect() as conn: rows=conn.execute("SELECT id,username,display_name,role,active FROM users ORDER BY display_name").fetchall()
             for r in rows:
-                role_label=self.tr("Administrateur","مدير") if r["role"]=="admin" else self.tr("Caissier","كاشير") if r["role"]=="cashier" else r["role"]
-                tree.insert("","end",iid=str(r["id"]),values=(r["id"],r["username"],r["display_name"],role_label,self.tr("Oui","نعم") if r["active"] else self.tr("Non","لا")))
+                role_label=self.tr("Administrateur","مدير","Administrator") if r["role"]=="admin" else self.tr("Caissier","كاشير","Cashier") if r["role"]=="cashier" else r["role"]
+                tree.insert("","end",iid=str(r["id"]),values=(r["id"],r["username"],r["display_name"],role_label,self.tr("Oui","نعم","Yes") if r["active"] else self.tr("Non","لا","No")))
         def selected():
             sel=tree.selection()
-            if not sel: messagebox.showwarning(self.tr("Utilisateurs","المستخدمون"),self.tr("Sélectionnez un utilisateur.","اختر مستخدماً."),parent=w);return None
+            if not sel: messagebox.showwarning(self.tr("Utilisateurs","المستخدمون","Users"),self.tr("Sélectionnez un utilisateur.","اختر مستخدماً.","Select a user."),parent=w);return None
             return int(sel[0])
         def toggle():
             uid=selected()
             if uid is None:return
-            if uid==self.app.user["id"]:messagebox.showwarning(self.tr("Utilisateurs","المستخدمون"),self.tr("Impossible de désactiver votre propre compte.","لا يمكن تعطيل حسابك الحالي."),parent=w);return
+            if uid==self.app.user["id"]:messagebox.showwarning(self.tr("Utilisateurs","المستخدمون","Users"),self.tr("Impossible de désactiver votre propre compte.","لا يمكن تعطيل حسابك الحالي.","You cannot disable your own account."),parent=w);return
             with connect() as conn:
                 require_admin(conn);row=conn.execute("SELECT active FROM users WHERE id=?",(uid,)).fetchone();new=0 if row["active"] else 1
                 conn.execute("UPDATE users SET active=? WHERE id=?",(new,uid));audit(conn,"USER_ACTIVE_TOGGLE",uid,str(new));conn.commit()
@@ -905,7 +905,7 @@ class SettingsFrame(ttk.Frame):
         def role():
             uid=selected()
             if uid is None:return
-            if uid==self.app.user["id"]:messagebox.showwarning(self.tr("Utilisateurs","المستخدمون"),self.tr("Modifiez un autre compte.","اختر حساباً آخر للتعديل."),parent=w);return
+            if uid==self.app.user["id"]:messagebox.showwarning(self.tr("Utilisateurs","المستخدمون","Users"),self.tr("Modifiez un autre compte.","اختر حساباً آخر للتعديل.","Edit another account."),parent=w);return
             with connect() as conn:
                 require_admin(conn);row=conn.execute("SELECT role FROM users WHERE id=?",(uid,)).fetchone();new="admin" if row["role"]!="admin" else "cashier"
                 conn.execute("UPDATE users SET role=? WHERE id=?",(new,uid));audit(conn,"USER_ROLE_CHANGE",uid,new);conn.commit()
@@ -915,7 +915,7 @@ class SettingsFrame(ttk.Frame):
             if uid is None:return
             from services.security import PERMISSIONS,list_user_permissions,set_user_permission
             values=list_user_permissions(uid)
-            pw=tk.Toplevel(w);pw.title(self.tr('Permissions utilisateur','صلاحيات المستخدم'));pw.transient(w);pw.grab_set()
+            pw=tk.Toplevel(w);pw.title(self.tr('Permissions utilisateur','صلاحيات المستخدم','User permissions'));pw.transient(w);pw.grab_set()
             vars={}
             for i,(code,(fr,ar)) in enumerate(PERMISSIONS.items()):
                 var=tk.BooleanVar(value=values.get(code,False));vars[code]=var
@@ -928,10 +928,10 @@ class SettingsFrame(ttk.Frame):
                         conn.commit()
                     pw.destroy()
                 except Exception as e:messagebox.showerror('ToDo',str(e),parent=pw)
-            ttk.Button(pw,text=self.tr('Enregistrer','حفظ'),style='Success.TButton',command=save_permissions).grid(row=len(vars),column=0,sticky='ew',padx=18,pady=12)
-        ttk.Button(bar,text=self.tr('Activer / Désactiver','تفعيل / تعطيل'),command=toggle).pack(side="left")
+            ttk.Button(pw,text=self.tr('Enregistrer','حفظ','Save'),style='Success.TButton',command=save_permissions).grid(row=len(vars),column=0,sticky='ew',padx=18,pady=12)
+        ttk.Button(bar,text=self.tr('Activer / Désactiver','تفعيل / تعطيل','Enable / Disable'),command=toggle).pack(side="left")
         ttk.Button(bar,text=self.tr('Admin ↔ Caissier','مدير ↔ كاشير'),command=role).pack(side="left",padx=8)
-        ttk.Button(bar,text=self.tr('Permissions','الصلاحيات'),command=permissions).pack(side='left',padx=8);reload()
+        ttk.Button(bar,text=self.tr('Permissions','الصلاحيات','Permissions'),command=permissions).pack(side='left',padx=8);reload()
 
     def change_pin(self):
         pin=simpledialog.askstring('PIN',self.tr('Nouveau PIN (4 chiffres minimum):','PIN جديد (4 أرقام على الأقل):'),parent=self,show='*')
