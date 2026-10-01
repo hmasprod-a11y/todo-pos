@@ -13,7 +13,7 @@ class FirstRunWizard(tk.Toplevel):
         super().__init__(master);self.on_done=on_done;self.transient(master);self.grab_set()
         self.geometry("560x650");self.resizable(False,False)
         self.language=tk.StringVar(value="fr");self.language_label=tk.StringVar();self.country=tk.StringVar(value="MA");self.country_label=tk.StringVar();self.shop=tk.StringVar(value="ToDo");self.printer=tk.StringVar();self.barcode=tk.StringVar();self.pin=tk.StringVar();self.pin_confirm=tk.StringVar()
-        self._barcode_key="";self._texts=[];self._text_inputs=[]
+        self._barcode_key="";self._language_selected=False;self._texts=[];self._text_inputs=[]
         body=ttk.Frame(self,padding=26);body.pack(fill="both",expand=True);self.body=body
         self.welcome=self._label("onboarding.welcome",style="Title.TLabel");self.welcome.pack(fill="x")
         self.subtitle=self._label("onboarding.subtitle");self.subtitle.pack(fill="x",pady=(0,20))
@@ -32,7 +32,8 @@ class FirstRunWizard(tk.Toplevel):
         self.country.trace_add("write",lambda *_:self.apply_country_defaults());self.language.trace_add("write",lambda *_:self.refresh());self.refresh()
     def select_language(self,event=None):
         code=self._language_codes.get(self.language_label.get())
-        if code:self.language.set(code)
+        if code:
+            self._language_selected=True;self.language.set(code)
 
     def select_country(self,event=None):
         code=self._country_codes.get(self.country_label.get())
@@ -44,7 +45,8 @@ class FirstRunWizard(tk.Toplevel):
     def confirm_barcode(self):
         value=self.barcode.get().strip();self._barcode_key="onboarding.barcode_received" if value else "onboarding.barcode_empty";self.refresh()
     def apply_country_defaults(self):
-        self.language.set(get_country_profile(self.country.get()).default_language)
+        if not self._language_selected:
+            self.language.set(get_country_profile(self.country.get()).default_language)
     def refresh(self):
         tr=Translator(self.language.get());rtl=language_direction(self.language.get())=="rtl";anchor="e" if rtl else "w"
         self.title("ToDo POS — "+tr("onboarding.welcome"));self.welcome.config(anchor=anchor)
