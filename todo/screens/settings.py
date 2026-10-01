@@ -48,7 +48,7 @@ class CategoryEditor(tk.Toplevel):
         self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
         self.cat_id  = cat['id']   if cat else None
         self.on_saved= on_saved
-        self.title(self.tr('Famille','العائلة'))
+        self.title(self.tr('Famille','العائلة','Category'))
         self.resizable(False, False)
         self.transient(master.winfo_toplevel())
         self.grab_set()
@@ -59,10 +59,10 @@ class CategoryEditor(tk.Toplevel):
 
         f = ttk.Frame(self, padding=20); f.pack(fill='both', expand=True)
 
-        ttk.Label(f, text=self.tr('Nom','الاسم')).grid(row=0, column=0, sticky='w')
+        ttk.Label(f, text=self.tr('Nom','الاسم','Name')).grid(row=0, column=0, sticky='w')
         ttk.Entry(f, textvariable=self.name_var, width=30).grid(row=0, column=1, columnspan=3, sticky='ew', pady=6)
 
-        ttk.Label(f, text=self.tr('Couleur','اللون')).grid(row=1, column=0, sticky='w', pady=8)
+        ttk.Label(f, text=self.tr('Couleur','اللون','Color')).grid(row=1, column=0, sticky='w', pady=8)
         self.swatch = tk.Label(f, width=6, relief='groove')
         self.swatch.grid(row=1, column=1, sticky='w', padx=4)
         self._update_swatch()
@@ -73,7 +73,7 @@ class CategoryEditor(tk.Toplevel):
                             command=lambda c=color: self._pick(c))
             btn.grid(row=i//8, column=i%8, padx=2, pady=2)
 
-        ttk.Label(f, text=self.tr('Icône','الأيقونة')).grid(row=3, column=0, sticky='w', pady=8)
+        ttk.Label(f, text=self.tr('Icône','الأيقونة','Icon')).grid(row=3, column=0, sticky='w', pady=8)
         icon_frame = ttk.Frame(f); icon_frame.grid(row=3, column=1, columnspan=3, sticky='ew')
         for i,icon in enumerate(self.ICONS):
             lbl = icon if icon else '—'
@@ -98,7 +98,7 @@ class CategoryEditor(tk.Toplevel):
         icon  = self.icon_var.get().strip()
         if not name:
             from tkinter import messagebox
-            messagebox.showerror(self.tr('Famille','العائلة'), self.tr('Le nom est obligatoire.','الاسم إجباري.'), parent=self); return
+            messagebox.showerror(self.tr('Famille','العائلة','Category'), self.tr('Le nom est obligatoire.','الاسم إجباري.','Name is required.'), parent=self); return
         with connect() as conn:
             require_permission('MANAGEMENT', conn)
             if self.cat_id:
