@@ -49,7 +49,7 @@ class CustomerOrdersFrame(ttk.Frame):
     def details(self):
         oid=self._selected()
         if not oid:return
-        w=tk.Toplevel(self);w.title(self.tr(f'Commande #{oid}',f'الطلب #{oid}'));w.geometry('700x460');w.transient(self.winfo_toplevel())
+        w=tk.Toplevel(self);w.title(self.tr(f'Commande #{oid}',f'الطلب #{oid}',f'Order #{oid}'));w.geometry('700x460');w.transient(self.winfo_toplevel())
         tree=ttk.Treeview(w,columns=('name','qty','price','total'),show='headings')
         for k,h,width in [('name',self.tr('Article','المنتوج','Product'),280),('qty',self.tr('Qté','الكمية','Qty'),80),('price',self.tr('Prix','الثمن','Price'),100),('total',self.tr('Total','المجموع','Total'),110)]:
             tree.heading(k,text=h);tree.column(k,width=width,anchor='center' if k!='name' else 'w')
@@ -86,14 +86,14 @@ class CustomerOrdersFrame(ttk.Frame):
         def add(event=None):
             s=products.selection()
             if not s:return
-            vals=products.item(s[0],'values');qty=simpledialog.askfloat(self.tr('Quantité','الكمية','Quantity'),self.tr(f"Quantité — {vals[1]} :",f"الكمية — {vals[1]}:"),parent=w,minvalue=0.001)
+            vals=products.item(s[0],'values');qty=simpledialog.askfloat(self.tr('Quantité','الكمية','Quantity'),self.tr(f"Quantité — {vals[1]} :",f"الكمية — {vals[1]}:",f"Quantity — {vals[1]}:"),parent=w,minvalue=0.001)
             if qty is None:return
             price_cents=int(round(float(vals[2])*100))
             lines.append(dict(product_id=int(vals[0]),name=vals[1],qty=qty,unit_price_cents=price_cents));redraw()
         def save():
             try:
                 cid=int(client_var.get().rsplit('#',1)[1]);oid,total=create_customer_order(cid,lines,address.get(),notes.get())
-                messagebox.showinfo('ToDo',self.tr(f'Commande #{oid} enregistrée · {fmt(total)}',f'تم حفظ الطلب #{oid} · {fmt(total)}'),parent=w);w.destroy();self.refresh()
+                messagebox.showinfo('ToDo',self.tr(f'Commande #{oid} enregistrée · {fmt(total)}',f'تم حفظ الطلب #{oid} · {fmt(total)}',f'Order #{oid} saved · {fmt(total)}'),parent=w);w.destroy();self.refresh()
             except Exception as ex:messagebox.showerror('ToDo',str(ex),parent=w)
         search.trace_add('write',search_products);products.bind('<Double-1>',add);products.bind('<Return>',add);search_products()
         ttk.Entry(w,textvariable=notes,width=60).pack(anchor='w',padx=12,pady=4)
