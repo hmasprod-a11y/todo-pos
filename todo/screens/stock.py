@@ -29,7 +29,7 @@ class StockFrame(ttk.Frame):
         ttk.Button(top,text=self.tr('Journal global','السجل العام','Global journal'),style="Soft.TButton",command=self.global_ledger).pack(side="right",padx=8)
         ttk.Button(top,text=self.tr('Historique','السجل','History'),style="Soft.TButton",command=self.ledger).pack(side="right",padx=8)
         if app is not None:
-            ttk.Button(top,text=self.tr('Articles','المنتجات'),style="Soft.TButton",command=lambda: app.show("products")).pack(side="right",padx=8)
+            ttk.Button(top,text=self.tr('Articles','المنتجات','Products'),style="Soft.TButton",command=lambda: app.show("products")).pack(side="right",padx=8)
         cols=("code","name","family","purchase","sale","stock","alert","last")
         self.t=ttk.Treeview(self,columns=cols,show="headings",height=14)
         for c,h,w,anchor in [
@@ -155,10 +155,10 @@ class StockFrame(ttk.Frame):
         ttk.Button(footer,text=self.tr('Exporter CSV','تصدير CSV'),style='Soft.TButton',command=export_csv).pack(side='left')
         def prepare_reception():
             if self.app is None:
-                messagebox.showerror('ToDo',self.tr("Navigation indisponible.","التنقل غير متاح."),parent=w);return
+                messagebox.showerror('ToDo',self.tr("Navigation indisponible.","التنقل غير متاح.","Navigation is unavailable."),parent=w);return
             value=supplier_var.get().strip()
             if not value:
-                messagebox.showinfo('ToDo',self.tr("Aucun fournisseur préféré assigné.","لا يوجد مورد مفضل محدد."),parent=w);return
+                messagebox.showinfo('ToDo',self.tr("Aucun fournisseur préféré assigné.","لا يوجد مورد مفضل محدد.","No preferred supplier assigned."),parent=w);return
             supplier_id=int(value.rsplit('#',1)[1])
             selected=[r for r in rows if r.get('preferred_supplier_id')==supplier_id and r['suggested_qty']>0]
             if not selected:return
@@ -166,7 +166,7 @@ class StockFrame(ttk.Frame):
                 {'product_id':r['id'],'name':r['name'],'qty':r['suggested_qty'],'unit_cost_cents':r['purchase_price_cents']}
                 for r in selected]}
             w.destroy();self.app.show('purchases')
-        ttk.Button(footer,text=self.tr('Préparer réception','تحضير الاستلام'),style='Primary.TButton',command=prepare_reception).pack(side='left',padx=6)
+        ttk.Button(footer,text=self.tr('Préparer réception','تحضير الاستلام','Prepare receipt'),style='Primary.TButton',command=prepare_reception).pack(side='left',padx=6)
 
     def global_ledger(self):
         w=tk.Toplevel(self);w.title(self.tr("Journal global du stock","السجل العام للمخزون","Global stock ledger"));w.geometry('1180x650');w.transient(self)
