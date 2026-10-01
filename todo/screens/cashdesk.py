@@ -65,9 +65,9 @@ Cash OUT      : {fmt(t['cash_out'])}
     def expense(self):
         s=get_open_session()
         if not s:messagebox.showerror("ToDo",self.tr("Ouvrez la caisse.","افتح الصندوق أولاً.","Open the cash drawer first."),parent=self);return
-        label=simpledialog.askstring(self.tr("Dépense","مصروف"),self.tr("Libellé:","البيان:","Description:"),parent=self)
+        label=simpledialog.askstring(self.tr("Dépense","مصروف","Expense"),self.tr("Libellé:","البيان:","Description:"),parent=self)
         if not label:return
-        amount=simpledialog.askfloat(self.tr("Dépense","مصروف"),self.tr(f"Montant ({self.currency}):",f"المبلغ ({self.currency}):",f"Amount ({self.currency}):"),parent=self,minvalue=0.01)
+        amount=simpledialog.askfloat(self.tr("Dépense","مصروف","Expense"),self.tr(f"Montant ({self.currency}):",f"المبلغ ({self.currency}):",f"Amount ({self.currency}):"),parent=self,minvalue=0.01)
         if amount is None:return
         try:record_cash(s['id'],self.app.user['id'],to_cents(amount),'EXPENSE',label)
         except Exception as e:messagebox.showerror('ToDo',str(e),parent=self);return

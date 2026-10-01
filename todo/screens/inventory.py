@@ -207,12 +207,12 @@ class SortiesFrame(ttk.Frame):
         entries=[]
         for key in selected:
             pname=self.rows[key]['name']
-            qty=simpledialog.askfloat(self.tr('Sortie','إخراج','Stock out'),self.tr(f'Quantité sortie — {pname} :',f'الكمية المخرجة — {pname}:'),parent=self)
+            qty=simpledialog.askfloat(self.tr('Sortie','إخراج','Stock out'),self.tr(f'Quantité sortie — {pname} :',f'الكمية المخرجة — {pname}:',f'Stock-out quantity — {pname}:'),parent=self)
             if qty is None:return
             if qty<=0:
                 messagebox.showerror(self.tr('Sortie','إخراج','Stock out'),self.tr('Quantité invalide.','الكمية غير صالحة.','Invalid quantity.'),parent=self);return
             entries.append((int(key),qty))
-        if not messagebox.askyesno(self.tr('Sorties','الإخراج','Stock out'),self.tr(f'Enregistrer {len(entries)} sortie(s) en une seule opération ?',f'تسجيل {len(entries)} عمليات إخراج دفعة واحدة؟'),parent=self):return
+        if not messagebox.askyesno(self.tr('Sorties','الإخراج','Stock out'),self.tr(f'Enregistrer {len(entries)} sortie(s) en une seule opération ?',f'تسجيل {len(entries)} عمليات إخراج دفعة واحدة؟',f'Record {len(entries)} stock-out movement(s) in one operation?'),parent=self):return
         try:
             with connect() as conn:
                 require_permission('STOCK_EDIT', conn)

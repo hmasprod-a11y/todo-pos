@@ -56,7 +56,7 @@ class SupplierReturnsFrame(ttk.Frame):
             if not sel:return
             iid=sel[0];vals=tree.item(iid,'values')
             max_qty=min(float(vals[2])-float(vals[3]),float(vals[4]))
-            qty=simpledialog.askfloat(self.tr('Quantité retour','كمية الإرجاع','Return quantity'),self.tr(f"Quantité à retourner — {vals[1]} :",f"الكمية المراد إرجاعها — {vals[1]}:"),parent=w,minvalue=0,maxvalue=max_qty)
+            qty=simpledialog.askfloat(self.tr('Quantité retour','كمية الإرجاع','Return quantity'),self.tr(f"Quantité à retourner — {vals[1]} :",f"الكمية المراد إرجاعها — {vals[1]}:",f"Quantity to return — {vals[1]}:"),parent=w,minvalue=0,maxvalue=max_qty)
             if qty is None:return
             quantities[int(iid)]=qty
             vals=list(vals);vals[6]=f"{qty:g}";tree.item(iid,values=vals)
@@ -68,7 +68,7 @@ class SupplierReturnsFrame(ttk.Frame):
             if not reason:return
             try:
                 rid,total=create_supplier_return(row['id'],items,reason)
-                messagebox.showinfo('ToDo',self.tr(f'Retour #{rid} enregistré · Avoir {fmt(total)}',f'تم تسجيل الإرجاع #{rid} · القيمة {fmt(total)}'),parent=w)
+                messagebox.showinfo('ToDo',self.tr(f'Retour #{rid} enregistré · Avoir {fmt(total)}',f'تم تسجيل الإرجاع #{rid} · القيمة {fmt(total)}',f'Return #{rid} recorded · Credit {fmt(total)}'),parent=w)
                 w.destroy();self.refresh()
             except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
         supplier.bind('<<ComboboxSelected>>',load_invoices);invoice.bind('<<ComboboxSelected>>',load_lines);tree.bind('<Double-1>',edit);tree.bind('<Return>',edit)
