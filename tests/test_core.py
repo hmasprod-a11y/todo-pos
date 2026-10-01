@@ -5,7 +5,7 @@ import database as db
 from services import backup
 from services.bootstrap import ensure_defaults
 from services.cash import open_session,close_session
-from services.sales import complete_sale,create_return,hold_sale,resume_held,list_held
+from services.sales import complete_sale,create_return,hold_sale,resume_held,list_held,sale_number,return_number
 from services.pricing import resolve_unit_price,line_total
 from services.inventory import apply_stock_movement,stock_activity,reorder_list
 from services.purchases import receive_purchase
@@ -31,6 +31,14 @@ class CoreTests(unittest.TestCase):
   with db.connect() as c:return c.execute('SELECT id FROM sale_items WHERE sale_id=?',(sale['id'],)).fetchone()[0]
  def stock(self):
   with db.connect() as c:return c.execute('SELECT stock_qty FROM products WHERE id=?',(self.pid,)).fetchone()[0]
+ def test_sale_and_return_numbers_are_collision_resistant(self):
+  sales={sale_number() for _ in range(200)}
+  returns={return_number() for _ in range(200)}
+  self.assertEqual(len(sales),200)
+  self.assertEqual(len(returns),200)
+  self.assertTrue(all(value.startswith('V-') for value in sales))
+  self.assertTrue(all(value.startswith('R-') for value in returns))
+
  def test_price_grid_overrides_base_price_and_falls_back(self):
   with db.connect() as c:
    gid=c.execute("INSERT INTO price_grids(name) VALUES('Pro')").lastrowid
