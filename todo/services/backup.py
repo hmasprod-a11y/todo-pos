@@ -31,7 +31,7 @@ def validate(conn):
 def create_backup():
     folder=BASE/'backups';folder.mkdir(parents=True,exist_ok=True)
     dst=folder/f"todo_{datetime.now():%Y%m%d_%H%M%S_%f}.db"
-    with connect() as source, closing(sqlite3.connect(dst)) as target:
+    with closing(connect()) as source, closing(sqlite3.connect(dst)) as target:
         source.backup(target)
         validate(target)
     return dst
@@ -43,7 +43,7 @@ def restore_backup(source):
     with closing(sqlite3.connect(src.as_uri()+'?mode=ro',uri=True)) as origin:
         validate(origin)
         safety=create_backup()
-        with connect() as target:
+        with closing(connect()) as target:
             origin.backup(target)
     init_db()
     return safety
@@ -105,7 +105,7 @@ def restore_full_backup(source):
         safety=create_full_backup()
         try:
             with closing(sqlite3.connect(staged_db.as_uri()+'?mode=ro',uri=True)) as origin:
-                with connect() as target: origin.backup(target)
+                with closing(connect()) as target: origin.backup(target)
             for rel in ('assets/products','customer_media'):
                 incoming=temp/rel;target=BASE/rel
                 if incoming.exists():
@@ -121,7 +121,7 @@ def restore_full_backup(source):
             rollback=temp/'rollback'
             with zipfile.ZipFile(safety,'r') as z:z.extractall(rollback)
             with closing(sqlite3.connect((rollback/'todo.db').as_uri()+'?mode=ro',uri=True)) as origin:
-                with connect() as target:origin.backup(target)
+                with closing(connect()) as target:origin.backup(target)
             for rel in ('assets/products','customer_media'):
                 incoming=rollback/rel;target=BASE/rel
                 if incoming.exists():
