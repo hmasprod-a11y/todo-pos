@@ -339,7 +339,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Button(u,text=self.tr('Nouvel utilisateur','مستخدم جديد'),style='Primary.TButton',command=self.new_user).pack(side='left');ttk.Button(u,text=self.tr('Gérer utilisateurs','إدارة المستخدمين'),style='Soft.TButton',command=self.manage_users).pack(side='left',padx=8)
         ttk.Button(u,text=self.tr('Changer mon PIN','تغيير PIN'),command=self.change_pin).pack(side="left",padx=8)
         ttk.Button(u,text=self.tr('Journal des actions','سجل العمليات'),command=self.audit_log).pack(side="left",padx=8)
-        ttk.Button(u,text=self.tr('À propos - Aide','حول - مساعدة'),style='Soft.TButton',command=self.about_help).pack(side='left',padx=8)
+        ttk.Button(u,text=self.tr('À propos - Aide','حول - مساعدة','About - Help'),style='Soft.TButton',command=self.about_help).pack(side='left',padx=8)
         ttk.Button(u,text=self.tr('Licence','الترخيص'),style='Soft.TButton',command=self.license_tools).pack(side='left',padx=8)
         ttk.Button(u,text=self.tr('Raccourcis personnalisés','اختصارات مخصصة'),style='Soft.TButton',command=self.shortcut_tools).pack(side='left',padx=8)
         ttk.Label(u,text=self.tr('Admin initial: admin / PIN 1234 — changez-le.','المدير الأولي: admin / PIN 1234 — غيّره.')).pack(side="left",padx=15)
@@ -729,38 +729,38 @@ class SettingsFrame(ttk.Frame):
 
     def about_help(self):
         from services.support import diagnostics,diagnostic_text,documentation_paths,open_document
-        w=tk.Toplevel(self);w.title(self.tr('À propos - Aide','حول - مساعدة'));w.geometry('760x590');w.transient(self.winfo_toplevel())
+        w=tk.Toplevel(self);w.title(self.tr('À propos - Aide','حول - مساعدة','About - Help'));w.geometry('760x590');w.transient(self.winfo_toplevel())
         try:d=diagnostics()
         except Exception as error:
             messagebox.showerror('ToDo',str(error),parent=w);w.destroy();return
         ttk.Label(w,text=f"ToDo POS {d['version']}",style='Title.TLabel').pack(anchor='w',padx=18,pady=(16,4))
-        ttk.Label(w,text=self.tr('Centre d’aide et diagnostic local','مركز المساعدة والتشخيص المحلي'),foreground='#64748B').pack(anchor='w',padx=18,pady=(0,12))
-        info=ttk.LabelFrame(w,text=self.tr('Diagnostic','التشخيص'),padding=12);info.pack(fill='x',padx=18,pady=6)
+        ttk.Label(w,text=self.tr('Centre d’aide et diagnostic local','مركز المساعدة والتشخيص المحلي','Help centre and local diagnostics'),foreground='#64748B').pack(anchor='w',padx=18,pady=(0,12))
+        info=ttk.LabelFrame(w,text=self.tr('Diagnostic','التشخيص','Diagnostics'),padding=12);info.pack(fill='x',padx=18,pady=6)
         entries=[
-            (self.tr('Édition','الإصدار'),d['edition']),
-            (self.tr('Magasin','المتجر'),d['shop']),
-            (self.tr('Poste','المحطة'),d['workstation']),
+            (self.tr('Édition','الإصدار','Edition'),d['edition']),
+            (self.tr('Magasin','المتجر','Shop'),d['shop']),
+            (self.tr('Poste','المحطة','Workstation'),d['workstation']),
             ('SQLite / schema',f"{d['sqlite_version']} / {d['schema_version']}"),
-            (self.tr('Intégrité','سلامة البيانات'),d['integrity']),
-            (self.tr('Tables','الجداول'),str(d['tables'])),
-            (self.tr('Taille base','حجم القاعدة'),f"{d['db_size_bytes']/1024/1024:.2f} MB"),
-            (self.tr('Base de données','قاعدة البيانات'),d['db_path']),
-            (self.tr('Dernier backup','آخر نسخة احتياطية'),d['last_backup'] or self.tr('Aucun trouvé','لا توجد')),
-            (self.tr('PIN admin','PIN المدير'),self.tr('À CHANGER (1234)','يجب تغييره (1234)') if d['default_admin_pin'] else 'OK'),
+            (self.tr('Intégrité','سلامة البيانات','Integrity'),d['integrity']),
+            (self.tr('Tables','الجداول','Tables'),str(d['tables'])),
+            (self.tr('Taille base','حجم القاعدة','Database size'),f"{d['db_size_bytes']/1024/1024:.2f} MB"),
+            (self.tr('Base de données','قاعدة البيانات','Database'),d['db_path']),
+            (self.tr('Dernier backup','آخر نسخة احتياطية','Last backup'),d['last_backup'] or self.tr('Aucun trouvé','لا توجد','None found')),
+            (self.tr('PIN admin','PIN المدير','Admin PIN'),self.tr('À CHANGER (1234)','يجب تغييره (1234)','CHANGE IT (1234)') if d['default_admin_pin'] else 'OK'),
         ]
         for i,(label,value) in enumerate(entries):
             ttk.Label(info,text=label+':',font=('Segoe UI',9,'bold')).grid(row=i,column=0,sticky='nw',pady=3)
             ttk.Label(info,text=value,wraplength=520).grid(row=i,column=1,sticky='w',padx=10,pady=3)
-        docs=ttk.LabelFrame(w,text=self.tr('Documentation','الوثائق'),padding=12);docs.pack(fill='x',padx=18,pady=8)
+        docs=ttk.LabelFrame(w,text=self.tr('Documentation','الوثائق','Documentation'),padding=12);docs.pack(fill='x',padx=18,pady=8)
         labels=[
-            ('guide_fr',self.tr('Guide utilisateur FR','دليل المستخدم بالفرنسية')),
-            ('guide_ar',self.tr('Guide utilisateur AR','دليل المستخدم بالعربية')),
-            ('backup',self.tr('Backup / Restore','النسخ الاحتياطي / الاسترجاع')),
-            ('install',self.tr('Installation Windows','تثبيت Windows')),
-            ('checklist',self.tr('Checklist livraison','قائمة فحص التسليم')),
-            ('privacy',self.tr('Politique de confidentialité','سياسة الخصوصية')),
-            ('terms',self.tr("Conditions d’utilisation",'شروط الاستخدام')),
-            ('support',self.tr('Support et données','الدعم والبيانات')),
+            ('guide_fr',self.tr('Guide utilisateur FR','دليل المستخدم بالفرنسية','French user guide')),
+            ('guide_ar',self.tr('Guide utilisateur AR','دليل المستخدم بالعربية','Arabic user guide')),
+            ('backup',self.tr('Backup / Restore','النسخ الاحتياطي / الاسترجاع','Backup / Restore')),
+            ('install',self.tr('Installation Windows','تثبيت Windows','Windows installation')),
+            ('checklist',self.tr('Checklist livraison','قائمة فحص التسليم','Delivery checklist')),
+            ('privacy',self.tr('Politique de confidentialité','سياسة الخصوصية','Privacy policy')),
+            ('terms',self.tr("Conditions d’utilisation",'شروط الاستخدام','Terms of use')),
+            ('support',self.tr('Support et données','الدعم والبيانات','Support and data')),
         ]
         paths=documentation_paths()
         for i,(key,label) in enumerate(labels):
@@ -769,12 +769,12 @@ class SettingsFrame(ttk.Frame):
         docs.columnconfigure(0,weight=1);docs.columnconfigure(1,weight=1)
         from services.demo import launcher_path
         demo_state='normal' if launcher_path().is_file() else 'disabled'
-        ttk.Button(docs,text=self.tr('Lancer la démo isolée','تشغيل النسخة التجريبية المعزولة'),state=demo_state,command=lambda:self.launch_isolated_demo(w)).grid(row=4,column=0,columnspan=2,sticky='ew',padx=4,pady=(8,4))
+        ttk.Button(docs,text=self.tr('Lancer la démo isolée','تشغيل النسخة التجريبية المعزولة','Launch isolated demo'),state=demo_state,command=lambda:self.launch_isolated_demo(w)).grid(row=4,column=0,columnspan=2,sticky='ew',padx=4,pady=(8,4))
         def copy_diag():
             text_value=diagnostic_text();w.clipboard_clear();w.clipboard_append(text_value)
-            messagebox.showinfo('ToDo',self.tr('Diagnostic copié.','تم نسخ التشخيص.'),parent=w)
+            messagebox.showinfo('ToDo',self.tr('Diagnostic copié.','تم نسخ التشخيص.','Diagnostics copied.'),parent=w)
         bar=ttk.Frame(w);bar.pack(fill='x',padx=18,pady=12)
-        ttk.Button(bar,text=self.tr('Copier diagnostic','نسخ التشخيص'),style='Primary.TButton',command=copy_diag).pack(side='left')
+        ttk.Button(bar,text=self.tr('Copier diagnostic','نسخ التشخيص','Copy diagnostics'),style='Primary.TButton',command=copy_diag).pack(side='left')
         ttk.Button(bar,text=self.tr('Base de Données','قاعدة البيانات'),command=lambda:(w.destroy(),self.database_tools())).pack(side='left',padx=6)
         ttk.Button(bar,text=self.tr('Fermer','إغلاق'),command=w.destroy).pack(side='right')
 
@@ -782,9 +782,9 @@ class SettingsFrame(ttk.Frame):
         try:
             from services.demo import launch_demo
             launch_demo()
-            messagebox.showinfo('ToDo',self.tr('La démo s’ouvre avec sa propre base de données.','سيتم فتح النسخة التجريبية بقاعدة بيانات مستقلة.'),parent=parent)
+            messagebox.showinfo('ToDo',self.tr('La démo s’ouvre avec sa propre base de données.','سيتم فتح النسخة التجريبية بقاعدة بيانات مستقلة.','The demo opens with its own database.'),parent=parent)
         except FileNotFoundError:
-            messagebox.showinfo('ToDo',self.tr('La démo n’est disponible que dans le package Windows qui l’inclut.','النسخة التجريبية متاحة فقط في حزمة Windows التي تتضمنها.'),parent=parent)
+            messagebox.showinfo('ToDo',self.tr('La démo n’est disponible que dans le package Windows qui l’inclut.','النسخة التجريبية متاحة فقط في حزمة Windows التي تتضمنها.','The demo is available only in the Windows package that includes it.'),parent=parent)
         except Exception as error:
             messagebox.showerror('ToDo',str(error),parent=parent)
 
@@ -792,7 +792,7 @@ class SettingsFrame(ttk.Frame):
         try:
             from services.support import open_document
             open_document(key)
-        except Exception as error:messagebox.showerror(self.tr('Aide','المساعدة'),str(error),parent=parent)
+        except Exception as error:messagebox.showerror(self.tr('Aide','المساعدة','Help'),str(error),parent=parent)
 
     def database_tools(self):
         from services.database_admin import table_inventory,export_table_csv,import_reference_csv,integrity_status,export_schema_sql,export_database_bundle
@@ -850,7 +850,7 @@ class SettingsFrame(ttk.Frame):
             try:
                 result=integrity_status()
                 text_value=self.tr('Base saine.','قاعدة البيانات سليمة.') if result['ok'] else self.tr(f"Problème: {result['integrity']} · FK {result['foreign_key_errors']}",f"مشكلة: {result['integrity']} · العلاقات {result['foreign_key_errors']}")
-                messagebox.showinfo(self.tr('Intégrité','سلامة البيانات'),text_value,parent=w)
+                messagebox.showinfo(self.tr('Intégrité','سلامة البيانات','Integrity'),text_value,parent=w)
             except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
         bar=ttk.Frame(w);bar.pack(fill='x',padx=12,pady=12)
         ttk.Button(bar,text=self.tr('Actualiser','تحديث'),command=refresh).pack(side='left')
