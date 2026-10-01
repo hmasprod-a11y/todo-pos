@@ -73,7 +73,7 @@ class PaymentDialog(tk.Toplevel):
             denominations.columnconfigure(column, weight=1)
         ttk.Button(body, text=self.tr('Effacer espèces','مسح النقد','Clear cash'), style='Danger.TButton', command=self.clear_cash).pack(fill='x', pady=(0, 4))
         ttk.Button(body, text=self.tr('Montant exact','المبلغ بالضبط','Exact amount'), style='Success.TButton', command=self.exact).pack(fill='x', pady=4)
-        ttk.Label(body, text=self.tr('Part carte (mode mixte)','جزء البطاقة في الدفع المختلط')).pack(anchor='w', pady=(8,0))
+        ttk.Label(body, text=self.tr('Part carte (mode mixte)','جزء البطاقة في الدفع المختلط','Card share (split payment)')).pack(anchor='w', pady=(8,0))
         self.card_entry = ttk.Entry(body, textvariable=self.card_amount, font=('Segoe UI', 18), justify='right')
         self.card_entry.pack(fill='x', pady=4)
         summary=ttk.Frame(body)
@@ -206,19 +206,19 @@ class PaymentDialog(tk.Toplevel):
             difference = paid - self.total
             credit=method=='CREDIT' and self.client_name is not None
             valid=(0<=paid<=self.total) if credit else (difference>=0 if method=='CASH' else difference==0)
-            self.summary_total.configure(text=self.tr('FACTURE\n','الفاتورة\n')+fmt(self.total,self.currency))
-            self.summary_paid.configure(text=self.tr('REÇU\n','المستلم\n')+fmt(paid,self.currency))
+            self.summary_total.configure(text=self.tr('FACTURE\n','الفاتورة\n','RECEIPT\n')+fmt(self.total,self.currency))
+            self.summary_paid.configure(text=self.tr('REÇU\n','المستلم\n','RECEIVED\n')+fmt(paid,self.currency))
             self.summary_diff.configure(
-                text=self.tr('DIFFÉRENCE\n','الفرق\n')+fmt(abs(difference),self.currency),
+                text=self.tr('DIFFÉRENCE\n','الفرق\n','DIFFERENCE\n')+fmt(abs(difference),self.currency),
                 bg='#FEE2E2' if difference<0 else '#DCFCE7',
                 fg='#B91C1C' if difference<0 else '#166534')
             self.change.configure(text=(self.tr('Reste à payer : ','الباقي للأداء: ','Amount due: ') if difference < 0 else self.tr('Monnaie à rendre : ','الصرف للزبون: ','Change due: ')) + fmt(abs(difference), self.currency), fg='#DC2626' if difference < 0 else '#166534', bg='#FEE2E2' if difference < 0 else '#DCFCE7')
             self.confirm_button.configure(state='normal' if valid else 'disabled')
-            self.error.configure(text=self.tr('Reste enregistré en dette client. Acompte en espèces.','تم تسجيل الباقي كدين على الزبون. التسبيق نقدي.') if credit and valid else ('' if valid else self.tr('Le paiement mixte doit couvrir exactement le ticket.','يجب أن يغطي الأداء المختلط مبلغ التذكرة بالكامل.','Split payment must cover the exact ticket total.') if mixed else self.tr('Montant reçu invalide ou insuffisant.','المبلغ المدفوع غير صالح أو غير كافٍ.','Amount received is invalid or insufficient.')))
+            self.error.configure(text=self.tr('Reste enregistré en dette client. Acompte en espèces.','تم تسجيل الباقي كدين على الزبون. التسبيق نقدي.','Balance recorded as customer debt. Cash deposit.') if credit and valid else ('' if valid else self.tr('Le paiement mixte doit couvrir exactement le ticket.','يجب أن يغطي الأداء المختلط مبلغ التذكرة بالكامل.','Split payment must cover the exact ticket total.') if mixed else self.tr('Montant reçu invalide ou insuffisant.','المبلغ المدفوع غير صالح أو غير كافٍ.','Amount received is invalid or insufficient.')))
         except Exception:
-            self.summary_total.configure(text=self.tr('FACTURE\n','الفاتورة\n')+fmt(self.total,self.currency))
-            self.summary_paid.configure(text=self.tr('REÇU\n—','المستلم\n—'))
-            self.summary_diff.configure(text=self.tr('DIFFÉRENCE\n—','الفرق\n—'),bg='#FEE2E2',fg='#B91C1C')
+            self.summary_total.configure(text=self.tr('FACTURE\n','الفاتورة\n','RECEIPT\n')+fmt(self.total,self.currency))
+            self.summary_paid.configure(text=self.tr('REÇU\n—','المستلم\n—','RECEIVED\n—'))
+            self.summary_diff.configure(text=self.tr('DIFFÉRENCE\n—','الفرق\n—','DIFFERENCE\n—'),bg='#FEE2E2',fg='#B91C1C')
             self.change.configure(text='—',bg='#F3F4F6',fg='#475569'); self.error.configure(text=self.tr('Saisissez un montant valide','أدخل مبلغا صحيحا','Enter a valid amount')); self.confirm_button.configure(state='disabled')
 
     def confirm(self):
