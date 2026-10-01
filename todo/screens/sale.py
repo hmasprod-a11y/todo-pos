@@ -1088,9 +1088,10 @@ class SaleFrame(ttk.Frame):
                     max_points=min(balance,total//cfg['point_value_cents'])
                     if max_points>0 and messagebox.askyesno('ToDo',self.tr(
                         f"Ce client a {balance} point(s). Utiliser des points sur ce ticket ?",
-                        f"لدى هذا الزبون {balance} نقطة. هل تريد استعمال النقاط في هذه الفاتورة؟"),parent=self):
+                        f"لدى هذا الزبون {balance} نقطة. هل تريد استعمال النقاط في هذه الفاتورة؟",
+                         f"This customer has {balance} point(s). Use points on this receipt?"),parent=self):
                         pts=simpledialog.askinteger(self.tr('Points fidélité','نقاط الوفاء'),self.tr(
-                            f"Points à utiliser (max {max_points}) :",f"عدد النقاط المستعملة (الأقصى {max_points}):"),
+                            f"Points à utiliser (max {max_points}) :",f"عدد النقاط المستعملة (الأقصى {max_points}):",f"Points to use (max {max_points}):"),
                             parent=self,minvalue=1,maxvalue=max_points)
                         if pts:
                             loyalty_points_used=pts
@@ -1109,7 +1110,7 @@ class SaleFrame(ttk.Frame):
                 if print_ticket and mode=='ask':
                     dialog_print=messagebox.askyesno(
                         'ToDo',
-                        self.tr('Imprimer le ticket ?','طباعة التذكرة؟'),
+                        self.tr('Imprimer le ticket ?','طباعة التذكرة؟','Print the receipt?'),
                         parent=self
                     )
                 else:
