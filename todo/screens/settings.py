@@ -510,31 +510,31 @@ class SettingsFrame(ttk.Frame):
             seconds=int(self.customer_seconds.get())
             if seconds<2 or seconds>300:raise ValueError()
         except ValueError:
-            messagebox.showerror("ToDo",self.tr("Durée écran client entre 2 et 300 secondes.","مدة شاشة الزبون بين 2 و300 ثانية."),parent=self);return
+            messagebox.showerror("ToDo",self.tr("Durée écran client entre 2 et 300 secondes.","مدة شاشة الزبون بين 2 و300 ثانية.","Customer display duration must be between 2 and 300 seconds."),parent=self);return
         try:
             scale_timeout=int(self.scale_timeout.get())
             scale_baud=int(self.scale_baudrate.get())
             if scale_timeout<100 or scale_timeout>10000 or scale_baud<=0:raise ValueError()
         except ValueError:
-            messagebox.showerror('ToDo',self.tr('Paramètres de balance invalides.','إعدادات الميزان غير صالحة.'),parent=self);return
+            messagebox.showerror('ToDo',self.tr('Paramètres de balance invalides.','إعدادات الميزان غير صالحة.','Scale settings are invalid.'),parent=self);return
         set_setting('scale_enabled','1' if self.scale_enabled.get() else '0');set_setting('scale_port',self.scale_port.get().strip());set_setting('scale_baudrate',str(scale_baud));set_setting('scale_timeout_ms',str(scale_timeout))
         try:smtp_port=int(self.smtp_port.get())
         except ValueError:
-            messagebox.showerror('ToDo',self.tr('Port SMTP invalide.','منفذ SMTP غير صالح.'),parent=self);return
+            messagebox.showerror('ToDo',self.tr('Port SMTP invalide.','منفذ SMTP غير صالح.','Invalid SMTP port.'),parent=self);return
         if smtp_port<1 or smtp_port>65535:
-            messagebox.showerror('ToDo',self.tr('Port SMTP invalide.','منفذ SMTP غير صالح.'),parent=self);return
+            messagebox.showerror('ToDo',self.tr('Port SMTP invalide.','منفذ SMTP غير صالح.','Invalid SMTP port.'),parent=self);return
         try:
             rfid_baud=int(self.rfid_baud.get());rfid_timeout=int(self.rfid_timeout.get())
             if rfid_baud<=0 or rfid_timeout<100 or rfid_timeout>10000:raise ValueError()
         except ValueError:
-            messagebox.showerror('ToDo',self.tr('Paramètres RFID invalides.','إعدادات RFID غير صالحة.'),parent=self);return
+            messagebox.showerror('ToDo',self.tr('Paramètres RFID invalides.','إعدادات RFID غير صالحة.','RFID settings are invalid.'),parent=self);return
         set_setting('rfid_enabled','1' if self.rfid_enabled.get() else '0');set_setting('rfid_mode',self.rfid_mode.get());set_setting('rfid_port',self.rfid_port.get().strip());set_setting('rfid_baudrate',str(rfid_baud));set_setting('rfid_timeout_ms',str(rfid_timeout))
         set_setting('email_enabled','1' if self.email_enabled.get() else '0');set_setting('smtp_host',self.smtp_host.get().strip());set_setting('smtp_port',str(smtp_port));set_setting('smtp_user',self.smtp_user.get().strip());set_smtp_password(self.smtp_password.get());set_setting('smtp_from_name',self.smtp_from.get().strip() or 'ToDo');set_setting('smtp_subject',self.smtp_subject.get().strip())
         try:
             customer_serial_baud=int(self.customer_serial_baud.get());customer_serial_timeout=int(self.customer_serial_timeout.get());customer_serial_width=int(self.customer_serial_width.get())
             if customer_serial_baud<=0 or customer_serial_timeout<100 or customer_serial_timeout>10000 or customer_serial_width not in (16,20,24,40):raise ValueError()
         except ValueError:
-            messagebox.showerror('ToDo',self.tr('Paramètres afficheur série invalides.','إعدادات الشاشة التسلسلية غير صالحة.'),parent=self);return
+            messagebox.showerror('ToDo',self.tr('Paramètres afficheur série invalides.','إعدادات الشاشة التسلسلية غير صالحة.','Serial display settings are invalid.'),parent=self);return
         set_setting('customer_serial_enabled','1' if self.customer_serial_enabled.get() else '0');set_setting('customer_serial_port',self.customer_serial_port.get().strip());set_setting('customer_serial_baudrate',str(customer_serial_baud));set_setting('customer_serial_timeout_ms',str(customer_serial_timeout));set_setting('customer_serial_width',str(customer_serial_width))
         set_setting('customer_display_enabled','1' if self.customer_enabled.get() else '0')
         set_setting("customer_slide_seconds",str(seconds))
@@ -546,7 +546,7 @@ class SettingsFrame(ttk.Frame):
         if backup_minutes not in ('0','5','10','15','30','60'):backup_minutes='15'
         set_setting("auto_backup_minutes",backup_minutes)
         self.app.schedule_auto_backup()
-        messagebox.showinfo("ToDo",self.tr("Paramètres enregistrés.","تم حفظ الإعدادات."),parent=self)
+        messagebox.showinfo("ToDo",self.tr("Paramètres enregistrés.","تم حفظ الإعدادات.","Settings saved."),parent=self)
         if language_changed:
             self.app.after_idle(lambda lang=new_language:self.app.change_language(lang))
 
@@ -563,7 +563,7 @@ class SettingsFrame(ttk.Frame):
         try:
             from services.rfid import read_tag
             tag=read_tag(self.rfid_port.get().strip(),int(self.rfid_baud.get()),int(self.rfid_timeout.get()))
-            messagebox.showinfo('ToDo',self.tr(f'Tag lu : {tag}',f'تمت قراءة الوسم: {tag}'),parent=self)
+            messagebox.showinfo('ToDo',self.tr(f'Tag lu : {tag}',f'تمت قراءة الوسم: {tag}',f'Tag read: {tag}'),parent=self)
         except Exception as error:messagebox.showerror('RFID',str(error),parent=self)
 
     def test_email(self):
@@ -571,9 +571,9 @@ class SettingsFrame(ttk.Frame):
             from services.emailer import test_email_connection
             cfg={'enabled':True,'host':self.smtp_host.get().strip(),'port':int(self.smtp_port.get()),'user':self.smtp_user.get().strip(),'password':self.smtp_password.get(),'from_name':self.smtp_from.get().strip() or 'ToDo','subject':self.smtp_subject.get().strip()}
             test_email_connection(settings=cfg)
-            messagebox.showinfo('ToDo',self.tr('E-mail test envoyé.','تم إرسال بريد الاختبار.'),parent=self)
+            messagebox.showinfo('ToDo',self.tr('E-mail test envoyé.','تم إرسال بريد الاختبار.','Test email sent.'),parent=self)
         except Exception as error:
-            messagebox.showerror(self.tr('E-mail','البريد الإلكتروني'),str(error),parent=self)
+            messagebox.showerror(self.tr('E-mail','البريد الإلكتروني','Email'),str(error),parent=self)
 
     def refresh_scale_ports(self):
         try:
@@ -587,9 +587,9 @@ class SettingsFrame(ttk.Frame):
         try:
             from services.scale import read_weight
             weight=read_weight(self.scale_port.get().strip(),int(self.scale_baudrate.get()),int(self.scale_timeout.get()))
-            messagebox.showinfo('ToDo',self.tr(f'Poids lu : {weight:.3f} kg',f'الوزن المقروء: {weight:.3f} كغ'),parent=self)
+            messagebox.showinfo('ToDo',self.tr(f'Poids lu : {weight:.3f} kg',f'الوزن المقروء: {weight:.3f} كغ',f'Weight read: {weight:.3f} kg'),parent=self)
         except Exception as error:
-            messagebox.showerror(self.tr('Balance','الميزان'),str(error),parent=self)
+            messagebox.showerror(self.tr('Balance','الميزان','Scale'),str(error),parent=self)
 
 
     def refresh_customer_serial_ports(self):
@@ -603,8 +603,8 @@ class SettingsFrame(ttk.Frame):
         try:
             from services.customer_serial_display import write_lines
             write_lines('TODO MARKET','TEST OK',self.customer_serial_port.get().strip(),int(self.customer_serial_baud.get()),int(self.customer_serial_timeout.get()),int(self.customer_serial_width.get()))
-            messagebox.showinfo('ToDo',self.tr('Test envoyé à l’afficheur.','تم إرسال الاختبار إلى الشاشة.'),parent=self)
-        except Exception as error:messagebox.showerror(self.tr('Afficheur client','شاشة الزبون'),str(error),parent=self)
+            messagebox.showinfo('ToDo',self.tr('Test envoyé à l’afficheur.','تم إرسال الاختبار إلى الشاشة.','Test sent to the display.'),parent=self)
+        except Exception as error:messagebox.showerror(self.tr('Afficheur client','شاشة الزبون','Customer display'),str(error),parent=self)
 
     def toggle_customer_enabled(self):
         enabled=bool(self.customer_enabled.get())
@@ -625,7 +625,7 @@ class SettingsFrame(ttk.Frame):
         try:
             from services.printers import test_printer
             test_printer(self.printer.get().strip(),bool(self.thermal_raw.get()))
-            messagebox.showinfo('ToDo',self.tr('Test envoyé à l’imprimante.','تم إرسال الاختبار إلى الطابعة.'),parent=self)
+            messagebox.showinfo('ToDo',self.tr('Test envoyé à l’imprimante.','تم إرسال الاختبار إلى الطابعة.','Test sent to the printer.'),parent=self)
         except Exception as error:
             messagebox.showerror('ToDo',str(error),parent=self)
 
@@ -646,7 +646,7 @@ class SettingsFrame(ttk.Frame):
             values=installed_printers()
             self.printer_choice['values']=values;self.report_printer_choice['values']=values;self.addition_printer_choice['values']=values
             for cb in self.kitchen_printer_choices:cb['values']=values
-        except Exception as error:messagebox.showerror(self.tr('Imprimantes','الطابعات'),str(error),parent=self)
+        except Exception as error:messagebox.showerror(self.tr('Imprimantes','الطابعات','Printers'),str(error),parent=self)
 
     def backup(self):
         try:
