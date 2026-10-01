@@ -331,20 +331,20 @@ class ProductEditor(tk.Toplevel):
     def save(self):
         try:
             barcode=self.bar.get().strip();name=self.name.get().strip()
-            if not name:raise ValueError("اسم المنتوج إجباري.")
+            if not name:raise ValueError(self.tr("Nom du produit obligatoire.","اسم المنتوج إجباري.","Product name is required."))
             buy=to_cents(self.buy.get());sell=to_cents(self.sell.get());stock=float(self.stock.get() or 0);alert=float(self.alert.get() or 0)
             try:
                 tax_percent=Decimal(self.tax_rate.get().strip().replace(',','.'))
             except InvalidOperation:
-                raise ValueError(self.tr('Taux de taxe invalide','نسبة الضريبة غير صالحة'))
+                raise ValueError(self.tr('Taux de taxe invalide','نسبة الضريبة غير صالحة','Invalid tax rate'))
             if not tax_percent.is_finite() or tax_percent<0 or tax_percent>100:
-                raise ValueError(self.tr('Taux de taxe invalide','نسبة الضريبة غير صالحة'))
+                raise ValueError(self.tr('Taux de taxe invalide','نسبة الضريبة غير صالحة','Invalid tax rate'))
             tax_rate_basis_points=int((tax_percent*100).to_integral_value(rounding=ROUND_HALF_UP))
             tax_class=self.tax_class.get()
             if tax_class not in ('STANDARD','REDUCED','ZERO'):
-                raise ValueError(self.tr('Classe de taxe invalide','فئة الضريبة غير صالحة'))
+                raise ValueError(self.tr('Classe de taxe invalide','فئة الضريبة غير صالحة','Invalid tax class'))
             if not all(math.isfinite(x) for x in (stock,alert)) or min(buy,sell,alert)<0:
-                raise ValueError(self.tr('Valeurs invalides','قيم غير صالحة'))
+                raise ValueError(self.tr('Valeurs invalides','قيم غير صالحة','Invalid values'))
             selected_cats=[cid for cid,(var,_) in self.cat_vars.items() if var.get()]
             cat=next((name for cid,(_,name) in self.cat_vars.items() if cid in selected_cats),'Général') if selected_cats else 'Général'
             rules=self.read_offers()
@@ -376,7 +376,7 @@ class ProductEditor(tk.Toplevel):
                     if len(rows)>4:names+=f" (+{len(rows)-4})"
                     details.append(f"{code} → {names}")
                 if not messagebox.askyesno(
-                    self.tr("Barcode déjà utilisé","الباركود مستعمل من قبل"),
+                    self.tr("Barcode déjà utilisé","الباركود مستعمل من قبل","Barcode already used"),
                     self.tr(
                         "Ce barcode existe déjà :\n\n"+ "\n".join(details) +
                         "\n\nSi c'est le MÊME article, choisissez Non et modifiez l'article existant.\n"
@@ -384,6 +384,10 @@ class ProductEditor(tk.Toplevel):
                         "هذا الباركود مستعمل من قبل:\n\n"+ "\n".join(details) +
                         "\n\nإذا كان نفس المنتوج، اختر لا وعدّل المنتوج الموجود.\n"
                         "اختر نعم فقط إذا كان منتوجا آخر أو حجما/صيغة/علامة مختلفة."
+                    ,
+                        "This barcode already exists:\\n\\n"+ "\\n".join(details) +
+                        "\\n\\nIf it is the SAME product, choose No and edit the existing product.\\n"
+                        "Choose Yes only for a DIFFERENT product, size, format or brand."
                     ),
                     parent=self
                 ):return
@@ -408,7 +412,7 @@ class ProductEditor(tk.Toplevel):
                 preferred_supplier_id=None
                 if supplier_label:
                     try: preferred_supplier_id=int(supplier_label.rsplit('#',1)[1])
-                    except (ValueError,IndexError): raise ValueError(self.tr('Fournisseur invalide','مورد غير صالح'))
+                    except (ValueError,IndexError): raise ValueError(self.tr('Fournisseur invalide','مورد غير صالح','Invalid supplier'))
                 c.execute('UPDATE products SET sku=?,alias=?,supplier_code=?,preferred_supplier_id=?,allow_fraction=? WHERE id=?',(self.sku.get().strip(),self.alias.get().strip(),self.supplier_code.get().strip(),preferred_supplier_id,int(self.fraction.get()),pid))
                 from services.rfid import bind_tag
                 bind_tag(self.rfid_tag.get().strip(),'PRODUCT',pid,c)
@@ -424,7 +428,7 @@ class ProductEditor(tk.Toplevel):
                     value=var.get().strip()
                     if value:
                         cents=to_cents(value)
-                        if cents<0:raise ValueError(self.tr("Prix grille invalide","ثمن شبكة غير صالح"))
+                        if cents<0:raise ValueError(self.tr("Prix grille invalide","ثمن شبكة غير صالح","Invalid price-grid price"))
                         c.execute("INSERT INTO product_grid_prices(product_id,grid_id,unit_price_cents) VALUES(?,?,?)",(pid,gid,cents))
                 c.execute("DELETE FROM quantity_prices WHERE product_id=?",(pid,))
                 c.executemany("INSERT INTO quantity_prices(product_id,min_qty,unit_price_cents,pricing_mode) VALUES(?,?,?,?)",[(pid,q,p,m) for q,p,m in rules])
