@@ -12,7 +12,7 @@ class InventorySessionsFrame(ttk.Frame):
         ttk.Label(top,text=self.tr('Inventaires enregistrés','الجرد المحفوظ','Saved inventories'),style='Title.TLabel').pack(side='left')
         ttk.Button(top,text=self.tr('+ Nouvel inventaire','+ جرد جديد','+ New inventory'),style='Primary.TButton',command=self.create).pack(side='right')
         ttk.Label(self,text=self.tr("Chaque inventaire conserve le stock théorique, le comptage réel et les écarts avant validation.",
-                                    "كل جرد يحتفظ بالمخزون النظري والكمية المعدودة والفروقات قبل التأكيد."),foreground='#475569').pack(anchor='w',pady=(0,8))
+                                    "كل جرد يحتفظ بالمخزون النظري والكمية المعدودة والفروقات قبل التأكيد.","Each inventory keeps expected stock, physical counts and differences before confirmation."),foreground='#475569').pack(anchor='w',pady=(0,8))
         cols=('id','label','status','date','user','items','counted','qtydiff','valuediff')
         self.tree=ttk.Treeview(self,columns=cols,show='headings',height=18)
         cfg=[
@@ -32,7 +32,7 @@ class InventorySessionsFrame(ttk.Frame):
         self.tree.delete(*self.tree.get_children())
         for r in list_inventory_sessions():
             status=self.tr('Ouvert','مفتوح','Open') if r['status']=='OPEN' else self.tr('Validé','مؤكد','Confirmed')
-            self.tree.insert('','end',iid=str(r['id']),values=(r['id'],r['label'] or f"Inventaire #{r['id']}",status,r['created_at'],
+            self.tree.insert('','end',iid=str(r['id']),values=(r['id'],r['label'] or self.tr(f"Inventaire #{r['id']}",f"الجرد #{r['id']}",f"Inventory #{r['id']}"),status,r['created_at'],
                 r['created_by_name'],r['items'],r['counted'] or 0,f"{float(r['qty_diff'] or 0):g}",fmt(int(round(r['value_diff_cents'] or 0)),'')))
     def _selected(self):
         s=self.tree.selection();return int(s[0]) if s else None
@@ -46,17 +46,17 @@ class InventorySessionsFrame(ttk.Frame):
     def validate_selected(self):
         sid=self._selected()
         if not sid:return
-        if not messagebox.askyesno('ToDo',self.tr('Valider définitivement cet inventaire et appliquer les écarts ?','تأكيد هذا الجرد نهائيا وتطبيق الفروقات؟'),parent=self):return
+        if not messagebox.askyesno('ToDo',self.tr('Valider définitivement cet inventaire et appliquer les écarts ?','تأكيد هذا الجرد نهائيا وتطبيق الفروقات؟','Confirm this inventory permanently and apply the differences?'),parent=self):return
         try:
-            n=finalize_inventory_session(sid);messagebox.showinfo('ToDo',self.tr(f'{n} article(s) ajusté(s).',f'تم تعديل {n} منتج.'),parent=self);self.refresh()
+            n=finalize_inventory_session(sid);messagebox.showinfo('ToDo',self.tr(f'{n} article(s) ajusté(s).',f'تم تعديل {n} منتج.',f'{n} product(s) adjusted.'),parent=self);self.refresh()
         except Exception as e:messagebox.showerror('ToDo',str(e),parent=self)
     def open_session(self,sid):
         sessions={r['id']:r for r in list_inventory_sessions()};session=sessions.get(sid)
         if not session:return
-        w=tk.Toplevel(self);w.title(self.tr(f'Inventaire #{sid}',f'الجرد #{sid}'));w.geometry('980x620');w.transient(self.winfo_toplevel())
+        w=tk.Toplevel(self);w.title(self.tr(f'Inventaire #{sid}',f'الجرد #{sid}',f'Inventory #{sid}'));w.geometry('980x620');w.transient(self.winfo_toplevel())
         top=ttk.Frame(w);top.pack(fill='x',padx=12,pady=12)
         q=tk.StringVar();entry=ttk.Entry(top,textvariable=q,width=32);entry.pack(side='left')
-        ttk.Label(top,text=self.tr('Double-cliquez un article pour saisir la quantité comptée.','انقر مرتين على المنتج لإدخال الكمية المعدودة.')).pack(side='left',padx=12)
+        ttk.Label(top,text=self.tr('Double-cliquez un article pour saisir la quantité comptée.','انقر مرتين على المنتج لإدخال الكمية المعدودة.','Double-click a product to enter its counted quantity.')).pack(side='left',padx=12)
         tree=ttk.Treeview(w,columns=('id','name','theory','counted','diff','value'),show='headings')
         for k,h,width in [('id','ID',55),('name',self.tr('Article','المنتوج','Product'),300),('theory',self.tr('Théorique','النظري','Expected'),95),('counted',self.tr('Compté','المعدود','Counted'),95),('diff',self.tr('Écart','الفرق','Difference'),90),('value',self.tr('Valeur écart','قيمة الفرق','Difference value'),110)]:
             tree.heading(k,text=h);tree.column(k,width=width,anchor='center' if k!='name' else 'w')
@@ -74,7 +74,7 @@ class InventorySessionsFrame(ttk.Frame):
             if session['status']!='OPEN':return
             sel=tree.selection()
             if not sel:return
-            vals=tree.item(sel[0],'values');qty=simpledialog.askfloat(self.tr('Comptage','العد','Count'),self.tr(f"Quantité comptée — {vals[1]} :",f"الكمية المعدودة — {vals[1]}:"),parent=w,minvalue=0)
+            vals=tree.item(sel[0],'values');qty=simpledialog.askfloat(self.tr('Comptage','العد','Count'),self.tr(f"Quantité comptée — {vals[1]} :",f"الكمية المعدودة — {vals[1]}:",f"Counted quantity — {vals[1]}:"),parent=w,minvalue=0)
             if qty is None:return
             try:set_inventory_count(sid,int(sel[0]),qty);load()
             except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
