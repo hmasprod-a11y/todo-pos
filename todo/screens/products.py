@@ -442,8 +442,8 @@ class ProductsFrame(ttk.Frame):
         ttk.Label(top,text=self.tr('Articles','المنتجات','Products'),style='Title.TLabel').pack(side='left')
         ttk.Label(self,text=self.tr('Fiche article, codes-barres, images, prix et offres.','بطاقة المنتوج، الباركودات، الصور، الأثمنة والعروض.','Product details, barcodes, images, prices and offers.'),foreground="#475569").pack(anchor="w",pady=(0,8))
         self.q=tk.StringVar();self.search_entry=ttk.Entry(top,textvariable=self.q,width=30,style='Search.TEntry');self.search_entry.pack(side='left',padx=15);self.search_entry.bind('<KeyRelease>',lambda x=None:self.go_page(0))
-        self.filter=tk.StringVar(value=self.tr('Tous','الكل'))
-        ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل'),self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),self.tr('Stock négatif','مخزون سالب','Negative stock'),self.tr('Promotions','العروض','Promotions')],state='readonly',width=18).pack(side='left',padx=4)
+        self.filter=tk.StringVar(value=self.tr('Tous','الكل','All'))
+        ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل','All'),self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),self.tr('Stock négatif','مخزون سالب','Negative stock'),self.tr('Promotions','العروض','Promotions')],state='readonly',width=18).pack(side='left',padx=4)
         self.filter.trace_add("write",lambda *_:self.go_page(0))
         ttk.Button(top,text=self.tr('+ Nouveau','+ جديد','+ New'),style='Primary.TButton',command=self.new).pack(side='right',padx=3)
         ttk.Button(top,text=self.tr('Importer Excel','استيراد Excel','Import Excel'),style='Soft.TButton',command=self.import_excel).pack(side='right',padx=3)
@@ -453,19 +453,19 @@ class ProductsFrame(ttk.Frame):
         ttk.Button(top,text=self.tr('Désactiver','تعطيل','Deactivate'),style='Danger.TButton',command=self.deactivate).pack(side='right',padx=3)
         cols=("id","barcode","name","cat","buy","sell","stock","alert","img")
         self.t=ttk.Treeview(self,columns=cols,show='headings',height=14)
-        cfg=[("id","ID",50),("barcode",self.tr("Barcode","الباركود"),145),("name",self.tr("Article","المنتوج"),260),("cat",self.tr("Famille","العائلة","Category"),130),("buy",self.tr("Achat","الشراء"),85),("sell",self.tr("Vente","البيع"),85),("stock",self.tr("Stock","المخزون","Stock"),80),("alert",self.tr("Alerte","التنبيه"),80),("img",self.tr("Img","صورة"),45)]
+        cfg=[("id","ID",50),("barcode",self.tr("Barcode","الباركود","Barcode"),145),("name",self.tr("Article","المنتوج","Product"),260),("cat",self.tr("Famille","العائلة","Category"),130),("buy",self.tr("Achat","الشراء","Purchase"),85),("sell",self.tr("Vente","البيع","Sale"),85),("stock",self.tr("Stock","المخزون","Stock"),80),("alert",self.tr("Alerte","التنبيه","Alert"),80),("img",self.tr("Img","صورة","Image"),45)]
         for c,h,w in cfg:self.t.heading(c,text=h);self.t.column(c,width=w,anchor="center")
         self.t.pack(fill="both",expand=True);self.t.bind("<Double-1>",lambda e=None:self.edit())
         self.kpi_bar=tk.Frame(self,bg='#F6F7FB');self.kpi_bar.pack(fill='x',pady=(8,2))
         self.kpi_values=[]
-        for title,color in [(self.tr('Articles','المنتجات','Products'),'#DC2626'),(self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),'#F59E0B'),(self.tr('Prix quantité','ثمن الكمية'),'#E07B00'),(self.tr('Valeur stock achat','قيمة مخزون الشراء'),'#2563EB'),(self.tr('Stock négatif','مخزون سالب','Negative stock'),'#16A34A')]:
+        for title,color in [(self.tr('Articles','المنتجات','Products'),'#DC2626'),(self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),'#F59E0B'),(self.tr('Prix quantité','ثمن الكمية','Quantity pricing'),'#E07B00'),(self.tr('Valeur stock achat','قيمة مخزون الشراء','Purchase stock value'),'#2563EB'),(self.tr('Stock négatif','مخزون سالب','Negative stock'),'#16A34A')]:
             card=tk.Frame(self.kpi_bar,bg=color,height=72);card.pack(side='left',fill='x',expand=True,padx=3);card.pack_propagate(False)
             value=tk.Label(card,text='0',bg=color,fg='white',font=('Segoe UI',18,'bold'));value.pack(anchor='w',padx=12,pady=(7,0))
             tk.Label(card,text=title,bg=color,fg='white',font=('Segoe UI',9)).pack(anchor='w',padx=12)
             self.kpi_values.append(value)
         pages=ttk.Frame(self);pages.pack(fill='x',pady=6)
-        ttk.Button(pages,text=self.tr('Précédent','السابق'),command=lambda:self.go_page(max(0,self.page-1))).pack(side='left')
-        ttk.Button(pages,text=self.tr('Suivant','التالي'),command=lambda:self.go_page(self.page+1)).pack(side='left',padx=8)
+        ttk.Button(pages,text=self.tr('Précédent','السابق','Previous'),command=lambda:self.go_page(max(0,self.page-1))).pack(side='left')
+        ttk.Button(pages,text=self.tr('Suivant','التالي','Next'),command=lambda:self.go_page(self.page+1)).pack(side='left',padx=8)
         self.page_label=ttk.Label(pages);self.page_label.pack(side='right')
         self.refresh()
         self.after_idle(lambda:self.search_entry.focus_force() if self.search_entry.winfo_exists() else None)
@@ -476,9 +476,9 @@ class ProductsFrame(ttk.Frame):
         q=f"%{self.q.get().strip()}%"
         with connect() as c:
             extra=""
-            if self.filter.get()==self.tr("Alertes stock","تنبيهات المخزون"):extra=" AND p.stock_qty<=p.alert_qty"
-            elif self.filter.get()==self.tr("Stock négatif","مخزون سالب"):extra=" AND p.stock_qty<0"
-            elif self.filter.get()==self.tr("Promotions","العروض"):extra=" AND EXISTS(SELECT 1 FROM quantity_prices qp WHERE qp.product_id=p.id AND qp.active=1)"
+            if self.filter.get()==self.tr("Alertes stock","تنبيهات المخزون","Stock alerts"):extra=" AND p.stock_qty<=p.alert_qty"
+            elif self.filter.get()==self.tr("Stock négatif","مخزون سالب","Negative stock"):extra=" AND p.stock_qty<0"
+            elif self.filter.get()==self.tr("Promotions","العروض","Promotions"):extra=" AND EXISTS(SELECT 1 FROM quantity_prices qp WHERE qp.product_id=p.id AND qp.active=1)"
             sql="""SELECT p.*,COALESCE(cat.name,'') category,
                 (SELECT barcode FROM product_barcodes b WHERE b.product_id=p.id ORDER BY id LIMIT 1) barcode
                 FROM products p LEFT JOIN categories cat ON cat.id=p.category_id
@@ -487,41 +487,41 @@ class ProductsFrame(ttk.Frame):
             stats=c.execute("SELECT COUNT(*),COALESCE(SUM(stock_qty*purchase_price_cents),0),COALESCE(SUM(CASE WHEN stock_qty<0 THEN 1 ELSE 0 END),0),COALESCE(SUM(CASE WHEN stock_qty<=alert_qty THEN 1 ELSE 0 END),0) FROM products WHERE active=1").fetchone()
             promos=c.execute("SELECT COUNT(*) FROM quantity_prices WHERE active=1").fetchone()[0]
         self.kpi_values[0].config(text=str(stats[0]));self.kpi_values[1].config(text=str(stats[3]));self.kpi_values[2].config(text=str(promos));self.kpi_values[3].config(text=f"{stats[1]/100:.2f}");self.kpi_values[4].config(text=str(stats[2]))
-        self.page_label.config(text=self.tr(f'Page {self.page+1} · {len(rows)} produits · 200 par page',f'الصفحة {self.page+1} · {len(rows)} منتوج · 200 في الصفحة'))
+        self.page_label.config(text=self.tr(f'Page {self.page+1} · {len(rows)} produits · 200 par page',f'الصفحة {self.page+1} · {len(rows)} منتوج · 200 في الصفحة',f'Page {self.page+1} · {len(rows)} products · 200 per page'))
         self.t.delete(*self.t.get_children())
         for r in rows:self.t.insert("", "end",values=(r["id"],r["barcode"] or "",r["name"],r["category"],f"{r['purchase_price_cents']/100:.2f}",f"{r['sale_price_cents']/100:.2f}",f"{r['stock_qty']:g}",f"{r['alert_qty']:g}","✓" if r["image_path"] else ""))
     def label_pdf(self):
         pid=self.sel()
         if not pid:
-            messagebox.showinfo(self.tr("Étiquette","الملصق"),self.tr("Sélectionnez un article.","اختر منتوجاً."),parent=self);return
+            messagebox.showinfo(self.tr("Étiquette","الملصق","Label"),self.tr("Sélectionnez un article.","اختر منتوجاً.","Select a product."),parent=self);return
         try:
             codes=list_product_label_barcodes(pid)
-            if not codes:raise ValueError(self.tr("Cet article n'a pas de code-barres.","هذا المنتوج لا يتوفر على باركود."))
+            if not codes:raise ValueError(self.tr("Cet article n'a pas de code-barres.","هذا المنتوج لا يتوفر على باركود.","This product has no barcode."))
             barcode_id=codes[0]['id']
             if len(codes)>1:
-                w=tk.Toplevel(self);w.title(self.tr("Choisir le code-barres","اختر الباركود"));w.transient(self);w.grab_set()
+                w=tk.Toplevel(self);w.title(self.tr("Choisir le code-barres","اختر الباركود","Choose barcode"));w.transient(self);w.grab_set()
                 choice=tk.IntVar(value=barcode_id)
-                ttk.Label(w,text=self.tr("Unité / carton à imprimer :","الوحدة / الكرتونة المراد طباعتها:")).pack(anchor='w',padx=14,pady=(14,6))
+                ttk.Label(w,text=self.tr("Unité / carton à imprimer :","الوحدة / الكرتونة المراد طباعتها:","Unit / carton to print:")).pack(anchor='w',padx=14,pady=(14,6))
                 for code in codes:
                     mult=float(code['qty_multiplier']);label=(code['label'] or '').strip()
-                    desc=f"{code['barcode']} — {label or self.tr('Unité','وحدة')}"
+                    desc=f"{code['barcode']} — {label or self.tr('Unité','وحدة','Unit')}"
                     if abs(mult-1)>1e-9:desc+=f" — ×{mult:g}"
                     if code['price_override_cents'] is not None:desc+=f" — {fmt(code['price_override_cents'])}"
                     ttk.Radiobutton(w,text=desc,variable=choice,value=code['id']).pack(anchor='w',padx=18,pady=3)
                 accepted={'ok':False}
                 def accept():accepted['ok']=True;w.destroy()
-                ttk.Button(w,text=self.tr("Continuer","متابعة"),command=accept).pack(pady=12)
+                ttk.Button(w,text=self.tr("Continuer","متابعة","Continue"),command=accept).pack(pady=12)
                 w.protocol("WM_DELETE_WINDOW",w.destroy);self.wait_window(w)
                 if not accepted['ok']:return
                 barcode_id=choice.get()
             data=product_label_data(pid,barcode_id)
-            copies=simpledialog.askinteger(self.tr("Étiquette","الملصق"),self.tr("Nombre d'étiquettes :","عدد الملصقات:"),initialvalue=1,minvalue=1,maxvalue=500,parent=self)
+            copies=simpledialog.askinteger(self.tr("Étiquette","الملصق","Label"),self.tr("Nombre d'étiquettes :","عدد الملصقات:","Number of labels:"),initialvalue=1,minvalue=1,maxvalue=500,parent=self)
             if copies is None:return
-            size=simpledialog.askstring(self.tr("Format","القياس"),self.tr("Format: A4, 58x40 ou 50x30","القياس: A4 أو 58x40 أو 50x30"),initialvalue="58x40",parent=self)
+            size=simpledialog.askstring(self.tr("Format","القياس","Format"),self.tr("Format: A4, 58x40 ou 50x30","القياس: A4 أو 58x40 أو 50x30","Format: A4, 58x40 or 50x30"),initialvalue="58x40",parent=self)
             if size is None:return
             size=size.strip().upper().replace(' ','')
-            if size not in ('A4','58X40','50X30'):raise ValueError(self.tr("Format invalide.","قياس غير صالح."))
-            path=filedialog.asksaveasfilename(parent=self,defaultextension=".pdf",filetypes=[("PDF","*.pdf")],title=self.tr("Enregistrer les étiquettes","حفظ الملصقات"))
+            if size not in ('A4','58X40','50X30'):raise ValueError(self.tr("Format invalide.","قياس غير صالح.","Invalid format."))
+            path=filedialog.asksaveasfilename(parent=self,defaultextension=".pdf",filetypes=[("PDF","*.pdf")],title=self.tr("Enregistrer les étiquettes","حفظ الملصقات","Save labels"))
             if not path:return
             from reportlab.lib.pagesizes import A4
             from reportlab.lib.units import mm
@@ -541,8 +541,8 @@ class ProductsFrame(ttk.Frame):
                 for n in range(copies):
                     if n:cv.showPage()
                     self._draw_label(cv,2*mm,2*mm,page[0]-4*mm,page[1]-4*mm,name,price,barcode,data)
-            cv.save();messagebox.showinfo(self.tr("Étiquette","الملصق"),self.tr(f"{copies} étiquette(s) créée(s).",f"تم إنشاء {copies} ملصق."),parent=self)
-        except Exception as e:messagebox.showerror(self.tr("Étiquette","الملصق"),str(e),parent=self)
+            cv.save();messagebox.showinfo(self.tr("Étiquette","الملصق","Label"),self.tr(f"{copies} étiquette(s) créée(s).",f"تم إنشاء {copies} ملصق.",f"{copies} label(s) created."),parent=self)
+        except Exception as e:messagebox.showerror(self.tr("Étiquette","الملصق","Label"),str(e),parent=self)
 
     def _draw_label(self,cv,x,y,w,h,name,price,barcode,data):
         from reportlab.graphics.barcode import code128
@@ -746,7 +746,7 @@ class ProductsFrame(ttk.Frame):
                 messagebox.showerror(self.tr("Import Excel","استيراد Excel"),self.tr("Import annulé: le fichier contient des groupes produit incohérents ou des barcodes dupliqués dans le même produit.\n","تم إلغاء الاستيراد: الملف يحتوي مجموعات منتوج غير متناسقة أو باركود مكرر داخل نفس المنتوج.\n")+"\n".join(errors[:15]),parent=self);return
             w=tk.Toplevel(self);w.title(self.tr("Aperçu import Excel","معاينة استيراد Excel"));w.geometry("980x560");w.transient(self.winfo_toplevel());w.grab_set()
             tree=ttk.Treeview(w,columns=("line","barcode","name","cat","buy","sell","stock","alert"),show="headings")
-            for key,title,width in [("line",self.tr("Ligne","السطر"),55),("barcode",self.tr("Barcode","الباركود"),145),("name",self.tr("Article","المنتوج"),220),("cat",self.tr("Famille","العائلة","Category"),120),("buy",self.tr("Achat","الشراء"),75),("sell",self.tr("Vente","البيع"),75),("stock",self.tr("Stock","المخزون","Stock"),70),("alert",self.tr("Alerte","التنبيه"),70)]:tree.heading(key,text=title);tree.column(key,width=width,anchor="center")
+            for key,title,width in [("line",self.tr("Ligne","السطر"),55),("barcode",self.tr("Barcode","الباركود","Barcode"),145),("name",self.tr("Article","المنتوج","Product"),220),("cat",self.tr("Famille","العائلة","Category"),120),("buy",self.tr("Achat","الشراء","Purchase"),75),("sell",self.tr("Vente","البيع","Sale"),75),("stock",self.tr("Stock","المخزون","Stock"),70),("alert",self.tr("Alerte","التنبيه","Alert"),70)]:tree.heading(key,text=title);tree.column(key,width=width,anchor="center")
             tree.pack(fill="both",expand=True,padx=10,pady=10)
             for row in preview[:500]:tree.insert("","end",values=(row[0],row[1],row[2]," | ".join(row[3]),f"{row[4]/100:.2f}",f"{row[5]/100:.2f}",("" if row[6] is None else f"{row[6]:g}"),f"{row[7]:g}"))
             warning=ttk.Label(w,text=(self.tr(f"⚠ {len(conflicts)} barcode(s) partagé(s) détecté(s). Ils seront conservés et demanderont un choix à la vente.",f"⚠ تم اكتشاف {len(conflicts)} باركود مشترك. سيتم الاحتفاظ بها وسيطلب الاختيار عند البيع.") if conflicts else self.tr("✓ Aucun barcode partagé détecté.","✓ لم يتم اكتشاف أي باركود مشترك.")),foreground="#B45309" if conflicts else "#15803D",wraplength=930)
@@ -883,7 +883,7 @@ class ProductsFrame(ttk.Frame):
         w=tk.Toplevel(self);w.title(self.tr("Barcode / Pack","باركود / حزمة"));w.geometry("460x310");w.transient(self);w.grab_set()
         b=tk.StringVar();mult=tk.StringVar(value="1");price=tk.StringVar()
         f=ttk.Frame(w,padding=18);f.pack(fill="both",expand=True)
-        eb=labeled_entry(f,self.tr("Barcode","الباركود"),b,0,bold=True);labeled_entry(f,self.tr("Qté multiplier","مضاعف الكمية"),mult,1);labeled_entry(f,self.tr("Prix pack (optionnel)","ثمن الحزمة (اختياري)"),price,2)
+        eb=labeled_entry(f,self.tr("Barcode","الباركود","Barcode"),b,0,bold=True);labeled_entry(f,self.tr("Qté multiplier","مضاعف الكمية"),mult,1);labeled_entry(f,self.tr("Prix pack (optionnel)","ثمن الحزمة (اختياري)"),price,2)
         ttk.Label(f,text=self.tr("Exemple : barcode carton de 6 unités → multiplicateur = 6","مثال: باركود كرتونة 6 قطع → المضاعف = 6")).grid(row=3,column=0,columnspan=2,sticky="w",pady=8)
         def save():
             try:
