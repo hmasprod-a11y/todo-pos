@@ -30,7 +30,7 @@ class SaleFrame(ttk.Frame):
         self.held_id=None
         self.payment='CASH'
         self.price_grid_id=None
-        self.price_grid_name=self.tr('Normal','عادي')
+        self.price_grid_name=self.tr('Normal','عادي','Normal')
         self.category=None
         self.photo_offset=0
         self.photo_filter=None
@@ -186,7 +186,7 @@ class SaleFrame(ttk.Frame):
             (self.tr('F2  ESPÈCES','F2  نقداً','F2  CASH'),lambda:self.set_payment('CASH'),'Success.TButton'),
             (self.tr('F3  CARTE','F3  بطاقة','F3  CARD'),lambda:self.set_payment('CARD'),'Primary.TButton'),
             (self.tr('F4  Attente','F4  انتظار','F4  HOLD'),self.hold,'Soft.TButton'),
-            (self.tr('Liste attente','لائحة الانتظار'),self.show_held,'Soft.TButton'),
+            (self.tr('Liste attente','لائحة الانتظار','Held receipts'),self.show_held,'Soft.TButton'),
             (self.tr('F7  Remise','F7  تخفيض','F7  Discount'),self.discount,'Soft.TButton'),
             (self.tr('ESC  Annuler','ESC  إلغاء','ESC  Cancel'),self.cancel,'Danger.TButton'),
         ]
@@ -223,7 +223,7 @@ class SaleFrame(ttk.Frame):
                         row=conn.execute('SELECT allow_fraction FROM products WHERE id=?',(line['product_id'],)).fetchone()
                     allow=bool(row and row['allow_fraction'])
                 if not allow:
-                    raise ValueError(self.tr('Le produit sélectionné ne se vend pas au poids.','المنتوج المحدد لا يباع بالوزن.'))
+                    raise ValueError(self.tr('Le produit sélectionné ne se vend pas au poids.','المنتوج المحدد لا يباع بالوزن.','The selected product is not sold by weight.'))
                 self.update_quantity(index,weight)
                 self.status.config(text=self.tr(f'Poids appliqué : {weight:.3f} kg',f'تم تطبيق الوزن: {weight:.3f} كغ',f'Weight applied: {weight:.3f} kg'))
             else:
@@ -231,7 +231,7 @@ class SaleFrame(ttk.Frame):
                 self.quantity_entry.focus_set();self.quantity_entry.selection_range(0,'end')
                 self.status.config(text=self.tr(f'Poids lu : {weight:.3f} kg — choisissez/scannez un article.',f'تمت قراءة الوزن: {weight:.3f} كغ — اختر أو امسح منتوجاً.',f'Weight read: {weight:.3f} kg — choose or scan a product.'))
         except Exception as error:
-            messagebox.showerror(self.tr('Balance','الميزان'),str(error),parent=self)
+            messagebox.showerror(self.tr('Balance','الميزان','Scale'),str(error),parent=self)
         finally:
             if not self.quantity_entry.focus_get() is self.quantity_entry:self.focus_search()
 
@@ -296,14 +296,14 @@ class SaleFrame(ttk.Frame):
             card.grid_configure(row=index//columns,column=index%columns)
 
     def functions(self):
-        window=tk.Toplevel(self);window.title(self.tr('Fonctions','الوظائف'))
+        window=tk.Toplevel(self);window.title(self.tr('Fonctions','الوظائف','Functions'))
         window.transient(self.winfo_toplevel());window.grab_set()
         window.configure(bg='#F6F7FB')
         window.geometry('820x590')
         window.minsize(720,520)
         header=tk.Frame(window,bg='#0F172A',height=62)
         header.pack(fill='x');header.pack_propagate(False)
-        tk.Label(header,text=self.tr('☰  Fonctions de caisse','☰  وظائف الصندوق'),bg='#0F172A',fg='white',
+        tk.Label(header,text=self.tr('☰  Fonctions de caisse','☰  وظائف الصندوق','☰  Cashier functions'),bg='#0F172A',fg='white',
                  font=('Segoe UI',17,'bold')).pack(side='left',padx=18)
         tk.Button(header,text='✕',bg='#DC2626',fg='white',activebackground='#B91C1C',activeforeground='white',
                   relief='flat',bd=0,font=('Segoe UI',14,'bold'),width=4,cursor='hand2',
@@ -312,41 +312,41 @@ class SaleFrame(ttk.Frame):
         body.pack(fill='both',expand=True)
         def run(command):
             window.destroy();command()
-        commands=[(self.tr('Duplicata','نسخة التذكرة'),self.duplicate_receipt),
+        commands=[(self.tr('Duplicata','نسخة التذكرة','Duplicate'),self.duplicate_receipt),
                   (self.tr('Divers','منتوج أو مبلغ إضافي'),self.add_misc),
-                  (self.tr('Flash','فلاش'),self.flash_summary),
-                  (self.tr('Modifier quantité','تعديل الكمية'),self.set_qty),
-                  (self.tr('Modifier prix','تعديل الثمن'),self.set_price),
-                  (self.tr('Remise ticket','تخفيض التذكرة'),self.discount),
+                  (self.tr('Flash','فلاش','Flash'),self.flash_summary),
+                  (self.tr('Modifier quantité','تعديل الكمية','Edit quantity'),self.set_qty),
+                  (self.tr('Modifier prix','تعديل الثمن','Edit price'),self.set_price),
+                  (self.tr('Remise ticket','تخفيض التذكرة','Receipt discount'),self.discount),
                   (self.tr('Remise ligne','تخفيض السطر','Line discount'),self.line_discount),
-                  (self.tr('Supprimer ligne','حذف السطر'),self.remove),
-                  (self.tr('Grille de prix','لائحة الأثمان'),self.choose_price_grid),
-                  (self.tr('Compter la caisse','حساب الصندوق'),self.cash_tools),
-                  (self.tr('Dépenses','المصاريف'),lambda:self.cash_tools('expense')),
-                  (self.tr('Rapport','التقارير'),lambda:self.app.show('journal')),
-                  (self.tr('Addition','الحساب قبل الأداء'),self.print_addition),
-                  (self.tr('C1 Préparation','C1 تحضير'),lambda:self.print_preparation('C1')),
-                  (self.tr('C2 Préparation','C2 تحضير'),lambda:self.print_preparation('C2')),
-                  (self.tr('C3 Préparation','C3 تحضير'),lambda:self.print_preparation('C3')),
-                  (self.tr('C4 Préparation','C4 تحضير'),lambda:self.print_preparation('C4')),
-                  (self.tr('Raccourcis','الاختصارات'),self.show_shortcuts),
-                  (self.tr('⌨ Clavier','⌨ لوحة المفاتيح'),self.toggle_keyboard),
-                  (self.tr('Calculatrice','الحاسبة'),self.calculator),
-                  (self.tr('Verrouiller','قفل الصندوق'),self.app.lock_cashier),
-                  (self.tr('Thème','الألوان'),self.app.choose_theme),
-                  (self.tr('Tiroir','درج النقود'),self.open_drawer),
-                  (self.tr('Attente','انتظار'),self.hold),
-                  (self.tr("Liste d’attente",'المعلقات'),self.show_held)]
+                  (self.tr('Supprimer ligne','حذف السطر','Delete line'),self.remove),
+                  (self.tr('Grille de prix','لائحة الأثمان','Price grid'),self.choose_price_grid),
+                  (self.tr('Compter la caisse','حساب الصندوق','Count cash drawer'),self.cash_tools),
+                  (self.tr('Dépenses','المصاريف','Expenses'),lambda:self.cash_tools('expense')),
+                  (self.tr('Rapport','التقارير','Reports'),lambda:self.app.show('journal')),
+                  (self.tr('Addition','الحساب قبل الأداء','Bill'),self.print_addition),
+                  (self.tr('C1 Préparation','C1 تحضير','C1 Preparation'),lambda:self.print_preparation('C1')),
+                  (self.tr('C2 Préparation','C2 تحضير','C2 Preparation'),lambda:self.print_preparation('C2')),
+                  (self.tr('C3 Préparation','C3 تحضير','C3 Preparation'),lambda:self.print_preparation('C3')),
+                  (self.tr('C4 Préparation','C4 تحضير','C4 Preparation'),lambda:self.print_preparation('C4')),
+                  (self.tr('Raccourcis','الاختصارات','Shortcuts'),self.show_shortcuts),
+                  (self.tr('⌨ Clavier','⌨ لوحة المفاتيح','⌨ Keyboard'),self.toggle_keyboard),
+                  (self.tr('Calculatrice','الحاسبة','Calculator'),self.calculator),
+                  (self.tr('Verrouiller','قفل الصندوق','Lock cashier'),self.app.lock_cashier),
+                  (self.tr('Thème','الألوان','Theme'),self.app.choose_theme),
+                  (self.tr('Tiroir','درج النقود','Cash drawer'),self.open_drawer),
+                  (self.tr('Attente','انتظار','Hold'),self.hold),
+                  (self.tr("Liste d’attente",'المعلقات','Held receipts'),self.show_held)]
         if get_setting('closure_enabled','1')=='1':
-            commands.insert(10,(self.tr('Clôture','إغلاق الصندوق'),lambda:self.cash_tools('close')))
-        danger_labels={self.tr('Supprimer ligne','حذف السطر'),self.tr('Clôture','إغلاق الصندوق')}
+            commands.insert(10,(self.tr('Clôture','إغلاق الصندوق','Close cash drawer'),lambda:self.cash_tools('close')))
+        danger_labels={self.tr('Supprimer ligne','حذف السطر','Delete line'),self.tr('Clôture','إغلاق الصندوق','Close cash drawer')}
         for index,(label,command) in enumerate(commands):
             style='Danger.TButton' if label in danger_labels else 'Soft.TButton'
             ttk.Button(body,text=label,style=style,command=lambda c=command:run(c)).grid(
                 row=index//3,column=index%3,padx=6,pady=6,ipady=8,sticky='nsew')
         for col in range(3):body.columnconfigure(col,weight=1)
         for row in range((len(commands)+2)//3):body.rowconfigure(row,weight=1)
-        ttk.Button(window,text=self.tr('Fermer','رجوع'),style='Primary.TButton',
+        ttk.Button(window,text=self.tr('Fermer','رجوع','Close'),style='Primary.TButton',
                    command=lambda:run(self.focus_search)).pack(fill='x',padx=16,pady=(0,16),ipady=5)
         window.bind('<Escape>',lambda e:run(self.focus_search))
         window.update_idletasks()
@@ -358,16 +358,16 @@ class SaleFrame(ttk.Frame):
     def choose_price_grid(self):
         with connect() as conn:
             grids=conn.execute("SELECT id,name FROM price_grids WHERE active=1 ORDER BY name COLLATE NOCASE").fetchall()
-        choices=[(None,self.tr('Normal','عادي'))]+[(r['id'],r['name']) for r in grids]
-        w=tk.Toplevel(self);w.title(self.tr('Grille de prix','لائحة الأثمان'));w.transient(self.winfo_toplevel());w.grab_set()
-        ttk.Label(w,text=self.tr('Choisir la grille appliquée à cette vente','اختر لائحة الأثمان المطبقة على هذا البيع'),style='Subtitle.TLabel').pack(padx=20,pady=(18,10))
+        choices=[(None,self.tr('Normal','عادي','Normal'))]+[(r['id'],r['name']) for r in grids]
+        w=tk.Toplevel(self);w.title(self.tr('Grille de prix','لائحة الأثمان','Price grid'));w.transient(self.winfo_toplevel());w.grab_set()
+        ttk.Label(w,text=self.tr('Choisir la grille appliquée à cette vente','اختر لائحة الأثمان المطبقة على هذا البيع','Choose the price grid for this sale'),style='Subtitle.TLabel').pack(padx=20,pady=(18,10))
         def select(grid_id,name):
             self.price_grid_id=grid_id;self.price_grid_name=name
             with connect() as conn:
                 for line in self.cart:
                     if line.get('is_misc') or line.get('manual_unit_price'):continue
                     line['unit_price_cents']=str(resolve_unit_price(line['product_id'],line['qty'],line.get('barcode_id'),conn,grid_id))
-            w.destroy();self.refresh();self.status.config(text=self.tr(f'Grille active : {name}',f'لائحة الأثمان الحالية: {name}'));self.focus_search()
+            w.destroy();self.refresh();self.status.config(text=self.tr(f'Grille active : {name}',f'لائحة الأثمان الحالية: {name}',f'Active price grid: {name}'));self.focus_search()
         for grid_id,name in choices:
             ttk.Button(w,text=('✓ ' if grid_id==self.price_grid_id else '')+name,command=lambda g=grid_id,n=name:select(g,n)).pack(fill='x',padx=20,pady=4,ipady=6)
         def cancel():
@@ -397,8 +397,8 @@ class SaleFrame(ttk.Frame):
     def open_drawer(self):
         from services.printers import open_drawer
         try:
-            open_drawer();self.status.config(text=self.tr('Commande envoyée au tiroir.','تم إرسال أمر فتح الدرج.'))
-        except Exception as error:messagebox.showerror(self.tr('Tiroir','درج النقود'),str(error),parent=self)
+            open_drawer();self.status.config(text=self.tr('Commande envoyée au tiroir.','تم إرسال أمر فتح الدرج.','Cash-drawer command sent.'))
+        except Exception as error:messagebox.showerror(self.tr('Tiroir','درج النقود','Cash drawer'),str(error),parent=self)
 
     def add_misc(self):
         from services.misc import misc_line
@@ -490,22 +490,22 @@ class SaleFrame(ttk.Frame):
         # CREDIT is debt, not cash received, so Flash must not count it as espèces.
         cash=totals.get('CASH',0)
         card=totals.get('CARD',0)
-        lines=[self.tr('VENTES DE LA CAISSE','مبيعات الصندوق'),
-               self.tr('ESPÈCES : ','نقداً: ')+fmt(cash,self.currency),
-               self.tr('CARTE : ','بطاقة: ')+fmt(card,self.currency)]
+        lines=[self.tr('VENTES DE LA CAISSE','مبيعات الصندوق','CASH DRAWER SALES'),
+               self.tr('ESPÈCES : ','نقداً: ','CASH: ')+fmt(cash,self.currency),
+               self.tr('CARTE : ','بطاقة: ','CARD: ')+fmt(card,self.currency)]
         messagebox.showinfo('FLASH','\n'.join(lines),parent=self)
         self.focus_search()
 
     def cash_tools(self,action=None):
         from screens.cashdesk import CashFrame
-        window=tk.Toplevel(self);window.title(self.tr('Caisse','الصندوق'))
+        window=tk.Toplevel(self);window.title(self.tr('Caisse','الصندوق','Cash drawer'))
         window.transient(self.app)
         # Direct closure must not create a modal-on-modal grab chain on Windows.
         # The denomination counter opened by CashFrame.close() is the only modal.
         if action!='close':
             window.grab_set()
         frame=CashFrame(window,self.app);frame.pack(fill='both',expand=True)
-        ttk.Button(window,text=self.tr('Retour à la vente','العودة للبيع'),command=window.destroy).pack(pady=8)
+        ttk.Button(window,text=self.tr('Retour à la vente','العودة للبيع','Back to sale'),command=window.destroy).pack(pady=8)
         window.bind('<Escape>',lambda e:window.destroy())
         if action=='close':
             def after_closed():
@@ -523,9 +523,9 @@ class SaleFrame(ttk.Frame):
         try:
             from services.order_slips import print_addition
             print_addition(self.cart,self.ticket_discount_cents,self.currency)
-            self.status.config(text=self.tr('Addition envoyée à l’imprimante.','تم إرسال الحساب إلى الطابعة.'))
+            self.status.config(text=self.tr('Addition envoyée à l’imprimante.','تم إرسال الحساب إلى الطابعة.','Bill sent to the printer.'))
         except Exception as error:
-            messagebox.showerror(self.tr('Addition','الحساب'),str(error),parent=self)
+            messagebox.showerror(self.tr('Addition','الحساب','Bill'),str(error),parent=self)
         finally:self.focus_search()
 
     def print_preparation(self,station):
@@ -543,15 +543,15 @@ class SaleFrame(ttk.Frame):
         from services.shortcuts import get_shortcuts
         for child in self.custom_shortcut_bar.winfo_children():child.destroy()
         actions={
-            'calculator':(self.tr('Calculatrice','الحاسبة'),self.calculator),
-            'held':(self.tr("Liste d’attente",'المعلقات'),self.show_held),
-            'drawer':(self.tr('Tiroir','درج النقود'),self.open_drawer),
-            'duplicate':(self.tr('Duplicata','نسخة التذكرة'),self.duplicate_receipt),
-            'price_grid':(self.tr('Grille de prix','لائحة الأثمان'),self.choose_price_grid),
-            'expense':(self.tr('Dépenses','المصاريف'),lambda:self.cash_tools('expense')),
-            'report':(self.tr('Rapport','التقارير'),lambda:self.app.show('journal')),
-            'closure':(self.tr('Clôture','إغلاق الصندوق'),lambda:self.cash_tools('close')),
-            'keyboard':(self.tr('⌨ Clavier','⌨ لوحة المفاتيح'),self.toggle_keyboard),
+            'calculator':(self.tr('Calculatrice','الحاسبة','Calculator'),self.calculator),
+            'held':(self.tr("Liste d’attente",'المعلقات','Held receipts'),self.show_held),
+            'drawer':(self.tr('Tiroir','درج النقود','Cash drawer'),self.open_drawer),
+            'duplicate':(self.tr('Duplicata','نسخة التذكرة','Duplicate'),self.duplicate_receipt),
+            'price_grid':(self.tr('Grille de prix','لائحة الأثمان','Price grid'),self.choose_price_grid),
+            'expense':(self.tr('Dépenses','المصاريف','Expenses'),lambda:self.cash_tools('expense')),
+            'report':(self.tr('Rapport','التقارير','Reports'),lambda:self.app.show('journal')),
+            'closure':(self.tr('Clôture','إغلاق الصندوق','Close cash drawer'),lambda:self.cash_tools('close')),
+            'keyboard':(self.tr('⌨ Clavier','⌨ لوحة المفاتيح','⌨ Keyboard'),self.toggle_keyboard),
         }
         for key in get_shortcuts():
             if key=='closure' and get_setting('closure_enabled','1')!='1':continue
@@ -559,7 +559,7 @@ class SaleFrame(ttk.Frame):
             ttk.Button(self.custom_shortcut_bar,text=label,style='Soft.TButton',command=command).pack(side='left',expand=True,fill='x',padx=2)
 
     def show_shortcuts(self):
-        messagebox.showinfo(self.tr('Raccourcis','الاختصارات'),
+        messagebox.showinfo(self.tr('Raccourcis','الاختصارات','Shortcuts'),
             self.tr('F2 : Espèces\\nF3 : Carte\\nF4 : Attente\\nF5 : Solder\\nF7 : Remise\\nF8 : Quantité\\nCtrl+F : Recherche\\nEntrée : Ajouter / Confirmer\\nSuppr : Supprimer ligne\\nÉchap : Annuler','F2 : نقداً\\nF3 : بطاقة\\nF4 : انتظار\\nF5 : إتمام البيع\\nF7 : تخفيض\\nF8 : الكمية\\nCtrl+F : بحث\\nEnter : إضافة / تأكيد\\nDelete : حذف السطر\\nEsc : إلغاء'),parent=self)
 
     def duplicate_receipt(self):
@@ -859,7 +859,7 @@ class SaleFrame(ttk.Frame):
         if self.cart:
             chosen=str(min(index if index is not None else len(self.cart)-1,len(self.cart)-1))
             self.ticket.selection_set(chosen);self.ticket.see(chosen)
-        self.subtotal_label.config(text=f"{self.tr('Sous-total','المجموع الفرعي')} {fmt(sub,self.currency)}  ·  {self.tr('Remise ticket','تخفيض التذكرة')} {fmt(display_ticket_discount,self.currency)}")
+        self.subtotal_label.config(text=f"{self.tr('Sous-total','المجموع الفرعي')} {fmt(sub,self.currency)}  ·  {self.tr('Remise ticket','تخفيض التذكرة','Receipt discount')} {fmt(display_ticket_discount,self.currency)}")
         item_count=len(display_cart)
         completed=not self.cart and bool(self.last_sale_snapshot)
         self.ticket_title.config(text=self.tr(f'🧾  Ticket en cours  ·  {item_count} article(s)',f'🧾  التذكرة الحالية  ·  {item_count} منتوج'))
@@ -909,7 +909,7 @@ class SaleFrame(ttk.Frame):
         try:require_permission('DISCOUNT')
         except PermissionError as e:messagebox.showerror('ToDo',str(e),parent=self);return
         if not self.cart:return
-        amount=simpledialog.askfloat(self.tr('Remise ticket','تخفيض التذكرة'),self.tr('Montant de la remise:','قيمة التخفيض:'),parent=self,minvalue=0,maxvalue=self.totals()[0]/100)
+        amount=simpledialog.askfloat(self.tr('Remise ticket','تخفيض التذكرة','Receipt discount'),self.tr('Montant de la remise:','قيمة التخفيض:'),parent=self,minvalue=0,maxvalue=self.totals()[0]/100)
         if amount is not None:self.ticket_discount_cents=to_cents(amount);self.refresh()
         self.focus_search()
 
@@ -935,7 +935,7 @@ class SaleFrame(ttk.Frame):
         line=self.cart[index]
         if line.get('qty_multiplier',1)!=1:
             messagebox.showinfo('ToDo',self.tr('Pour un pack, utilisez la remise ligne.','بالنسبة للعلبة، استعمل تخفيض السطر.'),parent=self);return
-        amount=simpledialog.askstring(self.tr('Modifier prix','تعديل الثمن'),self.tr(f"{line['name']}\nNouveau prix unitaire ({self.currency}) :",f"{line['name']}\nالثمن الجديد للوحدة ({self.currency}):",f"{line['name']}\nNew unit price ({self.currency}):"),initialvalue=f"{Decimal(line['unit_price_cents'])/100:.2f}",parent=self)
+        amount=simpledialog.askstring(self.tr('Modifier prix','تعديل الثمن','Edit price'),self.tr(f"{line['name']}\nNouveau prix unitaire ({self.currency}) :",f"{line['name']}\nالثمن الجديد للوحدة ({self.currency}):",f"{line['name']}\nNew unit price ({self.currency}):"),initialvalue=f"{Decimal(line['unit_price_cents'])/100:.2f}",parent=self)
         if amount is None:return
         try:
             price=to_cents(amount)
@@ -1020,7 +1020,7 @@ class SaleFrame(ttk.Frame):
 
     def clear(self,preserve_last_sale=False):
         self._cancel_pending_input_jobs()
-        self.cart=[];self.ticket_discount_cents=0;self.held_id=None;self.client_id=None;self.customer_order_id=None;self.quotation_id=None;self.seller_id=None;self.price_grid_id=None;self.price_grid_name=self.tr('Normal','عادي');self.payment='CASH';self.query.set('');self.scan_quantity.set('1');self.payment_label.config(text=self.tr('Paiement : Espèces','الأداء: نقداً'),bg='#DCFCE7',fg='#166534');self.update_client_label();self.update_seller_label()
+        self.cart=[];self.ticket_discount_cents=0;self.held_id=None;self.client_id=None;self.customer_order_id=None;self.quotation_id=None;self.seller_id=None;self.price_grid_id=None;self.price_grid_name=self.tr('Normal','عادي','Normal');self.payment='CASH';self.query.set('');self.scan_quantity.set('1');self.payment_label.config(text=self.tr('Paiement : Espèces','الأداء: نقداً'),bg='#DCFCE7',fg='#166534');self.update_client_label();self.update_seller_label()
         if not preserve_last_sale:
             self.last_sale_snapshot=None;self.last_sale_discount_cents=0
         self.refresh();self.focus_search()
@@ -1031,7 +1031,7 @@ class SaleFrame(ttk.Frame):
 
     def hold(self):
         if not self.cart:return
-        label=simpledialog.askstring(self.tr('Attente','انتظار'),self.tr('Nom ou numéro du ticket:','اسم أو رقم التذكرة:','Receipt name or number:'),parent=self)
+        label=simpledialog.askstring(self.tr('Attente','انتظار','Hold'),self.tr('Nom ou numéro du ticket:','اسم أو رقم التذكرة:','Receipt name or number:'),parent=self)
         if label is None:return
         try:
             hold_sale(self.app.user['id'],self.cart,label,self.ticket_discount_cents,self.held_id,client_id=self.client_id,seller_id=self.seller_id,price_grid_id=self.price_grid_id,payment_method=self.payment)
@@ -1059,8 +1059,8 @@ class SaleFrame(ttk.Frame):
             if self.price_grid_id is not None:
                 with connect() as conn:grid=conn.execute('SELECT name FROM price_grids WHERE id=? AND active=1',(self.price_grid_id,)).fetchone()
                 if grid:self.price_grid_name=grid['name']
-                else:self.price_grid_id=None;self.price_grid_name=self.tr('Normal','عادي')
-            else:self.price_grid_name=self.tr('Normal','عادي')
+                else:self.price_grid_id=None;self.price_grid_name=self.tr('Normal','عادي','Normal')
+            else:self.price_grid_name=self.tr('Normal','عادي','Normal')
             self.set_payment(state.get('payment_method') or 'CASH')
             self.refresh();w.destroy();self.focus_search()
         tree.bind('<Return>',resume);tree.bind('<Double-1>',resume)
