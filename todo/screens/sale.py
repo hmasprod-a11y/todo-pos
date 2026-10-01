@@ -150,7 +150,7 @@ class SaleFrame(ttk.Frame):
         self.last_sale_summary=tk.Label(
             self.last_sale_box,
             text=self.tr('DERNIÈRE VENTE  ·  FACTURE —  ·  PAYÉ —  ·  RENDU —',
-                         'آخر بيع  ·  الفاتورة —  ·  المؤدى —  ·  الباقي —'),
+                         'آخر بيع  ·  الفاتورة —  ·  المؤدى —  ·  الباقي —','LAST SALE  ·  RECEIPT —  ·  PAID —  ·  CHANGE —'),
             bg='#1117D9',fg='white',font=('Consolas',13,'bold'),anchor='w',
             justify='left'
         )
@@ -1121,14 +1121,15 @@ class SaleFrame(ttk.Frame):
             # Business cart state is cleared immediately so the completed sale cannot be submitted twice.
             self.last_sale_snapshot=[dict(line) for line in self.cart]
             self.last_sale_discount_cents=self.ticket_discount_cents
-            labels={'CASH':self.tr('ESPÈCES','نقداً'),'CARD':self.tr('CARTE','بطاقة'),
-                    'CREDIT':self.tr('CRÉDIT','دين'),'MIXED':self.tr('MIXTE','مختلط')}
+            labels={'CASH':self.tr('ESPÈCES','نقداً','CASH'),'CARD':self.tr('CARTE','بطاقة','CARD'),
+                    'CREDIT':self.tr('CRÉDIT','دين','CREDIT'),'MIXED':self.tr('MIXTE','مختلط','MIXED')}
             self.last_sale_summary.config(text=self.tr(
                 f"TOTAL : {fmt(total,self.currency)}\nMODE P : {labels.get(completed_payment,completed_payment)}\nPAYÉ : {fmt(paid,self.currency)}\nRENDU : {fmt(result['change_cents'],self.currency)}",
-                f"المجموع : {fmt(total,self.currency)}\nطريقة الأداء : {labels.get(completed_payment,completed_payment)}\nالمؤدى : {fmt(paid,self.currency)}\nالباقي : {fmt(result['change_cents'],self.currency)}"
+                f"المجموع : {fmt(total,self.currency)}\nطريقة الأداء : {labels.get(completed_payment,completed_payment)}\nالمؤدى : {fmt(paid,self.currency)}\nالباقي : {fmt(result['change_cents'],self.currency)}",
+                f"TOTAL : {fmt(total,self.currency)}\nPAYMENT : {labels.get(completed_payment,completed_payment)}\nPAID : {fmt(paid,self.currency)}\nCHANGE : {fmt(result['change_cents'],self.currency)}"
             ))
             self.clear(preserve_last_sale=True)
-            self.status.config(text=self.tr(f"Dernière vente : {fmt(total,self.currency)} · Reçu : {fmt(paid,self.currency)} · Monnaie : {fmt(result['change_cents'],self.currency)} · {result['sale_no']}",f"آخر بيع: {fmt(total,self.currency)} · المستلم: {fmt(paid,self.currency)} · الباقي: {fmt(result['change_cents'],self.currency)} · {result['sale_no']}"))
+            self.status.config(text=self.tr(f"Dernière vente : {fmt(total,self.currency)} · Reçu : {fmt(paid,self.currency)} · Monnaie : {fmt(result['change_cents'],self.currency)} · {result['sale_no']}",f"آخر بيع: {fmt(total,self.currency)} · المستلم: {fmt(paid,self.currency)} · الباقي: {fmt(result['change_cents'],self.currency)} · {result['sale_no']}",f"Last sale: {fmt(total,self.currency)} · Received: {fmt(paid,self.currency)} · Change: {fmt(result['change_cents'],self.currency)} · {result['sale_no']}"))
             if get_setting('customer_serial_enabled','0')=='1':
                 try:
                     from services.customer_serial_display import show_payment
@@ -1139,7 +1140,7 @@ class SaleFrame(ttk.Frame):
                 if print_ticket and mode!='never' and (mode=='always' or dialog_print):
                     print_receipt_windows(result['id'])
             except Exception as e:
-                self.status.config(text=self.tr(f"Vente enregistrée · Impression indisponible : {e}",f"تم تسجيل البيع · الطباعة غير متاحة: {e}"))
+                self.status.config(text=self.tr(f"Vente enregistrée · Impression indisponible : {e}",f"تم تسجيل البيع · الطباعة غير متاحة: {e}",f"Sale recorded · Printing unavailable: {e}"))
             self.render_products()
         except Exception as e:messagebox.showerror('ToDo',str(e),parent=self)
         finally:self.busy=False;self.focus_search()
