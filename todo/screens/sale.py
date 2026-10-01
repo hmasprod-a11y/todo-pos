@@ -73,7 +73,7 @@ class SaleFrame(ttk.Frame):
         self.quantity_entry.bind('<Return>',lambda e:self.focus_search())
         ttk.Button(searchbar,text='×2',style='Soft.TButton',command=self.double_scan_quantity).pack(side='left',padx=(8,0),ipadx=8,ipady=3)
         if get_setting('scale_enabled','0')=='1':
-            ttk.Button(searchbar,text=self.tr('⚖ Poids','⚖ الوزن'),style='Soft.TButton',command=self.read_scale_weight).pack(side='left',padx=(8,0),ipadx=6,ipady=3)
+            ttk.Button(searchbar,text=self.tr('⚖ Poids','⚖ الوزن','⚖ Weight'),style='Soft.TButton',command=self.read_scale_weight).pack(side='left',padx=(8,0),ipadx=6,ipady=3)
         self.entry.bind('<Return>',self.confirm_search)
         self.entry.bind('<KeyRelease>',self.handle_scan_input)
         self.entry.bind('<Down>',self.focus_catalog)
@@ -173,8 +173,8 @@ class SaleFrame(ttk.Frame):
         ttk.Label(ticket_header,text=self.tr('Sélectionnez une ligne pour la modifier','حدد سطراً لتعديله','Select a line to edit it'),style='Card.TLabel',
                   foreground='#64748B',font=('Segoe UI',9)).pack(side='right')
         self.ticket=ttk.Treeview(right,columns=('qty','price','discount','total'),show='tree headings',selectmode='browse',style='Cart.Treeview',height=12)
-        self.ticket.heading('#0',text=self.tr('ARTICLE','المنتوج'));self.ticket.column('#0',width=190,minwidth=120)
-        for key,label,width in [('qty',self.tr('QTÉ','الكمية'),55),('price',self.tr('P.U.','ثمن الوحدة'),70),('discount',self.tr('REMISE %','التخفيض %'),75),('total',self.tr('NET','الصافي'),85)]:
+        self.ticket.heading('#0',text=self.tr('ARTICLE','المنتوج','ITEM'));self.ticket.column('#0',width=190,minwidth=120)
+        for key,label,width in [('qty',self.tr('QTÉ','الكمية','QTY'),55),('price',self.tr('P.U.','ثمن الوحدة','UNIT PRICE'),70),('discount',self.tr('REMISE %','التخفيض %','DISCOUNT %'),75),('total',self.tr('NET','الصافي','NET'),85)]:
             self.ticket.heading(key,text=label);self.ticket.column(key,width=width+8,minwidth=48,anchor='center')
         self.ticket.tag_configure('offer',background='#DCFCE7',foreground='#166534')
         self.ticket.tag_configure('even',background='#F8FAFC')
@@ -313,7 +313,7 @@ class SaleFrame(ttk.Frame):
         def run(command):
             window.destroy();command()
         commands=[(self.tr('Duplicata','نسخة التذكرة','Duplicate'),self.duplicate_receipt),
-                  (self.tr('Divers','منتوج أو مبلغ إضافي'),self.add_misc),
+                  (self.tr('Divers','منتوج أو مبلغ إضافي','Miscellaneous'),self.add_misc),
                   (self.tr('Flash','فلاش','Flash'),self.flash_summary),
                   (self.tr('Modifier quantité','تعديل الكمية','Edit quantity'),self.set_qty),
                   (self.tr('Modifier prix','تعديل الثمن','Edit price'),self.set_price),
@@ -479,7 +479,7 @@ class SaleFrame(ttk.Frame):
     def flash_summary(self):
         session=get_open_session()
         if not session:
-            messagebox.showinfo('ToDo',self.tr('Aucune caisse ouverte.','لا يوجد صندوق مفتوح.'),parent=self);return
+            messagebox.showinfo('ToDo',self.tr('Aucune caisse ouverte.','لا يوجد صندوق مفتوح.','No open cash drawer.'),parent=self);return
         with connect() as conn:
             rows=conn.execute("""SELECT sp.payment_method,COALESCE(SUM(sp.amount_cents),0) amount
                 FROM sale_payments sp JOIN sales s ON s.id=sp.sale_id
@@ -706,7 +706,8 @@ class SaleFrame(ttk.Frame):
         self.last_sale_discount_cents=0
         self.last_sale_summary.config(
             text=self.tr('DERNIÈRE VENTE  ·  FACTURE —  ·  PAYÉ —  ·  RENDU —',
-                         'آخر بيع  ·  الفاتورة —  ·  المؤدى —  ·  الباقي —')
+                         'آخر بيع  ·  الفاتورة —  ·  المؤدى —  ·  الباقي —',
+                         'LAST SALE  ·  RECEIPT —  ·  PAID —  ·  CHANGE —')
         )
         self.refresh()
 
