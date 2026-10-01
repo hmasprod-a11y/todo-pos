@@ -169,7 +169,7 @@ class StockFrame(ttk.Frame):
         ttk.Button(footer,text=self.tr('Préparer réception','تحضير الاستلام'),style='Primary.TButton',command=prepare_reception).pack(side='left',padx=6)
 
     def global_ledger(self):
-        w=tk.Toplevel(self);w.title(self.tr("Journal global du stock","السجل العام للمخزون"));w.geometry('1180x650');w.transient(self)
+        w=tk.Toplevel(self);w.title(self.tr("Journal global du stock","السجل العام للمخزون","Global stock ledger"));w.geometry('1180x650');w.transient(self)
         tools=ttk.Frame(w);tools.pack(fill='x',padx=12,pady=(12,4))
         query=tk.StringVar();kind=tk.StringVar(value=self.tr('Tous','الكل','All'))
         ttk.Entry(tools,textvariable=query,width=30).pack(side='left')
@@ -177,11 +177,11 @@ class StockFrame(ttk.Frame):
         ttk.Combobox(tools,textvariable=kind,values=kinds,state='readonly',width=16).pack(side='left',padx=6)
         tree=ttk.Treeview(w,columns=('date','product','user','type','old','delta','new','document','reason'),show='headings')
         for key,label,width in [
-            ('date',self.tr('Date','التاريخ'),145),('product',self.tr('Article','المنتوج','Product'),220),
-            ('user',self.tr('Utilisateur','المستخدم'),110),('type',self.tr('Type','النوع'),100),
-            ('old',self.tr('Avant','قبل'),70),('delta',self.tr('Variation','التغيير'),75),
-            ('new',self.tr('Après','بعد'),70),('document',self.tr('Document','الوثيقة'),120),
-            ('reason',self.tr('Raison','السبب'),260)]:
+            ('date',self.tr('Date','التاريخ','Date'),145),('product',self.tr('Article','المنتوج','Product'),220),
+            ('user',self.tr('Utilisateur','المستخدم','User'),110),('type',self.tr('Type','النوع','Type'),100),
+            ('old',self.tr('Avant','قبل','Before'),70),('delta',self.tr('Variation','التغيير','Variation'),75),
+            ('new',self.tr('Après','بعد','After'),70),('document',self.tr('Document','الوثيقة','Document'),120),
+            ('reason',self.tr('Raison','السبب','Reason'),260)]:
             tree.heading(key,text=label);tree.column(key,width=width)
         tree.pack(fill='both',expand=True,padx=12,pady=(4,12))
         tree.tag_configure('out',foreground='#B91C1C');tree.tag_configure('in',foreground='#15803D')
@@ -191,22 +191,22 @@ class StockFrame(ttk.Frame):
             tree.delete(*tree.get_children())
             for r in rows:
                 ref=f"{self._ref_label(r['ref_type'])} #{r['ref_id'] or ''}".strip()
-                tree.insert('','end',values=(r['created_at'],r['product_name'],r['username'] or self.tr('Historique','سجل'),
+                tree.insert('','end',values=(r['created_at'],r['product_name'],r['username'] or self.tr('Historique','سجل','History'),
                     self._movement_label(r['movement_type']),r['old_qty'],r['qty_delta'],r['stock_after'],ref,r['note']),
                     tags=('out' if float(r['qty_delta'])<0 else 'in',))
-        ttk.Button(tools,text=self.tr('Actualiser','تحديث'),command=load).pack(side='left')
+        ttk.Button(tools,text=self.tr('Actualiser','تحديث','Refresh'),command=load).pack(side='left')
         query.trace_add('write',load);kind.trace_add('write',load);load()
 
     def ledger(self):
         selection=self.t.selection()
         if not selection:return
         pid=int(selection[0])
-        w=tk.Toplevel(self);w.title(self.tr("Historique des mouvements","سجل حركات المخزون"));w.geometry('1050x550');w.transient(self)
+        w=tk.Toplevel(self);w.title(self.tr("Historique des mouvements","سجل حركات المخزون","Movement history"));w.geometry('1050x550');w.transient(self)
         tree=ttk.Treeview(w,columns=('date','user','type','old','delta','new','document','reason'),show='headings')
-        for key,label,width in [('date',self.tr('Date','التاريخ'),145),('user',self.tr('Utilisateur','المستخدم'),100),('type',self.tr('Type','النوع'),100),('old',self.tr('Avant','قبل'),70),('delta',self.tr('Variation','التغيير'),70),('new',self.tr('Après','بعد'),70),('document',self.tr('Document','الوثيقة'),100),('reason',self.tr('Raison','السبب'),220)]:
+        for key,label,width in [('date',self.tr('Date','التاريخ','Date'),145),('user',self.tr('Utilisateur','المستخدم','User'),100),('type',self.tr('Type','النوع','Type'),100),('old',self.tr('Avant','قبل','Before'),70),('delta',self.tr('Variation','التغيير','Variation'),70),('new',self.tr('Après','بعد','After'),70),('document',self.tr('Document','الوثيقة','Document'),100),('reason',self.tr('Raison','السبب','Reason'),220)]:
             tree.heading(key,text=label);tree.column(key,width=width)
         tree.pack(fill='both',expand=True,padx=12,pady=12)
         with connect() as conn:
             rows=conn.execute("SELECT sm.*,u.display_name username FROM stock_movements sm LEFT JOIN users u ON u.id=sm.user_id WHERE product_id=? ORDER BY sm.id DESC",(pid,)).fetchall()
         for r in rows:
-            tree.insert('','end',values=(r['created_at'],r['username'] or self.tr('Historique','سجل'),self._movement_label(r['movement_type']),r['old_qty'],r['qty_delta'],r['stock_after'],f"{self._ref_label(r['ref_type'])} #{r['ref_id'] or ''}",r['note']))
+            tree.insert('','end',values=(r['created_at'],r['username'] or self.tr('Historique','سجل','History'),self._movement_label(r['movement_type']),r['old_qty'],r['qty_delta'],r['stock_after'],f"{self._ref_label(r['ref_type'])} #{r['ref_id'] or ''}",r['note']))
