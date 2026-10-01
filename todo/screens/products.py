@@ -455,7 +455,7 @@ class ProductsFrame(ttk.Frame):
         self.t=ttk.Treeview(self,columns=cols,show='headings',height=14)
         cfg=[("id","ID",50),("barcode",self.tr("Barcode","الباركود"),145),("name",self.tr("Article","المنتوج"),260),("cat",self.tr("Famille","العائلة"),130),("buy",self.tr("Achat","الشراء"),85),("sell",self.tr("Vente","البيع"),85),("stock",self.tr("Stock","المخزون","Stock"),80),("alert",self.tr("Alerte","التنبيه"),80),("img",self.tr("Img","صورة"),45)]
         for c,h,w in cfg:self.t.heading(c,text=h);self.t.column(c,width=w,anchor="center")
-        self.t.pack(fill="both",expand=True);self.t.bind("<Double-1>",lambda e:self.edit())
+        self.t.pack(fill="both",expand=True);self.t.bind("<Double-1>",lambda e=None:self.edit())
         self.kpi_bar=tk.Frame(self,bg='#F6F7FB');self.kpi_bar.pack(fill='x',pady=(8,2))
         self.kpi_values=[]
         for title,color in [(self.tr('Articles','المنتجات','Products'),'#DC2626'),(self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),'#F59E0B'),(self.tr('Prix quantité','ثمن الكمية'),'#E07B00'),(self.tr('Valeur stock achat','قيمة مخزون الشراء'),'#2563EB'),(self.tr('Stock négatif','مخزون سالب','Negative stock'),'#16A34A')]:
