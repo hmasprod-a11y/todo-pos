@@ -77,7 +77,7 @@ class ProductEditor(tk.Toplevel):
         self.offers_frame=ttk.Frame(left);self.offers_frame.grid(row=12,column=0,columnspan=2,sticky="ew")
         self.add_offer_row()
         ttk.Button(left,text=self.tr("+ Ajouter une offre","+ إضافة عرض","+ Add offer"),command=self.add_offer_row).grid(row=13,column=0,columnspan=2,sticky="w",pady=4)
-        ttk.Label(left,text=self.tr("Prix/unité : dès la quantité indiquée.\nLot : groupes complets, reste au prix normal.\nSi plusieurs offres : le plus grand seuil atteint s'applique.","ثمن الوحدة: ابتداءً من الكمية المحددة.\nالحزمة: مجموعات كاملة والباقي بالثمن العادي.\nعند تعدد العروض يطبق أكبر حد تم بلوغه."),wraplength=440).grid(row=14,column=0,columnspan=2,sticky="w",pady=6)
+        ttk.Label(left,text=self.tr("Prix/unité : dès la quantité indiquée.\nLot : groupes complets, reste au prix normal.\nSi plusieurs offres : le plus grand seuil atteint s'applique.","ثمن الوحدة: ابتداءً من الكمية المحددة.\nالحزمة: مجموعات كاملة والباقي بالثمن العادي.\nعند تعدد العروض يطبق أكبر حد تم بلوغه.","Unit price: from the stated quantity.\nPack: complete groups, remainder at the normal price.\nWhen several offers apply, the highest reached threshold wins."),wraplength=440).grid(row=14,column=0,columnspan=2,sticky="w",pady=6)
         b=ttk.Frame(left);b.grid(row=15,column=0,columnspan=2,sticky="e",pady=16)
         ttk.Button(b,text=self.tr('Enregistrer','حفظ','Save'),style='Success.TButton',command=self.save).pack(side='left',padx=4,ipadx=8)
         ttk.Button(b,text=self.tr('Annuler','إلغاء','Cancel'),style='Danger.TButton',command=self.destroy).pack(side='left',padx=4)
