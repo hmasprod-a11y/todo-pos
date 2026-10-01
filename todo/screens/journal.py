@@ -53,7 +53,7 @@ class JournalFrame(ttk.Frame):
         ttk.Button(filters,text=self.tr('Aujourd’hui','اليوم','Today'),command=lambda:self.set_period(0)).pack(side="left",padx=2);ttk.Button(filters,text=self.tr('7 jours','7 أيام','7 days'),command=lambda:self.set_period(6)).pack(side="left",padx=2);ttk.Button(filters,text=self.tr('30 jours','30 يوماً','30 days'),command=lambda:self.set_period(29)).pack(side="left",padx=2);ttk.Button(filters,text=self.tr('Consulter','عرض','View'),command=self.refresh).pack(side="right")
         cols=("id","ticket","poste","date","cashier","seller","pay","total","cost","margin")
         self.t=ttk.Treeview(self,columns=cols,show="headings",height=15)
-        for c,h,w in [("id","ID",45),("ticket",self.tr("Ticket","التذكرة","Receipt"),170),("poste",self.tr("Poste","المحطة","Station"),70),("date",self.tr("Date","التاريخ","Date"),145),("cashier",self.tr("Caissier","الكاشير"),110),("seller",self.tr("Vendeur","البائع"),110),("pay",self.tr("Paiement","الدفع"),90),("total",self.tr("Total","المجموع","Total"),90),("cost",self.tr("Coût","التكلفة","Cost"),90),("margin",self.tr("Marge brute","الهامش الإجمالي","Gross margin"),100)]:self.t.heading(c,text=h);self.t.column(c,width=w,anchor="center")
+        for c,h,w in [("id","ID",45),("ticket",self.tr("Ticket","التذكرة","Receipt"),170),("poste",self.tr("Poste","المحطة","Station"),70),("date",self.tr("Date","التاريخ","Date"),145),("cashier",self.tr("Caissier","الكاشير","Cashier"),110),("seller",self.tr("Vendeur","البائع","Seller"),110),("pay",self.tr("Paiement","الدفع","Payment"),90),("total",self.tr("Total","المجموع","Total"),90),("cost",self.tr("Coût","التكلفة","Cost"),90),("margin",self.tr("Marge brute","الهامش الإجمالي","Gross margin"),100)]:self.t.heading(c,text=h);self.t.column(c,width=w,anchor="center")
         self.t.pack(fill="both",expand=True)
         summary_bar=ttk.Frame(self,style="Card.TFrame",padding=(10,8));summary_bar.pack(fill="x",pady=(8,0))
         self.summary=ttk.Label(summary_bar,text="",style="Card.TLabel",font=("Segoe UI",11,"bold"));self.summary.pack(side="right")
@@ -73,7 +73,7 @@ class JournalFrame(ttk.Frame):
         try:
             date.fromisoformat(self.date_from.get());date.fromisoformat(self.date_to.get())
         except ValueError:
-            messagebox.showerror(self.tr("Journal","السجل"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return []
+            messagebox.showerror(self.tr("Journal","السجل","Journal"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return []
         where=["date(s.created_at)>=?","date(s.created_at)<=?"];params=[self.date_from.get(),self.date_to.get()]
         if self.cashier.get()!=self.all_label:where.append("u.display_name=?");params.append(self.cashier.get())
         if self.seller.get()!=self.all_label:where.append("v.name=?");params.append(self.seller.get())
@@ -104,7 +104,7 @@ class JournalFrame(ttk.Frame):
         try:
             date.fromisoformat(self.date_from.get());date.fromisoformat(self.date_to.get())
         except ValueError:
-            messagebox.showerror(self.tr("Journal","السجل"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
+            messagebox.showerror(self.tr("Journal","السجل","Journal"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
         if mode=="article":
             group="p.id,p.name";label="Article";select="p.name"
         else:
@@ -117,7 +117,7 @@ class JournalFrame(ttk.Frame):
             LEFT JOIN categories cat ON cat.id=p.category_id
             WHERE date(s.created_at)>=? AND date(s.created_at)<=? GROUP BY {group} ORDER BY gross DESC"""
         with connect() as c:rows=c.execute(sql,(self.date_from.get(),self.date_to.get())).fetchall()
-        w=tk.Toplevel(self);w.title(self.tr(f"Rapport par {label}",f"تقرير حسب {label}"));w.geometry("850x560");w.transient(self.winfo_toplevel())
+        w=tk.Toplevel(self);w.title(self.tr(f"Rapport par {label}",f"تقرير حسب {label}",f"Report by {label}"));w.geometry("850x560");w.transient(self.winfo_toplevel())
         tree=ttk.Treeview(w,columns=("label","qty","sales","cost","margin"),show="headings")
         for key,title,width in [("label",label,280),("qty","Qté",90),("sales","Ventes",120),("cost","Coût",120),("margin","Marge brute",120)]:tree.heading(key,text=title);tree.column(key,width=width,anchor="e" if key!="label" else "w")
         tree.pack(fill="both",expand=True,padx=12,pady=12)
@@ -130,79 +130,79 @@ class JournalFrame(ttk.Frame):
     def global_report(self):
         rows=self.rows();total=sum(r["total_cents"] for r in rows);cost=sum(r["cost"] for r in rows)
         cash=sum(r["cash_paid"]-r["cash_refund"] for r in rows);card=sum(r["card_paid"]-r["card_refund"] for r in rows)
-        self._simple_report(self.tr("Rapport global","التقرير العام"),
-            (self.tr("Indicateur","المؤشر"),self.tr("Valeur","القيمة")),
-            [(self.tr("Période","الفترة"),f"{self.date_from.get()} → {self.date_to.get()}"),
-             (self.tr("Tickets","التذاكر"),len(rows)),(self.tr("Ventes nettes","صافي المبيعات"),fmt(total,"")),
+        self._simple_report(self.tr("Rapport global","التقرير العام","Global report"),
+            (self.tr("Indicateur","المؤشر","Metric"),self.tr("Valeur","القيمة","Value")),
+            [(self.tr("Période","الفترة","Period"),f"{self.date_from.get()} → {self.date_to.get()}"),
+             (self.tr("Tickets","التذاكر","Receipts"),len(rows)),(self.tr("Ventes nettes","صافي المبيعات","Net sales"),fmt(total,"")),
              (self.tr("Coût","التكلفة","Cost"),fmt(cost,"")),(self.tr("Marge brute","الهامش الإجمالي","Gross margin"),fmt(total-cost,"")),
-             (self.tr("Cash net","صافي النقد"),fmt(cash,"")),(self.tr("Carte nette","صافي البطاقة"),fmt(card,""))])
+             (self.tr("Cash net","صافي النقد","Net cash"),fmt(cash,"")),(self.tr("Carte nette","صافي البطاقة","Net card"),fmt(card,""))])
     def cashier_report(self):
         try:
             date.fromisoformat(self.date_from.get());date.fromisoformat(self.date_to.get())
         except ValueError:
-            messagebox.showerror(self.tr("Journal","السجل"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
+            messagebox.showerror(self.tr("Journal","السجل","Journal"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
         sql="""SELECT u.display_name label,COUNT(*) tickets,
             SUM(s.total_cents-COALESCE((SELECT SUM(r.total_cents) FROM returns r WHERE r.sale_id=s.id),0)) sales
             FROM sales s JOIN users u ON u.id=s.cashier_user_id
             WHERE s.status='COMPLETED' AND date(s.created_at)>=? AND date(s.created_at)<=?
             GROUP BY s.cashier_user_id ORDER BY sales DESC"""
         with connect() as c:rows=c.execute(sql,(self.date_from.get(),self.date_to.get())).fetchall()
-        self._simple_report(self.tr("Rapport caissiers","تقرير الكاشير"),
-            (self.tr("Caissier","الكاشير"),self.tr("Tickets","التذاكر"),self.tr("Ventes nettes","صافي المبيعات")),
+        self._simple_report(self.tr("Rapport caissiers","تقرير الكاشير","Cashier report"),
+            (self.tr("Caissier","الكاشير","Cashier"),self.tr("Tickets","التذاكر","Receipts"),self.tr("Ventes nettes","صافي المبيعات","Net sales")),
             [(r["label"],r["tickets"],fmt(r["sales"] or 0,"")) for r in rows])
 
     def seller_report(self):
         try:
             date.fromisoformat(self.date_from.get());date.fromisoformat(self.date_to.get())
         except ValueError:
-            messagebox.showerror(self.tr("Journal","السجل"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
+            messagebox.showerror(self.tr("Journal","السجل","Journal"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
         sql="""SELECT COALESCE(v.name,'Sans vendeur') label,COUNT(*) tickets,
             SUM(s.total_cents-COALESCE((SELECT SUM(r.total_cents) FROM returns r WHERE r.sale_id=s.id),0)) sales
             FROM sales s LEFT JOIN sellers v ON v.id=s.seller_id
             WHERE s.status='COMPLETED' AND date(s.created_at)>=? AND date(s.created_at)<=?
             GROUP BY s.seller_id ORDER BY sales DESC"""
         with connect() as c:rows=c.execute(sql,(self.date_from.get(),self.date_to.get())).fetchall()
-        w=tk.Toplevel(self);w.title(self.tr("Rapport vendeurs","تقرير البائعين"));w.geometry("700x540");w.transient(self.winfo_toplevel())
+        w=tk.Toplevel(self);w.title(self.tr("Rapport vendeurs","تقرير البائعين","Seller report"));w.geometry("700x540");w.transient(self.winfo_toplevel())
         tree=ttk.Treeview(w,columns=("seller","tickets","sales"),show="headings")
-        for key,title,width in [("seller",self.tr("Vendeur","البائع"),330),("tickets",self.tr("Tickets","التذاكر"),100),("sales",self.tr("Ventes nettes","صافي المبيعات"),150)]:tree.heading(key,text=title);tree.column(key,width=width,anchor="e" if key!="seller" else "w")
+        for key,title,width in [("seller",self.tr("Vendeur","البائع","Seller"),330),("tickets",self.tr("Tickets","التذاكر","Receipts"),100),("sales",self.tr("Ventes nettes","صافي المبيعات","Net sales"),150)]:tree.heading(key,text=title);tree.column(key,width=width,anchor="e" if key!="seller" else "w")
         tree.pack(fill="both",expand=True,padx=12,pady=12)
         total=0
         for r in rows:
             total+=r["sales"] or 0;tree.insert("","end",values=(r["label"],r["tickets"],fmt(r["sales"] or 0,"")))
-        ttk.Label(w,text=self.tr("Total ventes nettes ","إجمالي صافي المبيعات ")+fmt(total),font=("Segoe UI",11,"bold")).pack(anchor="e",padx=12,pady=(0,12))
+        ttk.Label(w,text=self.tr("Total ventes nettes ","إجمالي صافي المبيعات ","Total net sales ")+fmt(total),font=("Segoe UI",11,"bold")).pack(anchor="e",padx=12,pady=(0,12))
 
     def client_report(self):
         try:
             date.fromisoformat(self.date_from.get());date.fromisoformat(self.date_to.get())
         except ValueError:
-            messagebox.showerror(self.tr("Journal","السجل"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
+            messagebox.showerror(self.tr("Journal","السجل","Journal"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
         sql="""SELECT COALESCE(cl.name,'Client comptoir') label,COUNT(DISTINCT s.id) tickets,
             SUM(s.total_cents-COALESCE((SELECT SUM(r.total_cents) FROM returns r WHERE r.sale_id=s.id),0)) sales
             FROM sales s LEFT JOIN clients cl ON cl.id=s.client_id
             WHERE s.status='COMPLETED' AND date(s.created_at)>=? AND date(s.created_at)<=?
             GROUP BY s.client_id ORDER BY sales DESC"""
         with connect() as c:rows=c.execute(sql,(self.date_from.get(),self.date_to.get())).fetchall()
-        w=tk.Toplevel(self);w.title(self.tr("Rapport clients","تقرير الزبائن"));w.geometry("700x540");w.transient(self.winfo_toplevel())
+        w=tk.Toplevel(self);w.title(self.tr("Rapport clients","تقرير الزبائن","Customer report"));w.geometry("700x540");w.transient(self.winfo_toplevel())
         tree=ttk.Treeview(w,columns=("client","tickets","sales"),show="headings")
-        for key,title,width in [("client",self.tr("Client","الزبون"),330),("tickets",self.tr("Tickets","التذاكر"),100),("sales",self.tr("Ventes nettes","صافي المبيعات"),150)]:tree.heading(key,text=title);tree.column(key,width=width,anchor="e" if key!="client" else "w")
+        for key,title,width in [("client",self.tr("Client","الزبون","Customer"),330),("tickets",self.tr("Tickets","التذاكر","Receipts"),100),("sales",self.tr("Ventes nettes","صافي المبيعات","Net sales"),150)]:tree.heading(key,text=title);tree.column(key,width=width,anchor="e" if key!="client" else "w")
         tree.pack(fill="both",expand=True,padx=12,pady=12)
         total=0
         for r in rows:
             total+=r["sales"] or 0;tree.insert("","end",values=(r["label"],r["tickets"],fmt(r["sales"] or 0,"")))
-        ttk.Label(w,text=self.tr("Total ventes nettes ","إجمالي صافي المبيعات ")+fmt(total),font=("Segoe UI",11,"bold")).pack(anchor="e",padx=12,pady=(0,12))
+        ttk.Label(w,text=self.tr("Total ventes nettes ","إجمالي صافي المبيعات ","Total net sales ")+fmt(total),font=("Segoe UI",11,"bold")).pack(anchor="e",padx=12,pady=(0,12))
     def day_report(self):
         try:
             date.fromisoformat(self.date_from.get());date.fromisoformat(self.date_to.get())
         except ValueError:
-            messagebox.showerror(self.tr("Journal","السجل"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
+            messagebox.showerror(self.tr("Journal","السجل","Journal"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
         sql="""SELECT date(s.created_at,'localtime') day,COUNT(*) tickets,
             SUM(s.total_cents-COALESCE((SELECT SUM(r.total_cents) FROM returns r WHERE r.sale_id=s.id),0)) sales
             FROM sales s WHERE s.status='COMPLETED' AND date(s.created_at)>=? AND date(s.created_at)<=?
             GROUP BY day ORDER BY day"""
         with connect() as c:rows=c.execute(sql,(self.date_from.get(),self.date_to.get())).fetchall()
-        w=tk.Toplevel(self);w.title(self.tr("Rapport par jours","تقرير حسب الأيام"));w.geometry("650x540");w.transient(self.winfo_toplevel())
+        w=tk.Toplevel(self);w.title(self.tr("Rapport par jours","تقرير حسب الأيام","Daily report"));w.geometry("650x540");w.transient(self.winfo_toplevel())
         tree=ttk.Treeview(w,columns=("day","tickets","sales"),show="headings")
-        for key,title,width in [("day",self.tr("Jour","اليوم"),180),("tickets",self.tr("Tickets","التذاكر"),100),("sales",self.tr("Ventes nettes","صافي المبيعات"),180)]:tree.heading(key,text=title);tree.column(key,width=width,anchor="center" if key!="sales" else "e")
+        for key,title,width in [("day",self.tr("Jour","اليوم","Day"),180),("tickets",self.tr("Tickets","التذاكر","Receipts"),100),("sales",self.tr("Ventes nettes","صافي المبيعات","Net sales"),180)]:tree.heading(key,text=title);tree.column(key,width=width,anchor="center" if key!="sales" else "e")
         tree.pack(fill="both",expand=True,padx=12,pady=12)
         total=0
         for r in rows:
@@ -212,15 +212,15 @@ class JournalFrame(ttk.Frame):
     def print_report(self):
         rows=self.rows()
         if not rows:
-            messagebox.showinfo("ToDo",self.tr("Aucune donnée à imprimer.","لا توجد بيانات للطباعة."),parent=self);return
-        p=filedialog.asksaveasfilename(defaultextension=".pdf",filetypes=[("PDF","*.pdf")],title=self.tr("Imprimer le rapport","طباعة التقرير"))
+            messagebox.showinfo("ToDo",self.tr("Aucune donnée à imprimer.","لا توجد بيانات للطباعة.","No data to print."),parent=self);return
+        p=filedialog.asksaveasfilename(defaultextension=".pdf",filetypes=[("PDF","*.pdf")],title=self.tr("Imprimer le rapport","طباعة التقرير","Print report"))
         if not p:return
         try:
             from reportlab.lib import colors
             from reportlab.lib.pagesizes import A4,landscape
             from reportlab.lib.styles import getSampleStyleSheet
             from reportlab.platypus import SimpleDocTemplate,Table,TableStyle,Paragraph,Spacer
-            data=[[self.tr("Ticket","التذكرة","Receipt"),self.tr("Date","التاريخ","Date"),self.tr("Caissier","الكاشير"),self.tr("Vendeur","البائع"),self.tr("Paiement","الدفع"),self.tr("Total","المجموع","Total")]]
+            data=[[self.tr("Ticket","التذكرة","Receipt"),self.tr("Date","التاريخ","Date"),self.tr("Caissier","الكاشير","Cashier"),self.tr("Vendeur","البائع","Seller"),self.tr("Paiement","الدفع","Payment"),self.tr("Total","المجموع","Total")]]
             for r in rows:data.append([r["sale_no"],r["created_at"],r["display_name"],r["seller_name"],self._payment_label(r["payment_method"]),fmt(r["total_cents"],"")])
             doc=SimpleDocTemplate(p,pagesize=landscape(A4),rightMargin=24,leftMargin=24,topMargin=24,bottomMargin=24)
             table=Table(data,repeatRows=1,colWidths=[125,125,110,110,90,90]);table.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#2563EB")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("GRID",(0,0),(-1,-1),0.3,colors.grey),("FONTSIZE",(0,0),(-1,-1),8)]))
@@ -257,7 +257,7 @@ class JournalFrame(ttk.Frame):
         try:
             date.fromisoformat(self.date_from.get());date.fromisoformat(self.date_to.get())
         except ValueError:
-            messagebox.showerror(self.tr("Journal","السجل"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
+            messagebox.showerror(self.tr("Journal","السجل","Journal"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
         sql="""SELECT date(s.created_at) day,time(s.created_at) hour,si.name_snapshot article,
             si.unit_price_cents,si.qty,si.discount_cents,si.net_total_cents,
             u.display_name cashier,COALESCE(v.name,'') seller,COALESCE(cl.name,'Client comptoir') client
@@ -267,14 +267,14 @@ class JournalFrame(ttk.Frame):
             ORDER BY s.id DESC,si.id"""
         with connect() as c:rows=c.execute(sql,(self.date_from.get(),self.date_to.get())).fetchall()
         self._simple_report(self.tr("Journal détaillé","السجل المفصل"),
-            (self.tr("Date","التاريخ","Date"),self.tr("Heure","الوقت"),self.tr("Article","المنتوج"),self.tr("Prix V","ثمن البيع"),self.tr("Qté","الكمية"),self.tr("Remise","التخفيض"),self.tr("Total Net","الصافي"),self.tr("Caissier","الكاشير"),self.tr("Vendeur","البائع"),self.tr("Client","الزبون"),self.tr("Opération","العملية")),
+            (self.tr("Date","التاريخ","Date"),self.tr("Heure","الوقت"),self.tr("Article","المنتوج","Product"),self.tr("Prix V","ثمن البيع"),self.tr("Qté","الكمية","Qty"),self.tr("Remise","التخفيض"),self.tr("Total Net","الصافي"),self.tr("Caissier","الكاشير","Cashier"),self.tr("Vendeur","البائع","Seller"),self.tr("Client","الزبون","Customer"),self.tr("Opération","العملية")),
             [(r["day"],r["hour"],r["article"],fmt(r["unit_price_cents"],""),f'{r["qty"]:g}',fmt(r["discount_cents"],""),fmt(r["net_total_cents"],""),r["cashier"],r["seller"],r["client"],self.tr("VENTE","بيع")) for r in rows])
 
     def header_report(self):
         try:
             date.fromisoformat(self.date_from.get());date.fromisoformat(self.date_to.get())
         except ValueError:
-            messagebox.showerror(self.tr("Journal","السجل"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
+            messagebox.showerror(self.tr("Journal","السجل","Journal"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
         sql="""SELECT s.sale_no,s.created_at,u.display_name cashier,COALESCE(v.name,'') seller,
             COALESCE(cl.name,'Client comptoir') client,s.payment_method,s.total_cents
             FROM sales s JOIN users u ON u.id=s.cashier_user_id
@@ -283,7 +283,7 @@ class JournalFrame(ttk.Frame):
             ORDER BY s.id DESC"""
         with connect() as c:rows=c.execute(sql,(self.date_from.get(),self.date_to.get())).fetchall()
         self._simple_report(self.tr("Entête journal","رؤوس السجل"),
-            (self.tr("Ticket","التذكرة","Receipt"),self.tr("Date","التاريخ","Date"),self.tr("Caissier","الكاشير"),self.tr("Vendeur","البائع"),self.tr("Client","الزبون"),self.tr("Paiement","الدفع"),self.tr("Total","المجموع","Total")),
+            (self.tr("Ticket","التذكرة","Receipt"),self.tr("Date","التاريخ","Date"),self.tr("Caissier","الكاشير","Cashier"),self.tr("Vendeur","البائع","Seller"),self.tr("Client","الزبون","Customer"),self.tr("Paiement","الدفع","Payment"),self.tr("Total","المجموع","Total")),
             [(r["sale_no"],r["created_at"],r["cashier"],r["seller"],r["client"],self._payment_label(r["payment_method"]),fmt(r["total_cents"],"")) for r in rows])
 
     def summary_report(self):
@@ -291,10 +291,10 @@ class JournalFrame(ttk.Frame):
         total=sum(r["total_cents"] for r in rows);cost=sum(r["cost"] for r in rows)
         cash=sum((r["cash_paid"]-r["cash_refund"]) for r in rows)
         card=sum((r["card_paid"]-r["card_refund"]) for r in rows)
-        self._simple_report(self.tr("Journal sans détails","السجل بدون تفاصيل"),(self.tr("Indicateur","المؤشر"),self.tr("Valeur","القيمة")),[
-            (self.tr("Période","الفترة"),f"{self.date_from.get()} → {self.date_to.get()}"),
-            (self.tr("Tickets","التذاكر"),str(len(rows))),(self.tr("Ventes nettes","صافي المبيعات"),fmt(total,"")),(self.tr("Coût","التكلفة","Cost"),fmt(cost,"")),
-            (self.tr("Marge brute","الهامش الإجمالي","Gross margin"),fmt(total-cost,"")),(self.tr("Cash net","صافي النقد"),fmt(cash,"")),(self.tr("Carte nette","صافي البطاقة"),fmt(card,""))])
+        self._simple_report(self.tr("Journal sans détails","السجل بدون تفاصيل"),(self.tr("Indicateur","المؤشر","Metric"),self.tr("Valeur","القيمة","Value")),[
+            (self.tr("Période","الفترة","Period"),f"{self.date_from.get()} → {self.date_to.get()}"),
+            (self.tr("Tickets","التذاكر","Receipts"),str(len(rows))),(self.tr("Ventes nettes","صافي المبيعات","Net sales"),fmt(total,"")),(self.tr("Coût","التكلفة","Cost"),fmt(cost,"")),
+            (self.tr("Marge brute","الهامش الإجمالي","Gross margin"),fmt(total-cost,"")),(self.tr("Cash net","صافي النقد","Net cash"),fmt(cash,"")),(self.tr("Carte nette","صافي البطاقة","Net card"),fmt(card,""))])
 
     def cumulative_export(self):
         rows=self.rows()
@@ -302,10 +302,10 @@ class JournalFrame(ttk.Frame):
         cash=sum((r["cash_paid"]-r["cash_refund"]) for r in rows);card=sum((r["card_paid"]-r["card_refund"]) for r in rows)
         p=filedialog.asksaveasfilename(defaultextension=".csv",filetypes=[("CSV","*.csv")],title=self.tr("Exporter cumul","تصدير التراكمي"))
         if not p:return
-        labels=[self.tr("Période","الفترة"),self.tr("Tickets","التذاكر"),self.tr("Ventes nettes","صافي المبيعات"),self.tr("Coût","التكلفة","Cost"),self.tr("Marge brute","الهامش الإجمالي","Gross margin"),self.tr("Cash net","صافي النقد"),self.tr("Carte nette","صافي البطاقة")]
+        labels=[self.tr("Période","الفترة","Period"),self.tr("Tickets","التذاكر","Receipts"),self.tr("Ventes nettes","صافي المبيعات","Net sales"),self.tr("Coût","التكلفة","Cost"),self.tr("Marge brute","الهامش الإجمالي","Gross margin"),self.tr("Cash net","صافي النقد","Net cash"),self.tr("Carte nette","صافي البطاقة","Net card")]
         vals=[f"{self.date_from.get()} -> {self.date_to.get()}",len(rows),total,cost,total-cost,cash,card]
         with open(p,"w",newline="",encoding="utf-8-sig") as fh:
-            wr=csv.writer(fh);wr.writerow([self.tr("Indicateur","المؤشر"),self.tr("Valeur","القيمة")])
+            wr=csv.writer(fh);wr.writerow([self.tr("Indicateur","المؤشر","Metric"),self.tr("Valeur","القيمة","Value")])
             wr.writerows(zip(labels,vals))
         messagebox.showinfo("ToDo",self.tr("Export cumulé terminé.","تم التصدير التراكمي."),parent=self)
 
@@ -313,7 +313,7 @@ class JournalFrame(ttk.Frame):
         try:
             date.fromisoformat(self.date_from.get());date.fromisoformat(self.date_to.get())
         except ValueError:
-            messagebox.showerror(self.tr("Journal","السجل"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
+            messagebox.showerror(self.tr("Journal","السجل","Journal"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
         sql="""SELECT sp.payment_method method,SUM(sp.amount_cents) paid,
             COALESCE((SELECT SUM(rp.amount_cents) FROM return_payments rp JOIN returns r ON r.id=rp.return_id
               WHERE rp.payment_method=sp.payment_method AND date(r.created_at)>=? AND date(r.created_at)<=?),0) refunded
@@ -326,7 +326,7 @@ class JournalFrame(ttk.Frame):
         try:
             date.fromisoformat(self.date_from.get());date.fromisoformat(self.date_to.get())
         except ValueError:
-            messagebox.showerror(self.tr("Journal","السجل"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
+            messagebox.showerror(self.tr("Journal","السجل","Journal"),self.tr("Dates au format YYYY-MM-DD.","التواريخ يجب أن تكون بصيغة YYYY-MM-DD.","Dates must use YYYY-MM-DD."),parent=self);return
         sql="""SELECT r.return_no,r.created_at,s.sale_no,r.refund_method,r.total_cents
             FROM returns r JOIN sales s ON s.id=r.sale_id WHERE date(r.created_at)>=? AND date(r.created_at)<=? ORDER BY r.id DESC"""
         with connect() as c:rows=c.execute(sql,(self.date_from.get(),self.date_to.get())).fetchall()
@@ -385,7 +385,7 @@ class JournalFrame(ttk.Frame):
         if not p:return
         rows=self.rows()
         with open(p,"w",newline="",encoding="utf-8-sig") as f:
-            wr=csv.writer(f);wr.writerow(["ID",self.tr("Ticket","التذكرة","Receipt"),self.tr("Date","التاريخ","Date"),self.tr("Caissier","الكاشير"),self.tr("Vendeur","البائع"),self.tr("Paiement","الدفع"),self.tr("Total cents","المجموع بالسنتيم"),self.tr("Cost cents","التكلفة بالسنتيم"),self.tr("Margin cents","الهامش بالسنتيم")])
+            wr=csv.writer(f);wr.writerow(["ID",self.tr("Ticket","التذكرة","Receipt"),self.tr("Date","التاريخ","Date"),self.tr("Caissier","الكاشير","Cashier"),self.tr("Vendeur","البائع","Seller"),self.tr("Paiement","الدفع","Payment"),self.tr("Total cents","المجموع بالسنتيم"),self.tr("Cost cents","التكلفة بالسنتيم"),self.tr("Margin cents","الهامش بالسنتيم")])
             for r in rows:
                 pay=r["payment_method"]
                 if pay=="MIXED":pay="MIXED (Cash {} + Card {})".format(fmt(r["cash_paid"]-r["cash_refund"],""),fmt(r["card_paid"]-r["card_refund"],""))
