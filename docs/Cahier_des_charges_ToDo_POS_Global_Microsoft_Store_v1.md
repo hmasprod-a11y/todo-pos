@@ -382,13 +382,15 @@ MSIX manifest template, packaging script, validation tests and Store release che
 
 ### P4 — Productisation — in progress (2026-09-30)
 The offline first-run wizard now configures language, country defaults, shop
-name, receipt printer, barcode test and a mandatory replacement admin PIN.
-The optional demo remains isolated in its own database. Privacy Policy, Terms
-of Use, and Support/data guidance are included in the packaged documentation
-and available from in-app Help. Optional import is intentionally not reworked
-without a reproduced Import/Export defect. Evidence commits: `4ce88b`,
-`a79734e`, `8dc1e11`, `54e3118`, `a66aa5c`, `e878246`,
-`3ddbde4`, `b0c94fe`, `2d12e35`, `37b77b0`, and `66c6b45`.
+name, currency/tax defaults, receipt printer, barcode test and a mandatory
+replacement admin PIN. The optional demo remains isolated in its own database.
+Privacy Policy, Terms of Use, and Support/data guidance are included in the
+packaged documentation and available from in-app Help. The catalogue page size
+is configurable from Settings (20–1000) instead of a hard-coded query limit.
+Optional import is intentionally not reworked without a reproduced Import/Export
+defect. Evidence commits: `4ce88b`, `a79734e`, `8dc1e11`, `54e3118`, `a66aa5c`,
+`e878246`, `3ddbde4`, `b0c94fe`, `2d12e35`, `37b77b0`, `66c6b45`, `a15c519`,
+and `649fd0c`.
 
 ### P5 — Store Launch
 EN/FR/AR listing + Free release.
