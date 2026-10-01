@@ -242,20 +242,20 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(p,text=self.tr('Connecteur tiroir','موصل درج النقود')).grid(row=12,column=0,sticky='w')
         ttk.Combobox(p,textvariable=self.drawer_pin,values=['0','1'],state='readonly',width=5).grid(row=12,column=1,sticky='w',padx=8)
         ttk.Button(p,text=self.tr('Enregistrer impression','حفظ إعدادات الطباعة'),command=self.save).grid(row=13,column=2)
-        scale=ttk.LabelFrame(body,text=self.tr('Balance électronique','الميزان الإلكتروني'),padding=10);scale.pack(fill='x',pady=10)
+        scale=ttk.LabelFrame(body,text=self.tr('Balance électronique','الميزان الإلكتروني','Electronic scale'),padding=10);scale.pack(fill='x',pady=10)
         self.scale_enabled=tk.BooleanVar(value=get_setting('scale_enabled','0')=='1')
         self.scale_port=tk.StringVar(value=get_setting('scale_port',''))
         self.scale_baudrate=tk.StringVar(value=get_setting('scale_baudrate','9600'))
         self.scale_timeout=tk.StringVar(value=get_setting('scale_timeout_ms','800'))
-        ttk.Checkbutton(scale,text=self.tr('Activer la balance série','تفعيل الميزان عبر المنفذ التسلسلي'),variable=self.scale_enabled).grid(row=0,column=0,columnspan=2,sticky='w')
+        ttk.Checkbutton(scale,text=self.tr('Activer la balance série','تفعيل الميزان عبر المنفذ التسلسلي','Enable serial scale'),variable=self.scale_enabled).grid(row=0,column=0,columnspan=2,sticky='w')
         ttk.Label(scale,text=self.tr('Port COM','منفذ COM')).grid(row=1,column=0,sticky='w',pady=4)
         self.scale_port_box=ttk.Combobox(scale,textvariable=self.scale_port,width=18);self.scale_port_box.grid(row=1,column=1,sticky='w',padx=8)
         ttk.Button(scale,text=self.tr('Actualiser ports','تحديث المنافذ','Refresh ports'),command=self.refresh_scale_ports).grid(row=1,column=2,padx=4)
         ttk.Label(scale,text='BaudRate').grid(row=2,column=0,sticky='w')
         ttk.Combobox(scale,textvariable=self.scale_baudrate,values=['1200','2400','4800','9600','19200','38400','57600','115200'],width=12,state='readonly').grid(row=2,column=1,sticky='w',padx=8)
-        ttk.Label(scale,text=self.tr('Timeout (ms)','مهلة القراءة (ms)')).grid(row=2,column=2,sticky='e')
+        ttk.Label(scale,text=self.tr('Timeout (ms)','مهلة القراءة (ms)','Read timeout (ms)')).grid(row=2,column=2,sticky='e')
         ttk.Entry(scale,textvariable=self.scale_timeout,width=8).grid(row=2,column=3,sticky='w',padx=8)
-        ttk.Button(scale,text=self.tr('Tester la balance','اختبار الميزان'),style='Soft.TButton',command=self.test_scale).grid(row=3,column=1,sticky='w',pady=6)
+        ttk.Button(scale,text=self.tr('Tester la balance','اختبار الميزان','Test scale'),style='Soft.TButton',command=self.test_scale).grid(row=3,column=1,sticky='w',pady=6)
         self.refresh_scale_ports()
         d=ttk.LabelFrame(body,text=self.tr('Écran client','شاشة الزبون','Customer display'),padding=10);d.pack(fill="x",pady=10)
         serial_display=ttk.LabelFrame(body,text=self.tr('Afficheur client série','شاشة الزبون التسلسلية','Serial customer display'),padding=10);serial_display.pack(fill='x',pady=10)
@@ -267,12 +267,12 @@ class SettingsFrame(ttk.Frame):
         ttk.Checkbutton(serial_display,text=self.tr('Activer afficheur COM','تفعيل شاشة COM','Enable COM display'),variable=self.customer_serial_enabled).grid(row=0,column=0,columnspan=2,sticky='w')
         ttk.Label(serial_display,text='Port COM').grid(row=1,column=0,sticky='w')
         self.customer_serial_port_box=ttk.Combobox(serial_display,textvariable=self.customer_serial_port,width=18);self.customer_serial_port_box.grid(row=1,column=1,sticky='w',padx=8)
-        ttk.Button(serial_display,text=self.tr('Actualiser ports','تحديث المنافذ'),command=self.refresh_customer_serial_ports).grid(row=1,column=2,padx=4)
+        ttk.Button(serial_display,text=self.tr('Actualiser ports','تحديث المنافذ','Refresh ports'),command=self.refresh_customer_serial_ports).grid(row=1,column=2,padx=4)
         ttk.Label(serial_display,text='BaudRate').grid(row=2,column=0,sticky='w')
         ttk.Combobox(serial_display,textvariable=self.customer_serial_baud,values=['1200','2400','4800','9600','19200','38400'],state='readonly',width=12).grid(row=2,column=1,sticky='w',padx=8)
         ttk.Label(serial_display,text=self.tr('Largeur caractères','عرض الحروف','Character width')).grid(row=2,column=2,sticky='e')
         ttk.Combobox(serial_display,textvariable=self.customer_serial_width,values=['16','20','24','40'],state='readonly',width=6).grid(row=2,column=3,sticky='w',padx=8)
-        ttk.Label(serial_display,text=self.tr('Timeout (ms)','مهلة الاتصال')).grid(row=3,column=0,sticky='w')
+        ttk.Label(serial_display,text=self.tr('Timeout (ms)','مهلة الاتصال','Connection timeout (ms)')).grid(row=3,column=0,sticky='w')
         ttk.Entry(serial_display,textvariable=self.customer_serial_timeout,width=8).grid(row=3,column=1,sticky='w',padx=8)
         ttk.Button(serial_display,text=self.tr('Tester afficheur','اختبار الشاشة','Test display'),style='Soft.TButton',command=self.test_customer_serial).grid(row=3,column=2,padx=6)
         self.refresh_customer_serial_ports()
@@ -280,8 +280,8 @@ class SettingsFrame(ttk.Frame):
         self.customer_seconds=tk.StringVar(value=get_setting("customer_slide_seconds","6"))
         current_mode=get_setting('customer_display_mode','promotions')
         self.customer_mode_labels={
-            self.tr('Promotions · photos / vidéos','العروض · صور / فيديوهات'):'promotions',
-            self.tr('Ticket · articles / prix','التذكرة · المنتجات / الأثمنة'):'prices',
+            self.tr('Promotions · photos / vidéos','العروض · صور / فيديوهات','Promotions · photos / videos'):'promotions',
+            self.tr('Ticket · articles / prix','التذكرة · المنتجات / الأثمنة','Receipt · products / prices'):'prices',
         }
         ttk.Checkbutton(d,text=self.tr('Afficher écran client / publicitaire','إظهار شاشة الزبون / الإعلانات','Enable customer display / promotions'),variable=self.customer_enabled,command=self.toggle_customer_enabled).pack(anchor='w',pady=(0,8))
         mode_row=ttk.Frame(d);mode_row.pack(fill='x',pady=(0,8))
@@ -291,9 +291,9 @@ class SettingsFrame(ttk.Frame):
         self.customer_mode_box.pack(side='left',padx=8)
         ttk.Button(mode_row,text=self.tr('Tester écran client','اختبار شاشة الزبون','Test customer display'),style='Primary.TButton',command=self.test_customer).pack(side='right')
         media_row=ttk.Frame(d);media_row.pack(fill='x')
-        ttk.Label(media_row,text=self.tr('Durée de chaque image (secondes)','مدة كل صورة (ثوانٍ)')).pack(side='left')
+        ttk.Label(media_row,text=self.tr('Durée de chaque image (secondes)','مدة كل صورة (ثوانٍ)','Duration of each image (seconds)')).pack(side='left')
         ttk.Spinbox(media_row,from_=2,to=300,textvariable=self.customer_seconds,width=6).pack(side='left',padx=8)
-        ttk.Label(media_row,text=self.tr('Dossier : customer_media · images + vidéos · format conseillé 16:9','المجلد: customer_media · صور + فيديوهات · القياس المقترح 16:9'),foreground="#475569").pack(side='left',padx=12)
+        ttk.Label(media_row,text=self.tr('Dossier : customer_media · images + vidéos · format conseillé 16:9','المجلد: customer_media · صور + فيديوهات · القياس المقترح 16:9','Folder: customer_media · images + videos · recommended 16:9 format'),foreground="#475569").pack(side='left',padx=12)
         rfid=ttk.LabelFrame(body,text=self.tr('RFID','RFID'),padding=10);rfid.pack(fill='x',pady=10)
         self.rfid_enabled=tk.BooleanVar(value=get_setting('rfid_enabled','0')=='1')
         self.rfid_mode=tk.StringVar(value=get_setting('rfid_mode','HID'))
@@ -305,7 +305,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Combobox(rfid,textvariable=self.rfid_mode,values=['HID','SERIAL'],state='readonly',width=12).grid(row=1,column=1,sticky='w',padx=8)
         ttk.Label(rfid,text='Port COM').grid(row=2,column=0,sticky='w')
         self.rfid_port_box=ttk.Combobox(rfid,textvariable=self.rfid_port,width=18);self.rfid_port_box.grid(row=2,column=1,sticky='w',padx=8)
-        ttk.Button(rfid,text=self.tr('Actualiser ports','تحديث المنافذ'),command=self.refresh_rfid_ports).grid(row=2,column=2,padx=4)
+        ttk.Button(rfid,text=self.tr('Actualiser ports','تحديث المنافذ','Refresh ports'),command=self.refresh_rfid_ports).grid(row=2,column=2,padx=4)
         ttk.Label(rfid,text='BaudRate').grid(row=3,column=0,sticky='w')
         ttk.Combobox(rfid,textvariable=self.rfid_baud,values=['1200','2400','4800','9600','19200','38400','57600','115200'],state='readonly',width=12).grid(row=3,column=1,sticky='w',padx=8)
         ttk.Label(rfid,text=self.tr('Timeout (ms)','مهلة القراءة','Read timeout (ms)')).grid(row=3,column=2,sticky='e');ttk.Entry(rfid,textvariable=self.rfid_timeout,width=8).grid(row=3,column=3,padx=8,sticky='w')
@@ -321,7 +321,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(mail,text='SMTP').grid(row=1,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_host,width=28).grid(row=1,column=1,sticky='w',padx=8)
         ttk.Label(mail,text='Port').grid(row=1,column=2,sticky='e');ttk.Entry(mail,textvariable=self.smtp_port,width=7).grid(row=1,column=3,sticky='w',padx=8)
         ttk.Label(mail,text=self.tr('Compte Gmail / e-mail','حساب Gmail / البريد','Gmail / email account')).grid(row=2,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_user,width=32).grid(row=2,column=1,sticky='w',padx=8)
-        ttk.Label(mail,text=self.tr('App Password','كلمة مرور التطبيق')).grid(row=3,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_password,width=32,show='•').grid(row=3,column=1,sticky='w',padx=8)
+        ttk.Label(mail,text=self.tr('App Password','كلمة مرور التطبيق','App password')).grid(row=3,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_password,width=32,show='•').grid(row=3,column=1,sticky='w',padx=8)
         ttk.Label(mail,text=self.tr('Nom expéditeur','اسم المرسل','Sender name')).grid(row=4,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_from,width=24).grid(row=4,column=1,sticky='w',padx=8)
         ttk.Label(mail,text=self.tr('Objet','الموضوع','Subject')).grid(row=5,column=0,sticky='w');ttk.Entry(mail,textvariable=self.smtp_subject,width=32).grid(row=5,column=1,sticky='w',padx=8)
         ttk.Button(mail,text=self.tr('Tester e-mail','اختبار البريد','Test email'),style='Soft.TButton',command=self.test_email).grid(row=5,column=2,padx=6)
@@ -335,14 +335,14 @@ class SettingsFrame(ttk.Frame):
         ttk.Button(b,text=self.tr('Backup complet portable','نسخة كاملة للنقل'),style='Soft.TButton',command=self.full_backup).pack(side='left',padx=4)
         ttk.Button(b,text=self.tr('Restaurer backup complet','استرجاع النسخة الكاملة'),style='Soft.TButton',command=self.full_restore).pack(side='left',padx=4)
         ttk.Button(b,text=self.tr('Base de Données','قاعدة البيانات'),style='Primary.TButton',command=self.database_tools).pack(side='left',padx=8)
-        u=ttk.LabelFrame(body,text=self.tr('Utilisateurs','المستخدمون'),padding=10);u.pack(fill="x")
-        ttk.Button(u,text=self.tr('Nouvel utilisateur','مستخدم جديد'),style='Primary.TButton',command=self.new_user).pack(side='left');ttk.Button(u,text=self.tr('Gérer utilisateurs','إدارة المستخدمين'),style='Soft.TButton',command=self.manage_users).pack(side='left',padx=8)
-        ttk.Button(u,text=self.tr('Changer mon PIN','تغيير PIN'),command=self.change_pin).pack(side="left",padx=8)
-        ttk.Button(u,text=self.tr('Journal des actions','سجل العمليات'),command=self.audit_log).pack(side="left",padx=8)
+        u=ttk.LabelFrame(body,text=self.tr('Utilisateurs','المستخدمون','Users'),padding=10);u.pack(fill="x")
+        ttk.Button(u,text=self.tr('Nouvel utilisateur','مستخدم جديد','New user'),style='Primary.TButton',command=self.new_user).pack(side='left');ttk.Button(u,text=self.tr('Gérer utilisateurs','إدارة المستخدمين','Manage users'),style='Soft.TButton',command=self.manage_users).pack(side='left',padx=8)
+        ttk.Button(u,text=self.tr('Changer mon PIN','تغيير PIN','Change my PIN'),command=self.change_pin).pack(side="left",padx=8)
+        ttk.Button(u,text=self.tr('Journal des actions','سجل العمليات','Action log'),command=self.audit_log).pack(side="left",padx=8)
         ttk.Button(u,text=self.tr('À propos - Aide','حول - مساعدة','About - Help'),style='Soft.TButton',command=self.about_help).pack(side='left',padx=8)
-        ttk.Button(u,text=self.tr('Licence','الترخيص'),style='Soft.TButton',command=self.license_tools).pack(side='left',padx=8)
-        ttk.Button(u,text=self.tr('Raccourcis personnalisés','اختصارات مخصصة'),style='Soft.TButton',command=self.shortcut_tools).pack(side='left',padx=8)
-        ttk.Label(u,text=self.tr('Admin initial: admin / PIN 1234 — changez-le.','المدير الأولي: admin / PIN 1234 — غيّره.')).pack(side="left",padx=15)
+        ttk.Button(u,text=self.tr('Licence','الترخيص','License'),style='Soft.TButton',command=self.license_tools).pack(side='left',padx=8)
+        ttk.Button(u,text=self.tr('Raccourcis personnalisés','اختصارات مخصصة','Custom shortcuts'),style='Soft.TButton',command=self.shortcut_tools).pack(side='left',padx=8)
+        ttk.Label(u,text=self.tr('Admin initial: admin / PIN 1234 — changez-le.','المدير الأولي: admin / PIN 1234 — غيّره.','Initial admin: admin / PIN 1234 — change it.')).pack(side="left",padx=15)
     def _settings_mousewheel(self,event):
         if not self.settings_canvas.winfo_exists():
             return
@@ -353,7 +353,7 @@ class SettingsFrame(ttk.Frame):
 
     def shortcut_tools(self):
         from services.shortcuts import ALLOWED_SHORTCUTS,get_shortcuts,save_shortcuts
-        w=tk.Toplevel(self);w.title(self.tr('Raccourcis personnalisés','اختصارات مخصصة'));w.geometry('520x520');w.transient(self.winfo_toplevel());w.grab_set()
+        w=tk.Toplevel(self);w.title(self.tr('Raccourcis personnalisés','اختصارات مخصصة','Custom shortcuts'));w.geometry('520x520');w.transient(self.winfo_toplevel());w.grab_set()
         ttk.Label(w,text=self.tr('Choisissez jusqu’à 6 fonctions à afficher directement sur l’écran de vente.','اختر حتى 6 وظائف لتظهر مباشرة في شاشة البيع.'),wraplength=470).pack(anchor='w',padx=16,pady=(16,10))
         labels={
             'calculator':self.tr('Calculatrice','الحاسبة'),
@@ -682,7 +682,7 @@ class SettingsFrame(ttk.Frame):
     def license_tools(self):
         from services.license import license_status,machine_fingerprint,install_license
         from services.license_policy import load_license_policy,save_license_policy
-        w=tk.Toplevel(self);w.title(self.tr('Licence','الترخيص'));w.geometry('720x470');w.transient(self.winfo_toplevel());w.grab_set()
+        w=tk.Toplevel(self);w.title(self.tr('Licence','الترخيص','License'));w.geometry('720x470');w.transient(self.winfo_toplevel());w.grab_set()
         status=license_status()
         ttk.Label(w,text=self.tr('Licence ToDo','ترخيص ToDo'),style='Title.TLabel').pack(anchor='w',padx=18,pady=(16,8))
         box=ttk.LabelFrame(w,text=self.tr('État','الحالة'),padding=12);box.pack(fill='x',padx=18,pady=8)
@@ -944,7 +944,7 @@ class SettingsFrame(ttk.Frame):
         messagebox.showinfo('ToDo',self.tr('PIN modifié.','تم تغيير PIN.'),parent=self)
 
     def audit_log(self):
-        w=tk.Toplevel(self);w.title(self.tr('Journal des actions','سجل العمليات'));w.geometry('960x520')
+        w=tk.Toplevel(self);w.title(self.tr('Journal des actions','سجل العمليات','Action log'));w.geometry('960x520')
         tree=ttk.Treeview(w,columns=('date','user','action','document','details'),show='headings')
         for key,label,width in [('date',self.tr('Date','التاريخ'),150),('user',self.tr('Utilisateur','المستخدم'),140),('action',self.tr('Action','العملية'),140),('document',self.tr('Document','الوثيقة'),100),('details',self.tr('Détails','التفاصيل'),300)]:
             tree.heading(key,text=label);tree.column(key,width=width)
