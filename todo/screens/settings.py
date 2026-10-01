@@ -146,6 +146,7 @@ class SettingsFrame(ttk.Frame):
         self.sans_ticket_enabled=tk.BooleanVar(value=get_setting('sans_ticket_enabled','1')=='1')
         self.payment_window_enabled=tk.BooleanVar(value=get_setting('payment_window_enabled','1')=='1')
         self.search_limit=tk.StringVar(value=get_setting("search_limit","60"))
+        self.catalog_page_size=tk.StringVar(value=get_setting("catalog_page_size","200"))
         self.language=tk.StringVar(value=get_setting("language","fr"))
         self.country=tk.StringVar(value=get_setting("country_code","MA"))
         self.country_info=tk.StringVar()
@@ -170,6 +171,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Checkbutton(f,text=self.tr('Afficher la fenêtre de paiement','إظهار نافذة الأداء','Show payment window'),variable=self.payment_window_enabled).grid(row=13,column=0,columnspan=3,sticky="w",pady=(3,0))
         ttk.Label(f,text=self.tr('Message bas du ticket','رسالة أسفل التذكرة','Receipt footer message')).grid(row=14,column=0,sticky="w",pady=5);ttk.Entry(f,textvariable=self.footer,width=34).grid(row=14,column=1,padx=8)
         ttk.Label(f,text=self.tr('Limite résultats recherche','حد نتائج البحث','Search result limit')).grid(row=15,column=0,sticky="w");ttk.Entry(f,textvariable=self.search_limit,width=10).grid(row=15,column=1,sticky="w",padx=8)
+        ttk.Label(f,text=self.tr('Articles par page catalogue','المنتجات في صفحة الكتالوج','Catalog products per page')).grid(row=16,column=0,sticky="w");ttk.Entry(f,textvariable=self.catalog_page_size,width=10).grid(row=16,column=1,sticky="w",padx=8)
         ttk.Button(f,text=self.tr('Enregistrer','حفظ','Save'),style='Primary.TButton',command=self.save).grid(row=16,column=0,pady=8,sticky='ew')
         pg=ttk.LabelFrame(body,text=self.tr('Grilles de prix','لوائح الأثمان','Price lists'),padding=10);pg.pack(fill="x",pady=10)
         ttk.Label(pg,text=self.tr('Créez les grilles ici, puis définissez le prix de chaque article dans sa fiche.','أنشئ لوائح الأثمان هنا، ثم حدد ثمن كل منتوج في بطاقته.','Create price lists here, then set each product price in its record.')).pack(anchor="w")
@@ -482,9 +484,10 @@ class SettingsFrame(ttk.Frame):
     def save(self):
         try:
             limit=int(self.search_limit.get())
-            if limit<1 or limit>1000:raise ValueError()
+            catalog_page_size=int(self.catalog_page_size.get())
+            if limit<1 or limit>1000 or catalog_page_size<20 or catalog_page_size>1000:raise ValueError()
         except ValueError:
-            messagebox.showerror("ToDo",self.tr("Limite de recherche entre 1 et 1000.","حد البحث بين 1 و1000.","Search limit must be between 1 and 1000."),parent=self);return
+            messagebox.showerror("ToDo",self.tr("Limites: recherche 1-1000, catalogue 20-1000.","الحدود: البحث 1-1000، والكتالوج 20-1000.","Limits: search 1-1000, catalog 20-1000."),parent=self);return
         workstation=self.workstation.get().strip().upper()
         if not workstation or len(workstation)>16 or not all(ch.isalnum() or ch in '-_' for ch in workstation):
             messagebox.showerror('ToDo',self.tr('Identifiant poste invalide (lettres/chiffres, - ou _).','رقم محطة الصندوق غير صالح.','Invalid workstation identifier (letters, numbers, - or _).'),parent=self);return
@@ -495,7 +498,7 @@ class SettingsFrame(ttk.Frame):
         set_setting('workstation_code',workstation);set_setting("allow_negative_stock","1" if self.neg.get() else "0")
         print_mode=self.print_mode.get() or "ask"
         if print_mode not in ('ask','always','never'):print_mode='ask'
-        set_setting("receipt_footer",self.footer.get());set_setting("search_limit",limit);set_setting("printer_name",self.printer.get().strip());set_setting('printer_receipt_name',self.printer.get().strip());set_setting('printer_report_name',self.report_printer.get().strip());set_setting('printer_addition_name',self.addition_printer.get().strip())
+        set_setting("receipt_footer",self.footer.get());set_setting("search_limit",limit);set_setting("catalog_page_size",catalog_page_size);set_setting("printer_name",self.printer.get().strip());set_setting('printer_receipt_name',self.printer.get().strip());set_setting('printer_report_name',self.report_printer.get().strip());set_setting('printer_addition_name',self.addition_printer.get().strip())
         for i,var in enumerate(self.kitchen_printers,1):set_setting(f'printer_kitchen_c{i}_name',var.get().strip())
         template=self.receipt_template.get().strip().upper()
         if template not in ('FR_3C','FR_4C','FR_2L','EN_3C','EN_4C','AR_3C','AR_4C'):template='FR_3C'

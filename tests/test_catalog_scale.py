@@ -3,6 +3,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'todo'))
 import database
 from services.catalog import search_products,scan_barcode
+from screens.products import catalog_page_size
 
 class CatalogScaleTests(unittest.TestCase):
     def setUp(self):
@@ -35,6 +36,16 @@ class CatalogScaleTests(unittest.TestCase):
         self.assertLess(text_elapsed,2.0)
         self.assertLess(sku_elapsed,1.0)
         self.assertLess(scan_elapsed,1.0)
+    def test_catalog_page_size_is_configurable_and_bounded(self):
+        database.set_setting('catalog_page_size', '37')
+        self.assertEqual(catalog_page_size(), 37)
+        database.set_setting('catalog_page_size', 'not-a-number')
+        self.assertEqual(catalog_page_size(), 200)
+        database.set_setting('catalog_page_size', '5')
+        self.assertEqual(catalog_page_size(), 20)
+        database.set_setting('catalog_page_size', '5000')
+        self.assertEqual(catalog_page_size(), 1000)
+
     def test_indexes_required_for_large_catalog_exist(self):
         with database.connect() as c:
             names={r['name'] for r in c.execute("SELECT name FROM sqlite_master WHERE type='index'")}

@@ -20,6 +20,15 @@ except Exception:
 def _internal_product_barcode(product_id):
     return f"TODO-{int(product_id):08d}"
 
+
+def catalog_page_size():
+    """Return the bounded catalog page size configured by the shop."""
+    try:
+        value = int(get_setting("catalog_page_size", "200"))
+    except (TypeError, ValueError):
+        value = 200
+    return max(20, min(value, 1000))
+
 class ProductEditor(tk.Toplevel):
     def __init__(self,master,product_id=None,on_saved=None):
         super().__init__(master)
@@ -483,15 +492,16 @@ class ProductsFrame(ttk.Frame):
             if self.filter.get()==self.tr("Alertes stock","تنبيهات المخزون","Stock alerts"):extra=" AND p.stock_qty<=p.alert_qty"
             elif self.filter.get()==self.tr("Stock négatif","مخزون سالب","Negative stock"):extra=" AND p.stock_qty<0"
             elif self.filter.get()==self.tr("Promotions","العروض","Promotions"):extra=" AND EXISTS(SELECT 1 FROM quantity_prices qp WHERE qp.product_id=p.id AND qp.active=1)"
+            page_size = catalog_page_size()
             sql="""SELECT p.*,COALESCE(cat.name,'') category,
                 (SELECT barcode FROM product_barcodes b WHERE b.product_id=p.id ORDER BY id LIMIT 1) barcode
                 FROM products p LEFT JOIN categories cat ON cat.id=p.category_id
-                WHERE p.active=1 AND (p.name LIKE ? OR cat.name LIKE ? OR EXISTS(SELECT 1 FROM product_barcodes b2 WHERE b2.product_id=p.id AND b2.barcode LIKE ?))"""+extra+""" ORDER BY p.name LIMIT 200 OFFSET ?"""
-            rows=c.execute(sql,(q,q,q,self.page*200)).fetchall()
+                WHERE p.active=1 AND (p.name LIKE ? OR cat.name LIKE ? OR EXISTS(SELECT 1 FROM product_barcodes b2 WHERE b2.product_id=p.id AND b2.barcode LIKE ?))"""+extra+""" ORDER BY p.name LIMIT ? OFFSET ?"""
+            rows=c.execute(sql,(q,q,q,page_size,self.page*page_size)).fetchall()
             stats=c.execute("SELECT COUNT(*),COALESCE(SUM(stock_qty*purchase_price_cents),0),COALESCE(SUM(CASE WHEN stock_qty<0 THEN 1 ELSE 0 END),0),COALESCE(SUM(CASE WHEN stock_qty<=alert_qty THEN 1 ELSE 0 END),0) FROM products WHERE active=1").fetchone()
             promos=c.execute("SELECT COUNT(*) FROM quantity_prices WHERE active=1").fetchone()[0]
         self.kpi_values[0].config(text=str(stats[0]));self.kpi_values[1].config(text=str(stats[3]));self.kpi_values[2].config(text=str(promos));self.kpi_values[3].config(text=f"{stats[1]/100:.2f}");self.kpi_values[4].config(text=str(stats[2]))
-        self.page_label.config(text=self.tr(f'Page {self.page+1} · {len(rows)} produits · 200 par page',f'الصفحة {self.page+1} · {len(rows)} منتوج · 200 في الصفحة',f'Page {self.page+1} · {len(rows)} products · 200 per page'))
+        self.page_label.config(text=self.tr(f'Page {self.page+1} · {len(rows)} produits · {catalog_page_size()} par page',f'الصفحة {self.page+1} · {len(rows)} منتوج · {catalog_page_size()} في الصفحة',f'Page {self.page+1} · {len(rows)} products · {catalog_page_size()} per page'))
         self.t.delete(*self.t.get_children())
         for r in rows:self.t.insert("", "end",values=(r["id"],r["barcode"] or "",r["name"],r["category"],f"{r['purchase_price_cents']/100:.2f}",f"{r['sale_price_cents']/100:.2f}",f"{r['stock_qty']:g}",f"{r['alert_qty']:g}","✓" if r["image_path"] else ""))
     def label_pdf(self):

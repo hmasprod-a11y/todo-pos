@@ -552,6 +552,7 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('stock_management_enabled','1'),
 ('receipt_footer','Merci pour votre visite'),
 ('custom_shortcuts','calculator,held,drawer'),
+('catalog_page_size','200'),
 ('backup_on_close','1'),
 ('loyalty_enabled','0'),
 ('loyalty_earn_every_cents','1000'),
@@ -684,6 +685,7 @@ def migrate(conn):
     conn.execute('CREATE INDEX IF NOT EXISTS idx_barcodes_product ON product_barcodes(product_id)')
     conn.execute('CREATE INDEX IF NOT EXISTS idx_returns_sale_item ON return_items(sale_item_id)')
     conn.execute("INSERT OR IGNORE INTO settings VALUES('search_limit','60')")
+    conn.execute("INSERT OR IGNORE INTO settings VALUES('catalog_page_size','200')")
     # Allocate historical ticket discounts deterministically, without altering old receipts.
     from services.money import allocate
     for sale in conn.execute('SELECT * FROM sales WHERE id IN (SELECT sale_id FROM sale_items WHERE net_total_cents IS NULL)').fetchall():
