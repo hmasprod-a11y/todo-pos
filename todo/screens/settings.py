@@ -354,17 +354,17 @@ class SettingsFrame(ttk.Frame):
     def shortcut_tools(self):
         from services.shortcuts import ALLOWED_SHORTCUTS,get_shortcuts,save_shortcuts
         w=tk.Toplevel(self);w.title(self.tr('Raccourcis personnalisés','اختصارات مخصصة','Custom shortcuts'));w.geometry('520x520');w.transient(self.winfo_toplevel());w.grab_set()
-        ttk.Label(w,text=self.tr('Choisissez jusqu’à 6 fonctions à afficher directement sur l’écran de vente.','اختر حتى 6 وظائف لتظهر مباشرة في شاشة البيع.'),wraplength=470).pack(anchor='w',padx=16,pady=(16,10))
+        ttk.Label(w,text=self.tr('Choisissez jusqu’à 6 fonctions à afficher directement sur l’écran de vente.','اختر حتى 6 وظائف لتظهر مباشرة في شاشة البيع.','Choose up to 6 functions to show directly on the sales screen.'),wraplength=470).pack(anchor='w',padx=16,pady=(16,10))
         labels={
-            'calculator':self.tr('Calculatrice','الحاسبة'),
-            'held':self.tr("Liste d’attente",'المعلقات'),
-            'drawer':self.tr('Tiroir','درج النقود'),
-            'duplicate':self.tr('Duplicata','نسخة التذكرة'),
-            'price_grid':self.tr('Grille de prix','لائحة الأثمان'),
-            'expense':self.tr('Dépenses','المصاريف'),
-            'report':self.tr('Rapport','التقارير'),
-            'closure':self.tr('Clôture','إغلاق الصندوق'),
-            'keyboard':self.tr('Clavier tactile','لوحة المفاتيح'),
+            'calculator':self.tr('Calculatrice','الحاسبة','Calculator'),
+            'held':self.tr("Liste d’attente",'المعلقات','Held sales'),
+            'drawer':self.tr('Tiroir','درج النقود','Cash drawer'),
+            'duplicate':self.tr('Duplicata','نسخة التذكرة','Duplicate receipt'),
+            'price_grid':self.tr('Grille de prix','لائحة الأثمان','Price list'),
+            'expense':self.tr('Dépenses','المصاريف','Expenses'),
+            'report':self.tr('Rapport','التقارير','Report'),
+            'closure':self.tr('Clôture','إغلاق الصندوق','Cash closure'),
+            'keyboard':self.tr('Clavier tactile','لوحة المفاتيح','Touch keyboard'),
         }
         selected=set(get_shortcuts());vars={}
         body=ttk.Frame(w,padding=(16,4));body.pack(fill='both',expand=True)
@@ -374,18 +374,18 @@ class SettingsFrame(ttk.Frame):
         def save():
             keys=[key for key in ALLOWED_SHORTCUTS if vars[key].get()]
             if len(keys)>6:
-                messagebox.showerror('ToDo',self.tr('Maximum 6 raccourcis.','الحد الأقصى 6 اختصارات.'),parent=w);return
+                messagebox.showerror('ToDo',self.tr('Maximum 6 raccourcis.','الحد الأقصى 6 اختصارات.','Maximum 6 shortcuts.'),parent=w);return
             try:
                 save_shortcuts(keys)
                 try:
                     frame=self.app.frames.get('sale') if hasattr(self.app,'frames') else None
                     if frame and hasattr(frame,'build_custom_shortcuts'):frame.build_custom_shortcuts()
                 except Exception:pass
-                messagebox.showinfo('ToDo',self.tr('Raccourcis enregistrés.','تم حفظ الاختصارات.'),parent=w);w.destroy()
+                messagebox.showinfo('ToDo',self.tr('Raccourcis enregistrés.','تم حفظ الاختصارات.','Shortcuts saved.'),parent=w);w.destroy()
             except Exception as error:messagebox.showerror('ToDo',str(error),parent=w)
         bar=ttk.Frame(w);bar.pack(fill='x',padx=16,pady=16)
         ttk.Button(bar,text=self.tr('Enregistrer','حفظ','Save'),style='Primary.TButton',command=save).pack(side='right')
-        ttk.Button(bar,text=self.tr('Annuler','إلغاء'),command=w.destroy).pack(side='right',padx=6)
+        ttk.Button(bar,text=self.tr('Annuler','إلغاء','Cancel'),command=w.destroy).pack(side='right',padx=6)
 
     def toggle_windows_startup(self):
         enabled=bool(self.start_with_windows.get())
