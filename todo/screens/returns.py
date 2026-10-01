@@ -38,7 +38,7 @@ class ReturnsFrame(ttk.Frame):
         if qty is None:return
         sess=get_open_session()
         if not sess:messagebox.showerror("ToDo",self.tr("Ouvrez la caisse.","افتح الصندوق.","Open the cash drawer."),parent=self);return
-        reason=simpledialog.askstring(self.tr("Retour","إرجاع"),self.tr("Raison:","السبب:","Reason:"),parent=self) or ""
+        reason=simpledialog.askstring(self.tr("Retour","إرجاع","Return"),self.tr("Raison:","السبب:","Reason:"),parent=self) or ""
         try:
             refund_method='AUTO' if getattr(self,'sale_payment',None)=='MIXED' else ('CARD' if getattr(self,'sale_payment',None)=='CARD' else 'CASH')
             r=create_return(self.sale_id,sess["id"],self.app.user["id"],[(line,qty)],reason,refund_method)

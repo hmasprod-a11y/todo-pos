@@ -58,7 +58,7 @@ Cash OUT      : {fmt(t['cash_out'])}
 """)
         self.details.insert("1.0",txt);self.details.config(state="disabled")
     def open(self):
-        v=simpledialog.askfloat(self.tr("Ouverture","فتح الصندوق"),self.tr(f"Fond de caisse ({self.currency}):",f"رصيد الافتتاح ({self.currency}):",f"Opening cash ({self.currency}):"),parent=self,minvalue=0)
+        v=simpledialog.askfloat(self.tr("Ouverture","فتح الصندوق","Open cash drawer"),self.tr(f"Fond de caisse ({self.currency}):",f"رصيد الافتتاح ({self.currency}):",f"Opening cash ({self.currency}):"),parent=self,minvalue=0)
         if v is None:return
         try:open_session(self.app.user["id"],to_cents(v));self.refresh()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
