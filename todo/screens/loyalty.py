@@ -38,7 +38,7 @@ class LoyaltyFrame(ttk.Frame):
     def adjust(self,direction):
         cid=self._selected()
         if not cid:return
-        pts=simpledialog.askinteger(self.tr('Points','النقاط'),self.tr('Nombre de points:','عدد النقاط:','Number of points:'),parent=self,minvalue=1)
+        pts=simpledialog.askinteger(self.tr('Points','النقاط','Points'),self.tr('Nombre de points:','عدد النقاط:','Number of points:'),parent=self,minvalue=1)
         if pts is None:return
         reason=simpledialog.askstring(self.tr('Raison','السبب','Reason'),self.tr('Raison obligatoire:','السبب إجباري:','Reason required:'),parent=self)
         if not reason:return
@@ -49,7 +49,7 @@ class LoyaltyFrame(ttk.Frame):
         if not cid:return
         w=tk.Toplevel(self);w.title(self.tr('Historique fidélité','سجل الوفاء','Loyalty history'));w.geometry('760x500');w.transient(self.winfo_toplevel())
         tree=ttk.Treeview(w,columns=('date','points','reason','ref','user'),show='headings')
-        for k,h,width in [('date',self.tr('Date','التاريخ','Date'),150),('points',self.tr('Points','النقاط'),90),('reason',self.tr('Raison','السبب'),250),('ref',self.tr('Référence','المرجع','Reference'),120),('user',self.tr('Utilisateur','المستخدم','User'),120)]:
+        for k,h,width in [('date',self.tr('Date','التاريخ','Date'),150),('points',self.tr('Points','النقاط','Points'),90),('reason',self.tr('Raison','السبب','Reason'),250),('ref',self.tr('Référence','المرجع','Reference'),120),('user',self.tr('Utilisateur','المستخدم','User'),120)]:
             tree.heading(k,text=h);tree.column(k,width=width,anchor='center' if k!='reason' else 'w')
         tree.pack(fill='both',expand=True,padx=12,pady=12)
         tree.tag_configure('plus',foreground='#15803D');tree.tag_configure('minus',foreground='#DC2626')
@@ -57,7 +57,7 @@ class LoyaltyFrame(ttk.Frame):
             ref=(r['ref_type'] or '')+(f" #{r['ref_id']}" if r['ref_id'] else '')
             tree.insert('','end',values=(r['created_at'],f"{r['points_delta']:+d}",r['reason'],ref,r['username']),tags=('plus' if r['points_delta']>0 else 'minus',))
     def settings(self):
-        s=loyalty_settings();w=tk.Toplevel(self);w.title(self.tr('Paramètres fidélité','إعدادات الوفاء'));w.geometry('500x300');w.transient(self.winfo_toplevel());w.grab_set()
+        s=loyalty_settings();w=tk.Toplevel(self);w.title(self.tr('Paramètres fidélité','إعدادات الوفاء','Loyalty settings'));w.geometry('500x300');w.transient(self.winfo_toplevel());w.grab_set()
         enabled=tk.BooleanVar(value=s['enabled']);earn=tk.StringVar(value=f"{s['earn_every_cents']/100:.2f}");value=tk.StringVar(value=f"{s['point_value_cents']/100:.2f}")
         f=ttk.Frame(w,padding=18);f.pack(fill='both',expand=True)
         ttk.Checkbutton(f,text=self.tr('Activer la fidélité','تفعيل نظام الوفاء','Enable loyalty'),variable=enabled).grid(row=0,column=0,columnspan=2,sticky='w',pady=8)
@@ -72,4 +72,4 @@ class LoyaltyFrame(ttk.Frame):
                 set_setting('loyalty_enabled','1' if enabled.get() else '0');set_setting('loyalty_earn_every_cents',earn_cents);set_setting('loyalty_point_value_cents',value_cents)
                 w.destroy();self.refresh()
             except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
-        ttk.Button(f,text=self.tr('Enregistrer','حفظ'),style='Primary.TButton',command=save).grid(row=3,column=1,sticky='e',pady=16)
+        ttk.Button(f,text=self.tr('Enregistrer','حفظ','Save'),style='Primary.TButton',command=save).grid(row=3,column=1,sticky='e',pady=16)
