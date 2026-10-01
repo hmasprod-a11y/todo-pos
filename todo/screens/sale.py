@@ -54,10 +54,10 @@ class SaleFrame(ttk.Frame):
                                     bg='#DCFCE7',fg='#166534',font=('Segoe UI',11,'bold'),
                                     padx=14,pady=7,bd=0)
         self.payment_label.pack(side='right')
-        self.client_button=ttk.Button(top,text=self.tr('F6 Client : passage','F6 الزبون: عابر'),command=self.choose_client)
+        self.client_button=ttk.Button(top,text=self.tr('F6 Client : passage','F6 الزبون: عابر','F6 Customer: walk-in'),command=self.choose_client)
         if get_setting('require_client_on_sale','0')=='1':
             self.client_button.pack(side='left',padx=18)
-        self.seller_button=ttk.Button(top,text=self.tr('Vendeur : aucun','البائع: لا أحد'),command=self.choose_seller)
+        self.seller_button=ttk.Button(top,text=self.tr('Vendeur : aucun','البائع: لا أحد','Seller: none'),command=self.choose_seller)
         if get_setting('choose_seller_on_sale','0')=='1':
             self.seller_button.pack(side='left',padx=(0,12))
         searchbar=ttk.Frame(self,style='Card.TFrame',padding=(14,12))
@@ -96,7 +96,7 @@ class SaleFrame(ttk.Frame):
         self.category_buttons.bind('<Configure>',lambda e:self.family_canvas.configure(scrollregion=self.family_canvas.bbox('all')))
         self.catalog_tabs=ttk.Notebook(left)
         self.list_page=ttk.Frame(self.catalog_tabs);self.photo_page=ttk.Frame(self.catalog_tabs)
-        self.catalog_tabs.add(self.photo_page,text=self.tr('Photos','اختيار بالصورة'));self.catalog_tabs.add(self.list_page,text=self.tr('Liste','لائحة'))
+        self.catalog_tabs.add(self.photo_page,text=self.tr('Photos','اختيار بالصورة','Photos'));self.catalog_tabs.add(self.list_page,text=self.tr('Liste','لائحة','List'))
         self.catalog_tabs.pack(fill='both',expand=True)
         self.products=ttk.Treeview(self.list_page,columns=('price','stock'),show='tree headings',selectmode='browse',style='Catalog.Treeview',height=12)
         self.products.heading('#0',text=self.tr('PRODUIT','المنتوج','PRODUCT'));self.products.column('#0',width=240,minwidth=160)
@@ -104,8 +104,8 @@ class SaleFrame(ttk.Frame):
             self.products.heading(key,text=label);self.products.column(key,width=95,stretch=False,anchor='center')
         self.products.pack(fill='both',expand=True)
         photo_nav=ttk.Frame(self.photo_page);photo_nav.pack(side='bottom',fill='x')
-        ttk.Button(photo_nav,text=self.tr('Précédent','السابق'),command=lambda:self.photo_next(-1)).pack(side='left')
-        self.photo_more=ttk.Button(photo_nav,text=self.tr('Suivant','التالي'),command=lambda:self.photo_next(1));self.photo_more.pack(side='right')
+        ttk.Button(photo_nav,text=self.tr('Précédent','السابق','Previous'),command=lambda:self.photo_next(-1)).pack(side='left')
+        self.photo_more=ttk.Button(photo_nav,text=self.tr('Suivant','التالي','Next'),command=lambda:self.photo_next(1));self.photo_more.pack(side='right')
         self.card_canvas=tk.Canvas(self.photo_page,background='#F6F7FB',highlightthickness=0)
         self.card_scroll=ttk.Scrollbar(self.photo_page,orient='vertical',command=self.card_canvas.yview)
         self.card_inner=ttk.Frame(self.card_canvas)
@@ -116,7 +116,7 @@ class SaleFrame(ttk.Frame):
         self.card_canvas.pack(side='left',fill='both',expand=True);self.card_scroll.pack(side='right',fill='y')
         self.products.bind('<Double-1>',self.add_selected_product)
         self.products.bind('<Return>',self.add_selected_product)
-        ttk.Button(left,text=self.tr('＋  Ajouter le produit sélectionné  ↵','＋  إضافة المنتوج المحدد  ↵'),style='Primary.TButton',command=self.add_selected_product).pack(fill='x',pady=(8,0),ipady=4)
+        ttk.Button(left,text=self.tr('＋  Ajouter le produit sélectionné  ↵','＋  إضافة المنتوج المحدد  ↵','＋  Add selected product  ↵'),style='Primary.TButton',command=self.add_selected_product).pack(fill='x',pady=(8,0),ipady=4)
         keypad=ttk.LabelFrame(left,text=self.tr('Pavé numérique','الأرقام','Keypad'),padding=5);keypad.pack(fill='x',pady=(8,0))
         for pos,key in enumerate(['7','8','9','4','5','6','1','2','3','0','.','⌫']):
             ttk.Button(keypad,text=key,style=('Danger.TButton' if key=='⌫' else 'Soft.TButton'),command=lambda k=key:self.keypad_press(k)).grid(row=pos//3,column=pos%3,sticky='nsew',padx=3,pady=3,ipady=8)
@@ -127,10 +127,10 @@ class SaleFrame(ttk.Frame):
         self.edit_controls=ttk.Frame(checkout_area,style='Card.TFrame')
         self.edit_controls.pack(fill='x',pady=(2,4))
         actions=ttk.Frame(self.edit_controls,style='Card.TFrame');actions.pack(fill='x')
-        for label,command in [('−',lambda:self.change(-1)),('+',lambda:self.change(1)),('×2',self.double_selected),(self.tr('Qté F8','الكمية F8'),self.set_qty),(self.tr('Remise ligne','تخفيض السطر'),self.line_discount),(self.tr('Suppr.','حذف'),self.remove)]:
-            button_style='Danger.TButton' if label==self.tr('Suppr.','حذف') else 'Soft.TButton'
+        for label,command in [('−',lambda:self.change(-1)),('+',lambda:self.change(1)),('×2',self.double_selected),(self.tr('Qté F8','الكمية F8','Qty F8'),self.set_qty),(self.tr('Remise ligne','تخفيض السطر','Line discount'),self.line_discount),(self.tr('Suppr.','حذف','Delete'),self.remove)]:
+            button_style='Danger.TButton' if label==self.tr('Suppr.','حذف','Delete') else 'Soft.TButton'
             ttk.Button(actions,text=label,style=button_style,command=command).pack(side='left',expand=True,fill='x',padx=2,ipady=0)
-        ttk.Button(self.edit_controls,text=self.tr('☰  Fonctions','☰  الوظائف'),style='Soft.TButton',
+        ttk.Button(self.edit_controls,text=self.tr('☰  Fonctions','☰  الوظائف','☰  Functions'),style='Soft.TButton',
                    command=self.functions).pack(fill='x',pady=(3,0),ipady=0)
 
         self.subtotal_label=ttk.Label(checkout_area,text='',style='Card.TLabel',
@@ -170,7 +170,7 @@ class SaleFrame(ttk.Frame):
         ticket_header.pack(fill='x',pady=(0,8))
         self.ticket_title=ttk.Label(ticket_header,text=self.tr('🧾  Ticket en cours','🧾  التذكرة الحالية','🧾  Current receipt'),style='CardTitle.TLabel')
         self.ticket_title.pack(side='left')
-        ttk.Label(ticket_header,text=self.tr('Sélectionnez une ligne pour la modifier','حدد سطراً لتعديله'),style='Card.TLabel',
+        ttk.Label(ticket_header,text=self.tr('Sélectionnez une ligne pour la modifier','حدد سطراً لتعديله','Select a line to edit it'),style='Card.TLabel',
                   foreground='#64748B',font=('Segoe UI',9)).pack(side='right')
         self.ticket=ttk.Treeview(right,columns=('qty','price','discount','total'),show='tree headings',selectmode='browse',style='Cart.Treeview',height=12)
         self.ticket.heading('#0',text=self.tr('ARTICLE','المنتوج'));self.ticket.column('#0',width=190,minwidth=120)
@@ -318,7 +318,7 @@ class SaleFrame(ttk.Frame):
                   (self.tr('Modifier quantité','تعديل الكمية'),self.set_qty),
                   (self.tr('Modifier prix','تعديل الثمن'),self.set_price),
                   (self.tr('Remise ticket','تخفيض التذكرة'),self.discount),
-                  (self.tr('Remise ligne','تخفيض السطر'),self.line_discount),
+                  (self.tr('Remise ligne','تخفيض السطر','Line discount'),self.line_discount),
                   (self.tr('Supprimer ligne','حذف السطر'),self.remove),
                   (self.tr('Grille de prix','لائحة الأثمان'),self.choose_price_grid),
                   (self.tr('Compter la caisse','حساب الصندوق'),self.cash_tools),
@@ -920,7 +920,7 @@ class SaleFrame(ttk.Frame):
         index=self.selected()
         if index is None:return
         x=self.cart[index]
-        amount=simpledialog.askfloat(self.tr('Remise ligne','تخفيض السطر'),self.tr('Montant de la remise:','قيمة التخفيض:'),parent=self,minvalue=0,maxvalue=line_total(x['unit_price_cents'],x['qty'])/100)
+        amount=simpledialog.askfloat(self.tr('Remise ligne','تخفيض السطر','Line discount'),self.tr('Montant de la remise:','قيمة التخفيض:'),parent=self,minvalue=0,maxvalue=line_total(x['unit_price_cents'],x['qty'])/100)
         if amount is not None:
             x['discount_cents']=to_cents(amount)
             self.ticket_discount_cents=min(self.ticket_discount_cents,self.totals()[0]);self.refresh(index)
