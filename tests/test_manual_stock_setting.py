@@ -34,4 +34,16 @@ class ManualStockSettingTests(unittest.TestCase):
             stock=c.execute("SELECT stock_qty FROM products WHERE id=?",(self.pid,)).fetchone()[0]
         self.assertEqual(stock,7)
 
+    def test_opening_and_adjustment_movements_rebuild_stock_with_audit_context(self):
+        with database.connect() as c:
+            pid=c.execute("INSERT INTO products(name,stock_qty) VALUES('Ledger Product',0)").lastrowid
+            apply_stock_movement(c,pid,5,'OPENING',note='opening count')
+            apply_stock_movement(c,pid,-1,'ADJUSTMENT',note='cycle count')
+            rows=c.execute("SELECT movement_type,qty_delta,user_id,note FROM stock_movements WHERE product_id=? ORDER BY id",(pid,)).fetchall()
+            stock=c.execute("SELECT stock_qty FROM products WHERE id=?",(pid,)).fetchone()[0]
+        self.assertEqual([(r['movement_type'],r['qty_delta']) for r in rows],[('OPENING',5),('ADJUSTMENT',-1)])
+        self.assertEqual(sum(r['qty_delta'] for r in rows),stock)
+        self.assertEqual(stock,4)
+        self.assertTrue(all(r['user_id']==self.uid and r['note'] for r in rows))
+
 if __name__=='__main__':unittest.main()
