@@ -33,7 +33,7 @@ class CashFrame(ttk.Frame):
         with connect() as c:t=session_totals(c,s["id"])
         expected=int(s["opening_cash_cents"])+t["cash_sales"]-t["cash_returns"]-t["expenses"]+t["cash_in"]-t["cash_out"]
         self.kpi_labels["expected"].config(text=fmt(expected));self.kpi_labels["sales"].config(text=fmt(t["cash_sales"]));self.kpi_labels["card"].config(text=fmt(t["card_sales"]));self.kpi_labels["expenses"].config(text=fmt(t["expenses"]));self.kpi_labels["returns"].config(text=fmt(t["cash_returns"]))
-        self.info.config(text=self.tr(f"Caisse #{s['id']} ouverte depuis {s['opened_at']}",f"الصندوق #{s['id']} مفتوح منذ {s['opened_at']}"))
+        self.info.config(text=self.tr(f"Caisse #{s['id']} ouverte depuis {s['opened_at']}",f"الصندوق #{s['id']} مفتوح منذ {s['opened_at']}",f"Cash drawer #{s['id']} open since {s['opened_at']}"))
         txt=self.tr(f"""Fond de caisse : {fmt(s['opening_cash_cents'])}
 Ventes cash    : {fmt(t['cash_sales'])}
 Ventes carte   : {fmt(t['card_sales'])}
@@ -48,6 +48,13 @@ Cash OUT       : {fmt(t['cash_out'])}
 المصاريف : {fmt(t['expenses'])}
 إدخال نقدي : {fmt(t['cash_in'])}
 إخراج نقدي : {fmt(t['cash_out'])}
+""",f"""Opening cash : {fmt(s['opening_cash_cents'])}
+Cash sales    : {fmt(t['cash_sales'])}
+Card sales    : {fmt(t['card_sales'])}
+Cash returns  : {fmt(t['cash_returns'])}
+Expenses      : {fmt(t['expenses'])}
+Cash IN       : {fmt(t['cash_in'])}
+Cash OUT      : {fmt(t['cash_out'])}
 """)
         self.details.insert("1.0",txt);self.details.config(state="disabled")
     def open(self):
@@ -57,8 +64,8 @@ Cash OUT       : {fmt(t['cash_out'])}
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
     def expense(self):
         s=get_open_session()
-        if not s:messagebox.showerror("ToDo",self.tr("Ouvrez la caisse.","افتح الصندوق أولاً."),parent=self);return
-        label=simpledialog.askstring(self.tr("Dépense","مصروف"),self.tr("Libellé:","البيان:"),parent=self)
+        if not s:messagebox.showerror("ToDo",self.tr("Ouvrez la caisse.","افتح الصندوق أولاً.","Open the cash drawer first."),parent=self);return
+        label=simpledialog.askstring(self.tr("Dépense","مصروف"),self.tr("Libellé:","البيان:","Description:"),parent=self)
         if not label:return
         amount=simpledialog.askfloat(self.tr("Dépense","مصروف"),self.tr(f"Montant ({self.currency}):",f"المبلغ ({self.currency}):",f"Amount ({self.currency}):"),parent=self,minvalue=0.01)
         if amount is None:return
@@ -70,50 +77,50 @@ Cash OUT       : {fmt(t['cash_out'])}
         if not s:return
         amount=simpledialog.askfloat(typ,self.tr(f"Montant ({self.currency}):",f"المبلغ ({self.currency}):",f"Amount ({self.currency}):"),parent=self,minvalue=0.01)
         if amount is None:return
-        note=simpledialog.askstring(typ,self.tr("Note:","ملاحظة:"),parent=self) or ""
+        note=simpledialog.askstring(typ,self.tr("Note:","ملاحظة:","Note:"),parent=self) or ""
         try:record_cash(s['id'],self.app.user['id'],to_cents(amount),typ,note)
         except Exception as e:messagebox.showerror('ToDo',str(e),parent=self);return
         self.refresh()
     def cash_journal(self):
         s=get_open_session()
         if not s:
-            messagebox.showinfo('ToDo',self.tr('Aucune caisse ouverte','لا يوجد صندوق مفتوح'),parent=self);return
+            messagebox.showinfo('ToDo',self.tr('Aucune caisse ouverte','لا يوجد صندوق مفتوح','No open cash drawer'),parent=self);return
         rows=cash_activity(s['id'])
-        w=tk.Toplevel(self);w.title(self.tr('Journal de caisse','سجل الصندوق'));w.geometry('900x560');w.transient(self.winfo_toplevel())
+        w=tk.Toplevel(self);w.title(self.tr('Journal de caisse','سجل الصندوق','Cash journal'));w.geometry('900x560');w.transient(self.winfo_toplevel())
         tree=ttk.Treeview(w,columns=('time','doc','type','amount','note'),show='headings')
         for key,label,width,anchor in [
-            ('time',self.tr('Date','التاريخ'),150,'center'),('doc',self.tr('Document','الوثيقة'),140,'center'),
-            ('type',self.tr('Type','النوع'),150,'center'),('amount',self.tr('Mouvement cash','حركة النقد'),120,'e'),
-            ('note',self.tr('Détail','التفصيل'),280,'w')]:
+            ('time',self.tr('Date','التاريخ','Date'),150,'center'),('doc',self.tr('Document','الوثيقة','Document'),140,'center'),
+            ('type',self.tr('Type','النوع','Type'),150,'center'),('amount',self.tr('Mouvement cash','حركة النقد','Cash movement'),120,'e'),
+            ('note',self.tr('Détail','التفصيل','Details'),280,'w')]:
             tree.heading(key,text=label);tree.column(key,width=width,anchor=anchor)
         tree.tag_configure('out',foreground='#DC2626');tree.tag_configure('in',foreground='#15803D')
         tree.pack(fill='both',expand=True,padx=12,pady=12)
-        labels={'SALE':self.tr('Vente cash','بيع نقدي'),'CREDIT_DEPOSIT':self.tr('Acompte crédit','تسبيق دين'),
-                'RETURN':self.tr('Retour cash','مرتجع نقدي'),'EXPENSE':self.tr('Dépense','مصروف'),
-                'CASH_IN':self.tr('Cash IN','إدخال نقدي'),'CASH_OUT':self.tr('Cash OUT','إخراج نقدي'),
-                'CLIENT_PAYMENT':self.tr('Règlement client','تسديد زبون'),'SUPPLIER_PAYMENT':self.tr('Règlement fournisseur','تسديد مورد')}
+        labels={'SALE':self.tr('Vente cash','بيع نقدي','Cash sale'),'CREDIT_DEPOSIT':self.tr('Acompte crédit','تسبيق دين','Credit deposit'),
+                'RETURN':self.tr('Retour cash','مرتجع نقدي','Cash return'),'EXPENSE':self.tr('Dépense','مصروف','Expense'),
+                'CASH_IN':self.tr('Cash IN','إدخال نقدي','Cash IN'),'CASH_OUT':self.tr('Cash OUT','إخراج نقدي','Cash OUT'),
+                'CLIENT_PAYMENT':self.tr('Règlement client','تسديد زبون','Customer payment'),'SUPPLIER_PAYMENT':self.tr('Règlement fournisseur','تسديد مورد','Supplier payment')}
         net=0
         for r in rows:
             amount=int(r['amount_cents']);net+=amount
             tree.insert('','end',values=(r['created_at'],r['document'],labels.get(r['kind'],r['kind']),fmt(amount,''),r['note'] or ''),
                         tags=('in' if amount>=0 else 'out',))
-        ttk.Label(w,text=self.tr(f'Mouvement net hors fond de caisse: {fmt(net)}',f'صافي حركة النقد دون رصيد الافتتاح: {fmt(net)}'),
+        ttk.Label(w,text=self.tr(f'Mouvement net hors fond de caisse: {fmt(net)}',f'صافي حركة النقد دون رصيد الافتتاح: {fmt(net)}',f'Net movement excluding opening cash: {fmt(net)}'),
                   font=('Segoe UI',11,'bold')).pack(anchor='e',padx=12,pady=(0,12))
 
     def history(self):
-        w=tk.Toplevel(self);w.title(self.tr('Historique des clôtures','سجل إغلاقات الصندوق'));w.geometry("1050x560");w.transient(self.winfo_toplevel())
+        w=tk.Toplevel(self);w.title(self.tr('Historique des clôtures','سجل إغلاقات الصندوق','Closure history'));w.geometry("1050x560");w.transient(self.winfo_toplevel())
         cols=("id","opened_by","closed_by","opened","closed","opening","expected","actual","diff")
         tree=ttk.Treeview(w,columns=cols,show="headings")
         cfg=[
-            ("id",self.tr("Caisse","الصندوق"),60),
-            ("opened_by",self.tr("Ouvert par","فتح بواسطة"),120),
-            ("closed_by",self.tr("Clôturé par","أغلق بواسطة"),120),
-            ("opened",self.tr("Ouverture","الفتح"),135),
-            ("closed",self.tr("Clôture","الإغلاق"),135),
-            ("opening",self.tr("Fond","الرصيد"),85),
-            ("expected",self.tr("Attendu","المتوقع"),85),
-            ("actual",self.tr("Réel","الفعلي"),85),
-            ("diff",self.tr("Écart","الفرق"),85)
+            ("id",self.tr("Caisse","الصندوق","Cash drawer"),60),
+            ("opened_by",self.tr("Ouvert par","فتح بواسطة","Opened by"),120),
+            ("closed_by",self.tr("Clôturé par","أغلق بواسطة","Closed by"),120),
+            ("opened",self.tr("Ouverture","الفتح","Opened"),135),
+            ("closed",self.tr("Clôture","الإغلاق","Closed"),135),
+            ("opening",self.tr("Fond","الرصيد","Opening"),85),
+            ("expected",self.tr("Attendu","المتوقع","Expected"),85),
+            ("actual",self.tr("Réel","الفعلي","Actual"),85),
+            ("diff",self.tr("Écart","الفرق","Difference"),85)
         ]
         for key,title,width in cfg:tree.heading(key,text=title);tree.column(key,width=width,anchor="center")
         tree.tag_configure("bad",foreground="#DC2626");tree.tag_configure("ok",foreground="#15803D")
@@ -135,16 +142,16 @@ Cash OUT       : {fmt(t['cash_out'])}
                 fmt(r["opening_cash_cents"],""),fmt(r["expected_cash_cents"],""),
                 fmt(r["actual_cash_cents"] or 0,""),fmt(diff,"")
             ),tags=(tag,))
-        ttk.Label(w,text=self.tr(f"{len(rows)} clôture(s) · Écart cumulé {fmt(total_diff)}",f"{len(rows)} إغلاق · الفرق التراكمي {fmt(total_diff)}"),font=("Segoe UI",11,"bold")).pack(anchor="e",padx=12,pady=(0,12))
+        ttk.Label(w,text=self.tr(f"{len(rows)} clôture(s) · Écart cumulé {fmt(total_diff)}",f"{len(rows)} إغلاق · الفرق التراكمي {fmt(total_diff)}",f"{len(rows)} closure(s) · Cumulative difference {fmt(total_diff)}"),font=("Segoe UI",11,"bold")).pack(anchor="e",padx=12,pady=(0,12))
 
     def _open_close_cash(self, expected, on_closed=None):
         parent=self.winfo_toplevel()
         w=tk.Toplevel(self)
-        w.title(self.tr('Comptage caisse','عدّ الصندوق'))
+        w.title(self.tr('Comptage caisse','عدّ الصندوق','Cash count'))
         w.transient(parent)
         w.geometry('560x520')
         w.protocol('WM_DELETE_WINDOW',w.destroy)
-        ttk.Label(w,text=self.tr('Cash attendu','النقد المتوقع'),font=('Segoe UI',11)).pack(pady=(16,2))
+        ttk.Label(w,text=self.tr('Cash attendu','النقد المتوقع','Expected cash'),font=('Segoe UI',11)).pack(pady=(16,2))
         ttk.Label(w,text=fmt(expected),font=('Segoe UI',24,'bold')).pack()
         counts={}
         summary=ttk.Label(w,text='',font=('Segoe UI',10));summary.pack(pady=6)
@@ -162,7 +169,7 @@ Cash OUT       : {fmt(t['cash_out'])}
         for i,v in enumerate(values):
             box=ttk.Frame(grid);box.grid(row=i//3,column=i%3,sticky='nsew',padx=4,pady=4)
             ttk.Button(box,text=f'+ {v:g} {self.currency}',command=lambda x=v:add(x),width=13).pack(fill='x')
-            ttk.Button(box,text=self.tr('Retirer','نقص')+f' {v:g}',command=lambda x=v:add(x,-1),width=13).pack(fill='x',pady=(2,0))
+            ttk.Button(box,text=self.tr('Retirer','نقص','Remove')+f' {v:g}',command=lambda x=v:add(x,-1),width=13).pack(fill='x',pady=(2,0))
         for c in range(3):grid.columnconfigure(c,weight=1)
         def clear():
             counts.clear();refresh()
@@ -173,7 +180,7 @@ Cash OUT       : {fmt(t['cash_out'])}
             except Exception as e:
                 messagebox.showerror('ToDo',str(e),parent=w);return
             messagebox.showinfo(
-                self.tr('Clôture','إغلاق الصندوق'),
+                self.tr('Clôture','إغلاق الصندوق','Close drawer'),
                 self.tr(
                     f'Attendu: {fmt(exp)}\nRéel: {fmt(actual_cents)}\nDifférence: {fmt(diff)}',
                     f'المتوقع: {fmt(exp)}\nالفعلي: {fmt(actual_cents)}\nالفرق: {fmt(diff)}',
@@ -186,9 +193,9 @@ Cash OUT       : {fmt(t['cash_out'])}
             if on_closed:
                 self.after_idle(on_closed)
         buttons=ttk.Frame(w);buttons.pack(side='bottom',fill='x',padx=16,pady=16)
-        ttk.Button(buttons,text=self.tr('Effacer','مسح'),command=clear).pack(side='left')
-        ttk.Button(buttons,text=self.tr('Annuler','إلغاء'),command=w.destroy).pack(side='right',padx=6)
-        ttk.Button(buttons,text=self.tr('Valider le comptage','تأكيد العد'),style='Primary.TButton',command=validate).pack(side='right')
+        ttk.Button(buttons,text=self.tr('Effacer','مسح','Clear'),command=clear).pack(side='left')
+        ttk.Button(buttons,text=self.tr('Annuler','إلغاء','Cancel'),command=w.destroy).pack(side='right',padx=6)
+        ttk.Button(buttons,text=self.tr('Valider le comptage','تأكيد العد','Confirm count'),style='Primary.TButton',command=validate).pack(side='right')
         w.bind('<Escape>',lambda e:w.destroy())
         w.update_idletasks()
         x=max(0,parent.winfo_rootx()+(parent.winfo_width()-w.winfo_width())//2)
@@ -199,7 +206,7 @@ Cash OUT       : {fmt(t['cash_out'])}
 
     def close(self,on_closed=None):
         if get_setting('closure_enabled','1')!='1':
-            messagebox.showinfo('ToDo',self.tr('La clôture est désactivée dans les paramètres.','إغلاق الصندوق معطل من الإعدادات.'),parent=self);return None
+            messagebox.showinfo('ToDo',self.tr('La clôture est désactivée dans les paramètres.','إغلاق الصندوق معطل من الإعدادات.','Cash closure is disabled in settings.'),parent=self);return None
         s=get_open_session()
         if not s:return None
         with connect() as c:t=session_totals(c,s["id"])
