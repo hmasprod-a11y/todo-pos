@@ -1010,17 +1010,17 @@ class SaleFrame(ttk.Frame):
 
     def set_payment(self,method):
         self.payment=method
-        labels={'CASH':self.tr('Espèces','نقداً'),'CARD':self.tr('Carte','بطاقة'),
-                'CREDIT':self.tr('Crédit','دين'),'MIXED':self.tr('Mixte','مختلط')}
+        labels={'CASH':self.tr('Espèces','نقداً','Cash'),'CARD':self.tr('Carte','بطاقة','Card'),
+                'CREDIT':self.tr('Crédit','دين','Credit'),'MIXED':self.tr('Mixte','مختلط','Mixed')}
         palette={'CASH':('#DCFCE7','#166534'),'CARD':('#DBEAFE','#1D4ED8'),
                  'CREDIT':('#FEF3C7','#92400E'),'MIXED':('#EDE9FE','#6D28D9')}
         bg,fg=palette.get(method,('#E2E8F0','#334155'))
-        self.payment_label.config(text=self.tr('Paiement : ','الأداء: ')+labels.get(method,method),bg=bg,fg=fg)
+        self.payment_label.config(text=self.tr('Paiement : ','الأداء: ','Payment: ')+labels.get(method,method),bg=bg,fg=fg)
         self.focus_search()
 
     def clear(self,preserve_last_sale=False):
         self._cancel_pending_input_jobs()
-        self.cart=[];self.ticket_discount_cents=0;self.held_id=None;self.client_id=None;self.customer_order_id=None;self.quotation_id=None;self.seller_id=None;self.price_grid_id=None;self.price_grid_name=self.tr('Normal','عادي','Normal');self.payment='CASH';self.query.set('');self.scan_quantity.set('1');self.payment_label.config(text=self.tr('Paiement : Espèces','الأداء: نقداً'),bg='#DCFCE7',fg='#166534');self.update_client_label();self.update_seller_label()
+        self.cart=[];self.ticket_discount_cents=0;self.held_id=None;self.client_id=None;self.customer_order_id=None;self.quotation_id=None;self.seller_id=None;self.price_grid_id=None;self.price_grid_name=self.tr('Normal','عادي','Normal');self.payment='CASH';self.query.set('');self.scan_quantity.set('1');self.payment_label.config(text=self.tr('Paiement : Espèces','الأداء: نقداً','Payment: Cash'),bg='#DCFCE7',fg='#166534');self.update_client_label();self.update_seller_label()
         if not preserve_last_sale:
             self.last_sale_snapshot=None;self.last_sale_discount_cents=0
         self.refresh();self.focus_search()
@@ -1046,7 +1046,7 @@ class SaleFrame(ttk.Frame):
             messagebox.showinfo('ToDo',self.tr('Aucun ticket en attente.','لا توجد تذكرة في الانتظار.','No held receipts.'),parent=self);return
         w=tk.Toplevel(self);w.title(self.tr('Tickets en attente','التذاكر في الانتظار','Held receipts'));w.transient(self);w.grab_set()
         tree=ttk.Treeview(w,columns=('date','discount'),show='tree headings')
-        tree.heading('#0',text=self.tr('Ticket','التذكرة','Receipt'));tree.heading('date',text=self.tr('Date','التاريخ'));tree.heading('discount',text=self.tr('Remise','التخفيض','Discount'))
+        tree.heading('#0',text=self.tr('Ticket','التذكرة','Receipt'));tree.heading('date',text=self.tr('Date','التاريخ','Date'));tree.heading('discount',text=self.tr('Remise','التخفيض','Discount'))
         tree.pack(fill='both',expand=True,padx=12,pady=12)
         for r in rows:tree.insert('','end',iid=str(r['id']),text=r['label'],values=(r['created_at'],fmt(r['discount_cents'])))
         def resume(event=None):
@@ -1090,7 +1090,7 @@ class SaleFrame(ttk.Frame):
                         f"Ce client a {balance} point(s). Utiliser des points sur ce ticket ?",
                         f"لدى هذا الزبون {balance} نقطة. هل تريد استعمال النقاط في هذه الفاتورة؟",
                          f"This customer has {balance} point(s). Use points on this receipt?"),parent=self):
-                        pts=simpledialog.askinteger(self.tr('Points fidélité','نقاط الوفاء'),self.tr(
+                        pts=simpledialog.askinteger(self.tr('Points fidélité','نقاط الوفاء','Loyalty points'),self.tr(
                             f"Points à utiliser (max {max_points}) :",f"عدد النقاط المستعملة (الأقصى {max_points}):",f"Points to use (max {max_points}):"),
                             parent=self,minvalue=1,maxvalue=max_points)
                         if pts:
@@ -1163,7 +1163,7 @@ class SaleFrame(ttk.Frame):
                 from services.emailer import send_email
                 send_email(address,self.tr(f"Ticket {result['sale_no']}",f"تذكرة {result['sale_no']}",f"Receipt {result['sale_no']}"),build_receipt(result['id']))
                 messagebox.showinfo('ToDo',self.tr('Ticket envoyé.','تم إرسال التذكرة.','Receipt sent.'),parent=w)
-            except Exception as error:messagebox.showerror(self.tr('E-mail','البريد الإلكتروني'),str(error),parent=w)
+            except Exception as error:messagebox.showerror(self.tr('E-mail','البريد الإلكتروني','Email'),str(error),parent=w)
         if get_setting('email_enabled','0')=='1':
             ttk.Button(buttons,text=self.tr('E-mail','بريد','Email'),command=send_mail).pack(side='left',padx=8,pady=12)
         ttk.Button(buttons,text=self.tr('Fermer','إغلاق','Close'),command=w.destroy).pack(side='right',padx=12,pady=12)
