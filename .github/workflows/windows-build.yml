@@ -64,6 +64,15 @@ jobs:
       - name: Build Windows installer
         shell: cmd
         run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
+      - name: Build previous-version installer fixture
+        shell: pwsh
+        run: |
+          $fixture = Get-Content installer.iss -Raw
+          $fixture = $fixture.Replace('AppVersion=1.1.0','AppVersion=1.0.9')
+          $fixture = $fixture.Replace('OutputBaseFilename=ToDo-POS-1.1.0-Setup','OutputBaseFilename=ToDo-POS-CI-Previous-Setup')
+          Set-Content installer-ci-previous.iss $fixture -Encoding UTF8
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer-ci-previous.iss
+          if ($LASTEXITCODE -ne 0) { throw "Previous-version installer fixture failed to build" }
       - name: Smoke test installed Windows setup
         shell: pwsh
         run: |
@@ -138,6 +147,33 @@ jobs:
           if ($un.ExitCode -ne 0) { throw "Uninstaller failed with exit code $($un.ExitCode)" }
           if (Test-Path $exe) { throw "Application executable still present after uninstall" }
           if (-not (Test-Path $sentinel)) { throw "ProgramData was removed by uninstall" }
+
+      - name: Smoke test in-place installer upgrade preserves data
+        shell: pwsh
+        run: |
+          $previousSetup = Resolve-Path "dist/ToDo-POS-CI-Previous-Setup.exe"
+          $currentSetup = Resolve-Path "dist/ToDo-POS-1.1.0-Setup.exe"
+          $installDir = Join-Path $env:ProgramFiles "ToDo POS"
+          $dataDir = Join-Path $env:ProgramData "ToDo POS"
+          $sentinel = Join-Path $dataDir "ci-upgrade-preserve.txt"
+
+          $old = Start-Process -FilePath $previousSetup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
+          if ($old.ExitCode -ne 0) { throw "Previous-version fixture install failed with exit code $($old.ExitCode)" }
+          if (-not (Test-Path (Join-Path $installDir "ToDo.exe"))) { throw "Previous-version fixture did not install ToDo.exe" }
+
+          New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
+          "preserve-across-upgrade" | Set-Content -Path $sentinel -Encoding UTF8
+
+          $upgrade = Start-Process -FilePath $currentSetup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
+          if ($upgrade.ExitCode -ne 0) { throw "Upgrade install failed with exit code $($upgrade.ExitCode)" }
+          if (-not (Test-Path (Join-Path $installDir "ToDo.exe"))) { throw "ToDo.exe missing after upgrade" }
+          if (-not (Test-Path $sentinel)) { throw "ProgramData file was lost during installer upgrade" }
+          if ((Get-Content $sentinel -Raw).Trim() -ne "preserve-across-upgrade") { throw "ProgramData file changed during installer upgrade" }
+
+          $uninstaller = Join-Path $installDir "unins000.exe"
+          $un = Start-Process -FilePath $uninstaller -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
+          if ($un.ExitCode -ne 0) { throw "Upgrade smoke uninstall failed with exit code $($un.ExitCode)" }
+          if (-not (Test-Path $sentinel)) { throw "ProgramData was removed after upgraded uninstall" }
 
       - name: Create Windows ZIP package
         shell: pwsh
