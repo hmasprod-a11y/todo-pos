@@ -560,7 +560,7 @@ class SaleFrame(ttk.Frame):
 
     def show_shortcuts(self):
         messagebox.showinfo(self.tr('Raccourcis','الاختصارات','Shortcuts'),
-            self.tr('F2 : Espèces\\nF3 : Carte\\nF4 : Attente\\nF5 : Solder\\nF7 : Remise\\nF8 : Quantité\\nCtrl+F : Recherche\\nEntrée : Ajouter / Confirmer\\nSuppr : Supprimer ligne\\nÉchap : Annuler','F2 : نقداً\\nF3 : بطاقة\\nF4 : انتظار\\nF5 : إتمام البيع\\nF7 : تخفيض\\nF8 : الكمية\\nCtrl+F : بحث\\nEnter : إضافة / تأكيد\\nDelete : حذف السطر\\nEsc : إلغاء'),parent=self)
+            self.tr('F2 : Espèces\\nF3 : Carte\\nF4 : Attente\\nF5 : Solder\\nF7 : Remise\\nF8 : Quantité\\nCtrl+F : Recherche\\nEntrée : Ajouter / Confirmer\\nSuppr : Supprimer ligne\\nÉchap : Annuler','F2 : نقداً\\nF3 : بطاقة\\nF4 : انتظار\\nF5 : إتمام البيع\\nF7 : تخفيض\\nF8 : الكمية\\nCtrl+F : بحث\\nEnter : إضافة / تأكيد\\nDelete : حذف السطر\\nEsc : إلغاء','F2: Cash\\nF3: Card\\nF4: Hold\\nF5: Pay\\nF7: Discount\\nF8: Quantity\\nCtrl+F: Search\\nEnter: Add / Confirm\\nDelete: Delete line\\nEsc: Cancel'),parent=self)
 
     def duplicate_receipt(self):
         with connect() as conn:
