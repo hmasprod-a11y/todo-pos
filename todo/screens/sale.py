@@ -859,10 +859,10 @@ class SaleFrame(ttk.Frame):
         if self.cart:
             chosen=str(min(index if index is not None else len(self.cart)-1,len(self.cart)-1))
             self.ticket.selection_set(chosen);self.ticket.see(chosen)
-        self.subtotal_label.config(text=f"{self.tr('Sous-total','المجموع الفرعي')} {fmt(sub,self.currency)}  ·  {self.tr('Remise ticket','تخفيض التذكرة','Receipt discount')} {fmt(display_ticket_discount,self.currency)}")
+        self.subtotal_label.config(text=f"{self.tr('Sous-total','المجموع الفرعي','Subtotal')} {fmt(sub,self.currency)}  ·  {self.tr('Remise ticket','تخفيض التذكرة','Receipt discount')} {fmt(display_ticket_discount,self.currency)}")
         item_count=len(display_cart)
         completed=not self.cart and bool(self.last_sale_snapshot)
-        self.ticket_title.config(text=self.tr(f'🧾  Ticket en cours  ·  {item_count} article(s)',f'🧾  التذكرة الحالية  ·  {item_count} منتوج'))
+        self.ticket_title.config(text=self.tr(f'🧾  Ticket en cours  ·  {item_count} article(s)',f'🧾  التذكرة الحالية  ·  {item_count} منتوج',f'🧾  Current receipt  ·  {item_count} item(s)'))
         if completed:
             if not self.last_sale_box.winfo_manager():self.last_sale_box.pack(fill='x',pady=(4,6),before=self.total_box)
         elif self.last_sale_box.winfo_manager():
@@ -874,12 +874,12 @@ class SaleFrame(ttk.Frame):
 
     def update_quantity(self,index,qty):
         if not math.isfinite(float(qty)):
-            messagebox.showerror('ToDo',self.tr('Quantité invalide.','الكمية غير صالحة.'),parent=self);return
+            messagebox.showerror('ToDo',self.tr('Quantité invalide.','الكمية غير صالحة.','Invalid quantity.'),parent=self);return
         x=self.cart[index]
         if qty<=0:self.cart.pop(index)
         else:
             if not x.get('allow_fraction',False) and not float(qty).is_integer():
-                messagebox.showerror('ToDo',self.tr('Quantité entière requise.','الكمية يجب أن تكون عدداً صحيحاً.'),parent=self);return
+                messagebox.showerror('ToDo',self.tr('Quantité entière requise.','الكمية يجب أن تكون عدداً صحيحاً.','A whole quantity is required.'),parent=self);return
             try:unit=Decimal(x['unit_price_cents']) if x.get('manual_unit_price') else resolve_unit_price(x['product_id'],qty,x.get('barcode_id'),grid_id=self.price_grid_id)
             except ValueError as e:
                 messagebox.showerror('ToDo',str(e),parent=self);return
@@ -896,7 +896,7 @@ class SaleFrame(ttk.Frame):
         index=self.selected()
         if index is None:return
         step=self.cart[index].get('qty_multiplier',1)
-        qty=simpledialog.askfloat(self.tr('Quantité','الكمية'),self.tr('Nombre de packs:','عدد العلب:') if step!=1 else self.tr('Nouvelle quantité:','الكمية الجديدة:'),initialvalue=self.cart[index]['qty']/step,parent=self,minvalue=0.001)
+        qty=simpledialog.askfloat(self.tr('Quantité','الكمية','Quantity'),self.tr('Nombre de packs:','عدد العلب:','Number of packs:') if step!=1 else self.tr('Nouvelle quantité:','الكمية الجديدة:','New quantity:'),initialvalue=self.cart[index]['qty']/step,parent=self,minvalue=0.001)
         if qty is not None:self.update_quantity(index,qty*step)
         self.focus_search()
 
@@ -909,7 +909,7 @@ class SaleFrame(ttk.Frame):
         try:require_permission('DISCOUNT')
         except PermissionError as e:messagebox.showerror('ToDo',str(e),parent=self);return
         if not self.cart:return
-        amount=simpledialog.askfloat(self.tr('Remise ticket','تخفيض التذكرة','Receipt discount'),self.tr('Montant de la remise:','قيمة التخفيض:'),parent=self,minvalue=0,maxvalue=self.totals()[0]/100)
+        amount=simpledialog.askfloat(self.tr('Remise ticket','تخفيض التذكرة','Receipt discount'),self.tr('Montant de la remise:','قيمة التخفيض:','Discount amount:'),parent=self,minvalue=0,maxvalue=self.totals()[0]/100)
         if amount is not None:self.ticket_discount_cents=to_cents(amount);self.refresh()
         self.focus_search()
 
@@ -920,7 +920,7 @@ class SaleFrame(ttk.Frame):
         index=self.selected()
         if index is None:return
         x=self.cart[index]
-        amount=simpledialog.askfloat(self.tr('Remise ligne','تخفيض السطر','Line discount'),self.tr('Montant de la remise:','قيمة التخفيض:'),parent=self,minvalue=0,maxvalue=line_total(x['unit_price_cents'],x['qty'])/100)
+        amount=simpledialog.askfloat(self.tr('Remise ligne','تخفيض السطر','Line discount'),self.tr('Montant de la remise:','قيمة التخفيض:','Discount amount:'),parent=self,minvalue=0,maxvalue=line_total(x['unit_price_cents'],x['qty'])/100)
         if amount is not None:
             x['discount_cents']=to_cents(amount)
             self.ticket_discount_cents=min(self.ticket_discount_cents,self.totals()[0]);self.refresh(index)
@@ -934,12 +934,12 @@ class SaleFrame(ttk.Frame):
         if index is None:return
         line=self.cart[index]
         if line.get('qty_multiplier',1)!=1:
-            messagebox.showinfo('ToDo',self.tr('Pour un pack, utilisez la remise ligne.','بالنسبة للعلبة، استعمل تخفيض السطر.'),parent=self);return
+            messagebox.showinfo('ToDo',self.tr('Pour un pack, utilisez la remise ligne.','بالنسبة للعلبة، استعمل تخفيض السطر.','For a pack, use the line discount.'),parent=self);return
         amount=simpledialog.askstring(self.tr('Modifier prix','تعديل الثمن','Edit price'),self.tr(f"{line['name']}\nNouveau prix unitaire ({self.currency}) :",f"{line['name']}\nالثمن الجديد للوحدة ({self.currency}):",f"{line['name']}\nNew unit price ({self.currency}):"),initialvalue=f"{Decimal(line['unit_price_cents'])/100:.2f}",parent=self)
         if amount is None:return
         try:
             price=to_cents(amount)
-            if price<0:raise ValueError(self.tr('Prix invalide','الثمن غير صالح'))
+            if price<0:raise ValueError(self.tr('Prix invalide','الثمن غير صالح','Invalid price'))
             line['unit_price_cents']=str(price)
             line['manual_unit_price']=True
             line['discount_cents']=min(line.get('discount_cents',0),line_total(price,line['qty']))
