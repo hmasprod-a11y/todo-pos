@@ -15,9 +15,9 @@ class StockFrame(ttk.Frame):
         ttk.Button(top,text=self.tr('Ajustement','تسوية المخزون','Adjust stock'),style="Primary.TButton",command=self.adjust).pack(side="right")
         ttk.Button(top,text=self.tr('Désactiver','تعطيل','Deactivate'),style='Danger.TButton',command=self.deactivate_selected).pack(side='right',padx=4)
         ttk.Button(top,text=self.tr('+ Nouveau','+ جديد','+ New'),style='Success.TButton',command=self.new_product).pack(side='right',padx=4)
-        self.q=tk.StringVar();self.filter=tk.StringVar(value=self.tr('Tous','الكل'))
+        self.q=tk.StringVar();self.filter=tk.StringVar(value=self.tr('Tous','الكل','All'))
         self.search_entry=ttk.Entry(top,textvariable=self.q,width=22,style="Search.TEntry");self.search_entry.pack(side="left",padx=(20,8));self.search_entry.bind("<KeyRelease>",lambda e:self.refresh())
-        box=ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل'),self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),self.tr('Stock négatif','مخزون سالب','Negative stock')],state="readonly",width=14);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
+        box=ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل','All'),self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),self.tr('Stock négatif','مخزون سالب','Negative stock')],state="readonly",width=14);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
         with connect() as c:
             category_rows=c.execute("SELECT id,name FROM categories WHERE active=1 ORDER BY sort_order,name COLLATE NOCASE").fetchall()
         self.family_values=[(self.tr('Toutes familles','كل الفئات','All categories'),None)]+[(r['name'],r['id']) for r in category_rows]
@@ -38,7 +38,7 @@ class StockFrame(ttk.Frame):
             ("family",self.tr("Famille","الفئة","Category"),170,"w"),
             ("purchase",self.tr("PRIX_A","ثمن الشراء","BUY PRICE"),90,"e"),
             ("sale",self.tr("PRIX_V","ثمن البيع","SALE PRICE"),90,"e"),
-            ("stock",self.tr("Stock","المخزون"),80,"e"),
+            ("stock",self.tr("Stock","المخزون","Stock"),80,"e"),
             ("alert",self.tr("Alerte","التنبيه","Alert"),75,"e"),
             ("last",self.tr("Dernier mouvement","آخر حركة","Last movement"),210,"w"),
         ]:
@@ -46,23 +46,23 @@ class StockFrame(ttk.Frame):
         self.t.pack(fill="both",expand=True)
         self.kpi=tk.Frame(self,bg="#F6F7FB");self.kpi.pack(fill="x",pady=(8,0))
         self.kpi_values=[]
-        for title,bg in [(self.tr("Articles","المنتجات","Products"),"#2563EB"),(self.tr("Alertes","التنبيهات"),"#F59E0B"),(self.tr("Stock négatif","المخزون السالب"),"#DC2626"),(self.tr("Promotions actives","العروض النشطة","Active promotions"),"#BE185D"),(self.tr("Valeur achat","قيمة الشراء"),"#16A34A"),(self.tr("Valeur vente","قيمة البيع"),"#7C3AED")]:
+        for title,bg in [(self.tr("Articles","المنتجات","Products"),"#2563EB"),(self.tr("Alertes","التنبيهات","Alerts"),"#F59E0B"),(self.tr("Stock négatif","المخزون السالب","Negative stock"),"#DC2626"),(self.tr("Promotions actives","العروض النشطة","Active promotions"),"#BE185D"),(self.tr("Valeur achat","قيمة الشراء","Purchase value"),"#16A34A"),(self.tr("Valeur vente","قيمة البيع","Sale value"),"#7C3AED")]:
             card=tk.Frame(self.kpi,bg=bg,height=62);card.pack(side="left",fill="x",expand=True,padx=3);card.pack_propagate(False)
             value=tk.Label(card,text="0",bg=bg,fg="white",font=("Segoe UI",15,"bold"));value.pack(anchor="w",padx=10,pady=(5,0));tk.Label(card,text=title,bg=bg,fg="white").pack(anchor="w",padx=10);self.kpi_values.append(value)
         self.refresh()
         self.after_idle(lambda: self.search_entry.focus_force() if self.search_entry.winfo_exists() else None)
     def _movement_label(self, value):
-        labels={'ADJUSTMENT':self.tr('Ajustement','تسوية'),'OPENING':self.tr('Ouverture','رصيد افتتاحي'),'INVENTORY':self.tr('Inventaire','جرد'),'PURCHASE':self.tr('Réception','استلام'),'SALE':self.tr('Vente','بيع'),'RETURN':self.tr('Retour','إرجاع'),'OUT':self.tr('Sortie','إخراج')}
+        labels={'ADJUSTMENT':self.tr('Ajustement','تسوية','Adjustment'),'OPENING':self.tr('Ouverture','رصيد افتتاحي','Opening'),'INVENTORY':self.tr('Inventaire','جرد','Inventory'),'PURCHASE':self.tr('Réception','استلام','Receipt'),'SALE':self.tr('Vente','بيع','Sale'),'RETURN':self.tr('Retour','إرجاع','Return'),'OUT':self.tr('Sortie','إخراج','Out')}
         return labels.get(value, value or '')
 
     def _ref_label(self, value):
-        labels={'purchase':self.tr('Réception','استلام'),'sale':self.tr('Vente','بيع'),'return':self.tr('Retour','إرجاع'),'inventory':self.tr('Inventaire','جرد'),'import':self.tr('Import','استيراد'),'adjustment':self.tr('Ajustement','تسوية')}
+        labels={'purchase':self.tr('Réception','استلام','Receipt'),'sale':self.tr('Vente','بيع','Sale'),'return':self.tr('Retour','إرجاع','Return'),'inventory':self.tr('Inventaire','جرد','Inventory'),'import':self.tr('Import','استيراد'),'adjustment':self.tr('Ajustement','تسوية','Adjustment')}
         return labels.get((value or '').lower(), value or '')
 
     def refresh(self):
         status='all'
-        if self.filter.get()==self.tr("Alertes stock","تنبيهات المخزون"):status='alerts'
-        elif self.filter.get()==self.tr("Stock négatif","مخزون سالب"):status='negative'
+        if self.filter.get()==self.tr("Alertes stock","تنبيهات المخزون","Stock alerts"):status='alerts'
+        elif self.filter.get()==self.tr("Stock négatif","مخزون سالب","Negative stock"):status='negative'
         category_id=self.family_map.get(self.family.get()) if hasattr(self,'family_map') else None
         r=stock_products(self.q.get().strip(),category_id,status)
         summary=stock_summary()
@@ -93,8 +93,8 @@ class StockFrame(ttk.Frame):
         values=self.t.item(selection[0],'values')
         name=values[1] if len(values)>1 else f'#{pid}'
         if not messagebox.askyesno(
-            self.tr('Désactiver article','تعطيل المنتوج'),
-            self.tr(f"Désactiver « {name} » ? L'historique sera conservé.",f'تعطيل « {name} »؟ سيتم الاحتفاظ بالسجل.'),
+            self.tr('Désactiver article','تعطيل المنتوج','Deactivate product'),
+            self.tr(f"Désactiver « {name} » ? L'historique sera conservé.",f'تعطيل « {name} »؟ سيتم الاحتفاظ بالسجل.',f'Deactivate “{name}”? History will be kept.'),
             parent=self
         ):return
         try:
@@ -105,9 +105,9 @@ class StockFrame(ttk.Frame):
     def adjust(self):
         s=self.t.selection()
         if not s:return
-        pid=int(s[0]);q=simpledialog.askfloat(self.tr("Ajustement","تسوية المخزون"),self.tr("Variation (+/-):","التغيير (+/-):"),parent=self)
+        pid=int(s[0]);q=simpledialog.askfloat(self.tr("Ajustement","تسوية المخزون","Stock adjustment"),self.tr("Variation (+/-):","التغيير (+/-):","Variation (+/-):"),parent=self)
         if q is None or q==0:return
-        note=simpledialog.askstring(self.tr("Ajustement","تسوية المخزون"),self.tr("Raison obligatoire:","السبب إجباري:"),parent=self) or ""
+        note=simpledialog.askstring(self.tr("Ajustement","تسوية المخزون","Stock adjustment"),self.tr("Raison obligatoire:","السبب إجباري:","Reason required:"),parent=self) or ""
         if not note.strip():return
         try:
             with connect() as c:c.execute("BEGIN IMMEDIATE");apply_stock_movement(c,pid,q,"ADJUSTMENT",note=note);c.commit()
@@ -116,21 +116,21 @@ class StockFrame(ttk.Frame):
 
     def reorder_window(self):
         rows=reorder_list()
-        w=tk.Toplevel(self);w.title(self.tr("Réapprovisionnement","إعادة الطلب"));w.geometry('1000x620');w.transient(self)
-        ttk.Label(w,text=self.tr("Articles à commander — cible automatique = 2 × seuil d'alerte","منتجات لإعادة الطلب — الهدف التلقائي = ضعفي حد التنبيه"),
+        w=tk.Toplevel(self);w.title(self.tr("Réapprovisionnement","إعادة الطلب","Reorder"));w.geometry('1000x620');w.transient(self)
+        ttk.Label(w,text=self.tr("Articles à commander — cible automatique = 2 × seuil d'alerte","منتجات لإعادة الطلب — الهدف التلقائي = ضعفي حد التنبيه","Products to order — automatic target = 2 × alert threshold"),
                   font=('Segoe UI',11,'bold')).pack(anchor='w',padx=12,pady=(12,4))
         tree=ttk.Treeview(w,columns=('name','supplier_name','sku','supplier','stock','alert','target','order','cost'),show='headings')
         for key,label,width,anchor_col in [
-            ('name',self.tr('Article','المنتوج'),220,'w'),('supplier_name',self.tr('Fournisseur','المورد'),160,'w'),('sku','SKU',90,'center'),
-            ('supplier',self.tr('Code fournisseur','كود المورد'),110,'center'),('stock',self.tr('Stock','المخزون','Stock'),70,'e'),
-            ('alert',self.tr('Seuil','الحد'),80,'e'),('target',self.tr('Cible','الهدف'),80,'e'),
-            ('order',self.tr('À commander','للطلب'),95,'e'),('cost',self.tr('Coût estimé','التكلفة المقدرة'),110,'e')]:
+            ('name',self.tr('Article','المنتوج','Product'),220,'w'),('supplier_name',self.tr('Fournisseur','المورد','Supplier'),160,'w'),('sku','SKU',90,'center'),
+            ('supplier',self.tr('Code fournisseur','كود المورد','Supplier code'),110,'center'),('stock',self.tr('Stock','المخزون','Stock'),70,'e'),
+            ('alert',self.tr('Seuil','الحد','Threshold'),80,'e'),('target',self.tr('Cible','الهدف','Target'),80,'e'),
+            ('order',self.tr('À commander','للطلب','To order'),95,'e'),('cost',self.tr('Coût estimé','التكلفة المقدرة','Estimated cost'),110,'e')]:
             tree.heading(key,text=label);tree.column(key,width=width,anchor=anchor_col)
         tree.pack(fill='both',expand=True,padx=12,pady=8)
         total=0
         for r in rows:
             total+=r['estimated_cost_cents']
-            tree.insert('','end',values=(r['name'],r['preferred_supplier_name'] or self.tr('Non assigné','غير محدد'),r['sku'] or '',r['supplier_code'] or '',f"{r['stock_qty']:g}",
+            tree.insert('','end',values=(r['name'],r['preferred_supplier_name'] or self.tr('Non assigné','غير محدد','Unassigned'),r['sku'] or '',r['supplier_code'] or '',f"{r['stock_qty']:g}",
                 f"{r['alert_qty']:g}",f"{r['target_qty']:g}",f"{r['suggested_qty']:g}",f"{r['estimated_cost_cents']/100:.2f}"))
         supplier_ids=sorted({int(r['preferred_supplier_id']) for r in rows if r.get('preferred_supplier_id')})
         suppliers={int(r['preferred_supplier_id']):r['preferred_supplier_name'] for r in rows if r.get('preferred_supplier_id')}
@@ -138,7 +138,7 @@ class StockFrame(ttk.Frame):
         supplier_var=tk.StringVar()
         supplier_values=[f"{suppliers[sid]} · #{sid}" for sid in supplier_ids]
         if supplier_values:supplier_var.set(supplier_values[0])
-        ttk.Label(footer,text=self.tr('Fournisseur','المورد')).pack(side='left',padx=(0,4))
+        ttk.Label(footer,text=self.tr('Fournisseur','المورد','Supplier')).pack(side='left',padx=(0,4))
         ttk.Combobox(footer,textvariable=supplier_var,values=supplier_values,state='readonly',width=24).pack(side='left',padx=(0,8))
         ttk.Label(footer,text=self.tr(f"Coût total estimé: {fmt(total)}",f"إجمالي التكلفة المقدرة: {fmt(total)}",f"Estimated total cost: {fmt(total)}"),
                   font=('Segoe UI',11,'bold')).pack(side='right')
@@ -171,13 +171,13 @@ class StockFrame(ttk.Frame):
     def global_ledger(self):
         w=tk.Toplevel(self);w.title(self.tr("Journal global du stock","السجل العام للمخزون"));w.geometry('1180x650');w.transient(self)
         tools=ttk.Frame(w);tools.pack(fill='x',padx=12,pady=(12,4))
-        query=tk.StringVar();kind=tk.StringVar(value=self.tr('Tous','الكل'))
+        query=tk.StringVar();kind=tk.StringVar(value=self.tr('Tous','الكل','All'))
         ttk.Entry(tools,textvariable=query,width=30).pack(side='left')
-        kinds=[self.tr('Tous','الكل'),'SALE','PURCHASE','RETURN','INVENTORY','ADJUSTMENT','OUT','OPENING']
+        kinds=[self.tr('Tous','الكل','All'),'SALE','PURCHASE','RETURN','INVENTORY','ADJUSTMENT','OUT','OPENING']
         ttk.Combobox(tools,textvariable=kind,values=kinds,state='readonly',width=16).pack(side='left',padx=6)
         tree=ttk.Treeview(w,columns=('date','product','user','type','old','delta','new','document','reason'),show='headings')
         for key,label,width in [
-            ('date',self.tr('Date','التاريخ'),145),('product',self.tr('Article','المنتوج'),220),
+            ('date',self.tr('Date','التاريخ'),145),('product',self.tr('Article','المنتوج','Product'),220),
             ('user',self.tr('Utilisateur','المستخدم'),110),('type',self.tr('Type','النوع'),100),
             ('old',self.tr('Avant','قبل'),70),('delta',self.tr('Variation','التغيير'),75),
             ('new',self.tr('Après','بعد'),70),('document',self.tr('Document','الوثيقة'),120),
@@ -186,7 +186,7 @@ class StockFrame(ttk.Frame):
         tree.pack(fill='both',expand=True,padx=12,pady=(4,12))
         tree.tag_configure('out',foreground='#B91C1C');tree.tag_configure('in',foreground='#15803D')
         def load(*_):
-            selected='' if kind.get()==self.tr('Tous','الكل') else kind.get()
+            selected='' if kind.get()==self.tr('Tous','الكل','All') else kind.get()
             rows=stock_activity(query.get(),selected)
             tree.delete(*tree.get_children())
             for r in rows:
