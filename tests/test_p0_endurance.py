@@ -137,6 +137,38 @@ class P0EnduranceTests(unittest.TestCase):
         self.assertEqual(stock_after, stock_before)
         self.assertEqual(close_session(session_id, 0)[:2], (0, 0))
 
+    def test_core_sale_flow_never_requires_network(self):
+        # The POS core must remain fully usable with networking unavailable.
+        # Block common Python network entry points, then exercise barcode lookup,
+        # checkout and cash closure end-to-end against the local SQLite database.
+        import socket
+
+        def offline(*args, **kwargs):
+            raise OSError("network unavailable")
+
+        with patch.object(socket, "create_connection", side_effect=offline), \
+             patch.object(socket.socket, "connect", side_effect=offline):
+            matches = scan_barcode("P0-ENDURANCE-001")
+            self.assertEqual(len(matches), 1)
+
+            session_id = open_session(self.user_id, 0)
+            sale = complete_sale(
+                session_id,
+                self.user_id,
+                [{
+                    "product_id": self.product_id,
+                    "barcode_id": self.barcode_id,
+                    "barcode": "P0-ENDURANCE-001",
+                    "qty": 1,
+                    "unit_price_cents": 250,
+                    "discount_cents": 0,
+                }],
+                "CASH",
+                250,
+            )
+            self.assertEqual(sale["total_cents"], 250)
+            self.assertEqual(close_session(session_id, 250)[:2], (250, 0))
+
     def test_disconnected_serial_devices_raise_recoverable_errors(self):
         # CI cannot depend on physical peripherals.  A refused COM connection must
         # give callers a normal, catchable error rather than hang the cashier loop.
