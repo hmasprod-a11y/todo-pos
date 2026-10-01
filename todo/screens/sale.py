@@ -565,17 +565,17 @@ class SaleFrame(ttk.Frame):
     def duplicate_receipt(self):
         with connect() as conn:
             rows=conn.execute('SELECT id,sale_no,total_cents,created_at FROM sales ORDER BY id DESC LIMIT 100').fetchall()
-        window=tk.Toplevel(self);window.title(self.tr('Duplicata — choisir un ticket','نسخة التذكرة — اختر تذكرة'))
+        window=tk.Toplevel(self);window.title(self.tr('Duplicata — choisir un ticket','نسخة التذكرة — اختر تذكرة','Duplicate — choose a receipt'))
         window.transient(self.winfo_toplevel());window.grab_set()
         tree=ttk.Treeview(window,columns=('number','date','total'),show='headings',height=12)
-        for key,label in [('number',self.tr('Ticket','التذكرة','Receipt')),('date',self.tr('Date','التاريخ')),('total',self.tr('Total','المجموع'))]:tree.heading(key,text=label)
+        for key,label in [('number',self.tr('Ticket','التذكرة','Receipt')),('date',self.tr('Date','التاريخ','Date')),('total',self.tr('Total','المجموع','Total'))]:tree.heading(key,text=label)
         tree.pack(fill='both',expand=True,padx=12,pady=12)
         for row in rows:tree.insert('','end',iid=str(row['id']),values=(row['sale_no'],row['created_at'],fmt(row['total_cents'],self.currency)))
         def choose(event=None):
             if not tree.selection():return
             sid=int(tree.selection()[0]);row=next(r for r in rows if r['id']==sid)
             window.destroy();self.show_receipt(row)
-        ttk.Button(window,text=self.tr('Voir / Imprimer','عرض / طباعة'),command=choose).pack(pady=10)
+        ttk.Button(window,text=self.tr('Voir / Imprimer','عرض / طباعة','View / Print'),command=choose).pack(pady=10)
         tree.bind('<Return>',choose);tree.bind('<Double-1>',choose)
         window.bind('<Escape>',lambda e:window.destroy())
         if rows:tree.selection_set(str(rows[0]['id']));tree.focus_set()
@@ -1152,19 +1152,19 @@ class SaleFrame(ttk.Frame):
         def save_pdf():
             path=filedialog.asksaveasfilename(parent=w,defaultextension='.pdf',filetypes=[('PDF','*.pdf')],initialfile=result['sale_no']+'.pdf')
             if path:export_receipt_pdf(result['id'],path)
-        ttk.Button(buttons,text=self.tr('Enregistrer PDF','حفظ PDF'),command=save_pdf).pack(side='left',padx=8,pady=8)
+        ttk.Button(buttons,text=self.tr('Enregistrer PDF','حفظ PDF','Save PDF'),command=save_pdf).pack(side='left',padx=8,pady=8)
         text=tk.Text(w,font=('Consolas',11),padx=16,pady=16)
         text.pack(fill='both',expand=True);text.insert('1.0',build_receipt(result['id']));text.config(state='disabled')
-        ttk.Button(buttons,text=self.tr('Imprimer','طباعة'),command=lambda:print_receipt_windows(result['id'])).pack(side='left',padx=12,pady=12)
+        ttk.Button(buttons,text=self.tr('Imprimer','طباعة','Print'),command=lambda:print_receipt_windows(result['id'])).pack(side='left',padx=12,pady=12)
         def send_mail():
-            address=simpledialog.askstring(self.tr('E-mail','البريد الإلكتروني'),self.tr('Adresse destinataire:','بريد المستلم:'),parent=w)
+            address=simpledialog.askstring(self.tr('E-mail','البريد الإلكتروني','Email'),self.tr('Adresse destinataire:','بريد المستلم:','Recipient address:'),parent=w)
             if not address:return
             try:
                 from services.emailer import send_email
-                send_email(address,self.tr(f"Ticket {result['sale_no']}",f"تذكرة {result['sale_no']}"),build_receipt(result['id']))
-                messagebox.showinfo('ToDo',self.tr('Ticket envoyé.','تم إرسال التذكرة.'),parent=w)
+                send_email(address,self.tr(f"Ticket {result['sale_no']}",f"تذكرة {result['sale_no']}",f"Receipt {result['sale_no']}"),build_receipt(result['id']))
+                messagebox.showinfo('ToDo',self.tr('Ticket envoyé.','تم إرسال التذكرة.','Receipt sent.'),parent=w)
             except Exception as error:messagebox.showerror(self.tr('E-mail','البريد الإلكتروني'),str(error),parent=w)
         if get_setting('email_enabled','0')=='1':
-            ttk.Button(buttons,text=self.tr('E-mail','بريد'),command=send_mail).pack(side='left',padx=8,pady=12)
-        ttk.Button(buttons,text=self.tr('Fermer','إغلاق'),command=w.destroy).pack(side='right',padx=12,pady=12)
+            ttk.Button(buttons,text=self.tr('E-mail','بريد','Email'),command=send_mail).pack(side='left',padx=8,pady=12)
+        ttk.Button(buttons,text=self.tr('Fermer','إغلاق','Close'),command=w.destroy).pack(side='right',padx=12,pady=12)
         w.bind('<Escape>',lambda e:w.destroy())
