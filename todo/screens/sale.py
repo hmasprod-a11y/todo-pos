@@ -994,19 +994,19 @@ class SaleFrame(ttk.Frame):
 
     def load_quotation(self,payload):
         if self.cart:
-            raise ValueError(self.tr('Videz ou mettez en attente le ticket actuel avant de charger un devis.','أفرغ أو علّق التذكرة الحالية قبل تحميل عرض السعر.'))
+            raise ValueError(self.tr('Videz ou mettez en attente le ticket actuel avant de charger un devis.','أفرغ أو علّق التذكرة الحالية قبل تحميل عرض السعر.','Empty or hold the current receipt before loading a quotation.'))
         quote=payload['quotation'];self.quotation_id=int(quote['id']);self.client_id=quote['client_id']
         self.cart=[dict(product_id=int(x['product_id']),name=x['name'],qty=float(x['qty']),unit_price_cents=str(int(x['unit_price_cents'])),
                         base_price_cents=int(x['unit_price_cents']),discount_cents=0,allow_fraction=1,barcode_id=None,barcode='') for x in payload['cart']]
-        self.update_client_label();self.refresh();self.status.config(text=self.tr(f"Devis #{quote['id']} chargé.",f"تم تحميل عرض السعر #{quote['id']}."));self.focus_search()
+        self.update_client_label();self.refresh();self.status.config(text=self.tr(f"Devis #{quote['id']} chargé.",f"تم تحميل عرض السعر #{quote['id']}.",f"Quotation #{quote['id']} loaded."));self.focus_search()
 
     def load_customer_order(self,payload):
         if self.cart:
-            raise ValueError(self.tr('Videz ou mettez en attente le ticket actuel avant de charger une commande.','أفرغ أو علّق التذكرة الحالية قبل تحميل الطلب.'))
+            raise ValueError(self.tr('Videz ou mettez en attente le ticket actuel avant de charger une commande.','أفرغ أو علّق التذكرة الحالية قبل تحميل الطلب.','Empty or hold the current receipt before loading an order.'))
         order=payload['order'];self.customer_order_id=int(order['id']);self.client_id=int(order['client_id'])
         self.cart=[dict(product_id=int(x['product_id']),name=x['name'],qty=float(x['qty']),unit_price_cents=str(int(x['unit_price_cents'])),
                         base_price_cents=int(x['unit_price_cents']),discount_cents=0,allow_fraction=1,barcode_id=None,barcode='') for x in payload['cart']]
-        self.update_client_label();self.refresh();self.status.config(text=self.tr(f"Commande client #{order['id']} chargée.",f"تم تحميل طلب الزبون #{order['id']}."));self.focus_search()
+        self.update_client_label();self.refresh();self.status.config(text=self.tr(f"Commande client #{order['id']} chargée.",f"تم تحميل طلب الزبون #{order['id']}.",f"Customer order #{order['id']} loaded."));self.focus_search()
 
     def set_payment(self,method):
         self.payment=method
