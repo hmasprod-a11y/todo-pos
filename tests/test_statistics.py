@@ -40,6 +40,10 @@ class StatisticsTests(unittest.TestCase):
         sale=self.sell();self.assert_revenue(2500)
         self.assertEqual(period_summary()['gross_margin'],900)
         create_return(sale['id'],self.session,self.uid,[(self.item,1)])
+        with database.connect() as c:
+            refunded=c.execute("SELECT total_cents FROM returns WHERE sale_id=?",(sale['id'],)).fetchone()[0]
+        self.assertEqual(refunded,1250)
+        self.assertLessEqual(refunded,sale['total_cents'])
         for period in ['week','month','year']:self.assert_revenue(1250,period)
         self.assertEqual(period_summary()['gross_margin'],450)
         self.assertEqual(today_summary()['net_sales'],1250)
