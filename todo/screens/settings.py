@@ -414,8 +414,8 @@ class SettingsFrame(ttk.Frame):
         for r in rows:
             line=ttk.Frame(self.sellers_frame);line.pack(fill="x",pady=2)
             ttk.Label(line,text=r["name"],width=30).pack(side="left")
-            ttk.Label(line,text=self.tr("Actif","نشط","Active") if r["active"] else self.tr("Inactif","معطل"),width=12).pack(side="left")
-            ttk.Button(line,text=self.tr("Désactiver","تعطيل") if r["active"] else self.tr("Activer","تفعيل"),command=lambda sid=r["id"],a=r["active"]:self.toggle_seller(sid,a)).pack(side="left",padx=4)
+            ttk.Label(line,text=self.tr("Actif","نشط","Active") if r["active"] else self.tr("Inactif","معطل","Inactive"),width=12).pack(side="left")
+            ttk.Button(line,text=self.tr("Désactiver","تعطيل","Disable") if r["active"] else self.tr("Activer","تفعيل","Enable"),command=lambda sid=r["id"],a=r["active"]:self.toggle_seller(sid,a)).pack(side="left",padx=4)
     def add_seller(self):
         name=self.new_seller_name.get().strip()
         if not name:return
@@ -436,9 +436,9 @@ class SettingsFrame(ttk.Frame):
             ttk.Label(line,text=r['code'],width=12).pack(side='left')
             ttk.Label(line,text=r['name_fr'],width=22).pack(side='left')
             ttk.Label(line,text=r['name_ar'] or '—',width=18).pack(side='left')
-            ttk.Label(line,text=self.tr('Actif','نشط') if r['active'] else self.tr('Inactif','معطل'),width=10).pack(side='left')
+            ttk.Label(line,text=self.tr('Actif','نشط','Active') if r['active'] else self.tr('Inactif','معطل','Inactive'),width=10).pack(side='left')
             if not r['system']:
-                ttk.Button(line,text=self.tr('Désactiver','تعطيل') if r['active'] else self.tr('Activer','تفعيل'),
+                ttk.Button(line,text=self.tr('Désactiver','تعطيل','Disable') if r['active'] else self.tr('Activer','تفعيل','Enable'),
                            command=lambda mid=r['id'],a=r['active']:self.toggle_payment_method(mid,a)).pack(side='left',padx=4)
 
     def add_payment_method(self):
@@ -459,8 +459,8 @@ class SettingsFrame(ttk.Frame):
         for r in rows:
             line=ttk.Frame(self.price_grids_frame);line.pack(fill="x",pady=2)
             ttk.Label(line,text=r["name"],width=30).pack(side="left")
-            ttk.Label(line,text=self.tr("Active","نشطة") if r["active"] else self.tr("Inactive","معطلة"),width=12).pack(side="left")
-            ttk.Button(line,text=self.tr("Désactiver","تعطيل") if r["active"] else self.tr("Activer","تفعيل"),command=lambda gid=r["id"],a=r["active"]:self.toggle_price_grid(gid,a)).pack(side="left",padx=4)
+            ttk.Label(line,text=self.tr("Active","نشطة","Active") if r["active"] else self.tr("Inactive","معطلة","Inactive"),width=12).pack(side="left")
+            ttk.Button(line,text=self.tr("Désactiver","تعطيل","Disable") if r["active"] else self.tr("Activer","تفعيل","Enable"),command=lambda gid=r["id"],a=r["active"]:self.toggle_price_grid(gid,a)).pack(side="left",padx=4)
     def add_price_grid(self):
         name=self.new_grid_name.get().strip()
         if not name:return
