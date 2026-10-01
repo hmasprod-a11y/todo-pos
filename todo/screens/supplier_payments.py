@@ -68,7 +68,7 @@ class SupplierPaymentsWindow(tk.Toplevel):
                                    (self.supplier['id'],)).fetchone()[0]
         balance = billed - paid
         self.lbl_balance.config(
-            text=self.tr(f"Solde dû : {fmt(balance)}",f"الرصيد المستحق: {fmt(balance)}"),
+            text=self.tr(f"Solde dû : {fmt(balance)}",f"الرصيد المستحق: {fmt(balance)}",f"Amount due: {fmt(balance)}"),
             foreground='#dc2626' if balance > 0 else '#16a34a')
 
         self.pur_tree.delete(*self.pur_tree.get_children())
@@ -144,7 +144,7 @@ class SupplierCreditStateWindow(tk.Toplevel):
                 values=(r['name'], r['phone'],
                         fmt(r['billed_cents']), fmt(r['paid_cents']), fmt(bal)),
                 tags=(tag,))
-        self.lbl_total.config(text=self.tr(f"Total dû : {fmt(grand)}",f"إجمالي المستحق: {fmt(grand)}"))
+        self.lbl_total.config(text=self.tr(f"Total dû : {fmt(grand)}",f"إجمالي المستحق: {fmt(grand)}",f"Total amount due: {fmt(grand)}"))
 
 
 class SupplierReglementFrame(ttk.Frame):
@@ -210,7 +210,7 @@ class SupplierReglementFrame(ttk.Frame):
 
     def payments(self):
         s = self._selected()
-        if not s: messagebox.showinfo(self.tr('Règlements','التسديدات','Payments'), self.tr('Sélectionnez un fournisseur.','اختر مورداً.'), parent=self); return
+        if not s: messagebox.showinfo(self.tr('Règlements','التسديدات','Payments'), self.tr('Sélectionnez un fournisseur.','اختر مورداً.','Select a supplier.'), parent=self); return
         SupplierPaymentsWindow(self, s)
 
     def credit_state(self):

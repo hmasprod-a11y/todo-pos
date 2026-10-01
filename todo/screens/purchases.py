@@ -90,7 +90,7 @@ class PurchasesFrame(ttk.Frame):
         for x in self.lines:
             line_total=round(x["qty"]*x["unit_cost_cents"]);total+=line_total
             self.lines_t.insert("", "end",values=(x["name"],f"{x['qty']:g}",fmt(x["unit_cost_cents"],""),fmt(line_total,"")))
-        self.total_label.configure(text=f"{self.tr('Total','المجموع')} : {fmt(total)}")
+        self.total_label.configure(text=f"{self.tr('Total','المجموع','Total')} : {fmt(total)}")
     def _selected_line_index(self):
         sel=self.lines_t.selection()
         if not sel:return None
@@ -162,5 +162,5 @@ class PurchasesFrame(ttk.Frame):
             order_id=getattr(self,'_pending_order_id',None)
             if order_id:
                 mark_purchase_order_received(order_id);self._pending_order_id=None
-            messagebox.showinfo("ToDo",f"{self.tr('Réception','استلام','Receipt')} #{pid}\\n{self.tr('Total','المجموع')}: {fmt(total)}",parent=self);self.lines=[];self.paid.set("0");self.refresh_lines();self.search()
+            messagebox.showinfo("ToDo",f"{self.tr('Réception','استلام','Receipt')} #{pid}\\n{self.tr('Total','المجموع','Total')}: {fmt(total)}",parent=self);self.lines=[];self.paid.set("0");self.refresh_lines();self.search()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
