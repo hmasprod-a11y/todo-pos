@@ -949,16 +949,16 @@ class SaleFrame(ttk.Frame):
         self.focus_search()
 
     def choose_seller(self):
-        window=tk.Toplevel(self);window.title(self.tr('Choisir vendeur','اختيار البائع'));window.geometry('420x420');window.transient(self.app);window.grab_set()
-        tree=ttk.Treeview(window,columns=('name',),show='headings');tree.heading('name',text=self.tr('Vendeur','البائع'));tree.pack(fill='both',expand=True,padx=12,pady=12)
+        window=tk.Toplevel(self);window.title(self.tr('Choisir vendeur','اختيار البائع','Choose seller'));window.geometry('420x420');window.transient(self.app);window.grab_set()
+        tree=ttk.Treeview(window,columns=('name',),show='headings');tree.heading('name',text=self.tr('Vendeur','البائع','Seller'));tree.pack(fill='both',expand=True,padx=12,pady=12)
         with connect() as c:rows=c.execute("SELECT id,name FROM sellers WHERE active=1 ORDER BY name COLLATE NOCASE").fetchall()
         for row in rows:tree.insert('','end',iid=str(row['id']),values=(row['name'],))
         buttons=ttk.Frame(window);buttons.pack(fill='x',padx=12,pady=(0,12))
         def select(clear=False):
             if not clear and not tree.selection():return
             self.seller_id=None if clear else int(tree.selection()[0]);self.update_seller_label();window.destroy();self.focus_search()
-        ttk.Button(buttons,text=self.tr('Choisir','اختيار'),command=select).pack(side='left')
-        ttk.Button(buttons,text=self.tr('Aucun vendeur','بدون بائع'),command=lambda:select(True)).pack(side='left',padx=8)
+        ttk.Button(buttons,text=self.tr('Choisir','اختيار','Choose'),command=select).pack(side='left')
+        ttk.Button(buttons,text=self.tr('Aucun vendeur','بدون بائع','No seller'),command=lambda:select(True)).pack(side='left',padx=8)
         tree.bind('<Double-1>',lambda e:select())
     def update_seller_label(self):
         name=None
@@ -966,16 +966,16 @@ class SaleFrame(ttk.Frame):
             with connect() as c:
                 row=c.execute("SELECT name FROM sellers WHERE id=?",(self.seller_id,)).fetchone()
                 name=row['name'] if row else None
-        self.seller_button.configure(text=(self.tr('Vendeur : ','البائع: ')+(name or self.tr('aucun','لا أحد')))[:40])
+        self.seller_button.configure(text=(self.tr('Vendeur : ','البائع: ','Seller: ')+(name or self.tr('aucun','لا أحد','none')))[:40])
 
     def choose_client(self):
         from services.clients import list_clients
-        window=tk.Toplevel(self);window.title(self.tr('Choisir client','اختيار الزبون'));window.geometry('580x460')
+        window=tk.Toplevel(self);window.title(self.tr('Choisir client','اختيار الزبون','Choose customer'));window.geometry('580x460')
         window.transient(self.app);window.grab_set()
         query=tk.StringVar();entry=ttk.Entry(window,textvariable=query);entry.pack(fill='x',padx=12,pady=12)
         buttons=ttk.Frame(window);buttons.pack(side='bottom',fill='x',padx=12,pady=12)
         tree=ttk.Treeview(window,columns=('name','phone'),show='headings')
-        tree.heading('name',text=self.tr('Client','الزبون'));tree.heading('phone',text=self.tr('Téléphone','الهاتف'));tree.pack(fill='both',expand=True,padx=12)
+        tree.heading('name',text=self.tr('Client','الزبون','Customer'));tree.heading('phone',text=self.tr('Téléphone','الهاتف','Phone'));tree.pack(fill='both',expand=True,padx=12)
         def refresh(*args):
             tree.delete(*tree.get_children())
             for row in list_clients(query.get()):tree.insert('','end',iid=str(row['id']),values=(row['name'],row['phone']))
@@ -983,14 +983,14 @@ class SaleFrame(ttk.Frame):
             if not clear and not tree.selection():return
             self.client_id=None if clear else int(tree.selection()[0])
             self.update_client_label();window.destroy();self.focus_search()
-        ttk.Button(buttons,text=self.tr('Choisir','اختيار'),command=select).pack(side='left')
-        ttk.Button(buttons,text=self.tr('Client de passage','زبون عابر'),command=lambda:select(True)).pack(side='left',padx=10)
+        ttk.Button(buttons,text=self.tr('Choisir','اختيار','Choose'),command=select).pack(side='left')
+        ttk.Button(buttons,text=self.tr('Client de passage','زبون عابر','Walk-in customer'),command=lambda:select(True)).pack(side='left',padx=10)
         tree.bind('<Double-1>',lambda e:select());entry.bind('<KeyRelease>',refresh);refresh();entry.focus_set()
 
     def update_client_label(self):
         from services.clients import get_client
-        name=get_client(self.client_id)['name'] if self.client_id is not None else self.tr('passage','عابر')
-        self.client_button.configure(text=self.tr('F6 Client : ','F6 الزبون: ')+name[:30])
+        name=get_client(self.client_id)['name'] if self.client_id is not None else self.tr('passage','عابر','walk-in')
+        self.client_button.configure(text=self.tr('F6 Client : ','F6 الزبون: ','F6 Customer: ')+name[:30])
 
     def load_quotation(self,payload):
         if self.cart:
