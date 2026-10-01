@@ -197,7 +197,7 @@ class SaleFrame(ttk.Frame):
         self.build_custom_shortcuts()
         status_bar=tk.Frame(self,bg='#E2E8F0',padx=10,pady=6)
         status_bar.pack(fill='x',pady=(8,0))
-        self.status=tk.Label(status_bar,text=self.tr('● Scanner prêt   ·   Ctrl+F Rechercher   ·   Entrée Ajouter','● الماسح جاهز   ·   Ctrl+F بحث   ·   Enter إضافة'),
+        self.status=tk.Label(status_bar,text=self.tr('● Scanner prêt   ·   Ctrl+F Rechercher   ·   Entrée Ajouter','● الماسح جاهز   ·   Ctrl+F بحث   ·   Enter إضافة','● Scanner ready   ·   Ctrl+F Search   ·   Enter Add'),
                              bg='#E2E8F0',fg='#334155',font=('Segoe UI',9,'bold'))
         self.status.pack(side='left')
         tk.Label(status_bar,text='ToDo POS',bg='#E2E8F0',fg='#64748B',
@@ -225,11 +225,11 @@ class SaleFrame(ttk.Frame):
                 if not allow:
                     raise ValueError(self.tr('Le produit sélectionné ne se vend pas au poids.','المنتوج المحدد لا يباع بالوزن.'))
                 self.update_quantity(index,weight)
-                self.status.config(text=self.tr(f'Poids appliqué : {weight:.3f} kg',f'تم تطبيق الوزن: {weight:.3f} كغ'))
+                self.status.config(text=self.tr(f'Poids appliqué : {weight:.3f} kg',f'تم تطبيق الوزن: {weight:.3f} كغ',f'Weight applied: {weight:.3f} kg'))
             else:
                 self.scan_quantity.set(f'{weight:.3f}')
                 self.quantity_entry.focus_set();self.quantity_entry.selection_range(0,'end')
-                self.status.config(text=self.tr(f'Poids lu : {weight:.3f} kg — choisissez/scannez un article.',f'تمت قراءة الوزن: {weight:.3f} كغ — اختر أو امسح منتوجاً.'))
+                self.status.config(text=self.tr(f'Poids lu : {weight:.3f} kg — choisissez/scannez un article.',f'تمت قراءة الوزن: {weight:.3f} كغ — اختر أو امسح منتوجاً.',f'Weight read: {weight:.3f} kg — choose or scan a product.'))
         except Exception as error:
             messagebox.showerror(self.tr('Balance','الميزان'),str(error),parent=self)
         finally:
@@ -519,7 +519,7 @@ class SaleFrame(ttk.Frame):
 
     def print_addition(self):
         if not self.cart:
-            messagebox.showinfo('ToDo',self.tr('Ticket vide.','التذكرة فارغة.'),parent=self);return
+            messagebox.showinfo('ToDo',self.tr('Ticket vide.','التذكرة فارغة.','Empty receipt.'),parent=self);return
         try:
             from services.order_slips import print_addition
             print_addition(self.cart,self.ticket_discount_cents,self.currency)
@@ -530,11 +530,11 @@ class SaleFrame(ttk.Frame):
 
     def print_preparation(self,station):
         if not self.cart:
-            messagebox.showinfo('ToDo',self.tr('Ticket vide.','التذكرة فارغة.'),parent=self);return
+            messagebox.showinfo('ToDo',self.tr('Ticket vide.','التذكرة فارغة.','Empty receipt.'),parent=self);return
         try:
             from services.order_slips import print_preparation
             print_preparation(self.cart,station)
-            self.status.config(text=self.tr(f'Bon {station} envoyé.',f'تم إرسال ورقة {station}.'))
+            self.status.config(text=self.tr(f'Bon {station} envoyé.',f'تم إرسال ورقة {station}.',f'Preparation slip {station} sent.'))
         except Exception as error:
             messagebox.showerror(station,str(error),parent=self)
         finally:self.focus_search()
