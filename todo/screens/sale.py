@@ -725,7 +725,7 @@ class SaleFrame(ttk.Frame):
             from services.clients import get_client
             client=get_client(tag['target_id'])
             if client and client.get('active',1):
-                self.client_id=tag['target_id'];self.update_client_label();self.query.set('');self.status.config(text=self.tr(f"Client RFID : {client['name']}",f"زبون RFID: {client['name']}"));self.focus_search();return 'break'
+                self.client_id=tag['target_id'];self.update_client_label();self.query.set('');self.status.config(text=self.tr(f"Client RFID : {client['name']}",f"زبون RFID: {client['name']}",f"RFID customer: {client['name']}"));self.focus_search();return 'break'
         rows=scan_barcode(code)
         if len(rows)==1:
             r=rows[0];self.add_product(r['id'],r['barcode_id'],r['qty_multiplier'],r['barcode'])
@@ -739,19 +739,19 @@ class SaleFrame(ttk.Frame):
                 if len(rows)==1:self.add_product(rows[0]['id'])
                 else:
                     self.render_products();self.focus_catalog()
-                    self.status.config(text=self.tr('Choisissez un produit puis Entrée.','اختر منتوجاً ثم اضغط Enter.') if rows else self.tr('Aucun produit trouvé.','لم يتم العثور على أي منتوج.'))
+                    self.status.config(text=self.tr('Choisissez un produit puis Entrée.','اختر منتوجاً ثم اضغط Enter.','Choose a product, then press Enter.') if rows else self.tr('Aucun produit trouvé.','لم يتم العثور على أي منتوج.','No product found.'))
         return 'break'
 
     def unknown_product(self,code):
         from services.security import require_admin
         from screens.products import ProductEditor
         window=tk.Toplevel(self)
-        window.title(self.tr('Produit inconnu','منتوج غير معروف'))
+        window.title(self.tr('Produit inconnu','منتوج غير معروف','Unknown product'))
         window.configure(bg='#DC2626');window.geometry('640x340')
         window.transient(self.winfo_toplevel());window.grab_set()
         self.bell()
-        tk.Label(window,text=self.tr('!  Produit inconnu','!  منتوج غير معروف'),bg='#DC2626',fg='white',font=('Segoe UI',30,'bold')).pack(pady=(28,8))
-        tk.Label(window,text=self.tr('Produit inconnu','منتوج غير معروف'),bg='#DC2626',fg='white',font=('Segoe UI',18)).pack()
+        tk.Label(window,text=self.tr('!  Produit inconnu','!  منتوج غير معروف','!  Unknown product'),bg='#DC2626',fg='white',font=('Segoe UI',30,'bold')).pack(pady=(28,8))
+        tk.Label(window,text=self.tr('Produit inconnu','منتوج غير معروف','Unknown product'),bg='#DC2626',fg='white',font=('Segoe UI',18)).pack()
         tk.Label(window,text=code,bg='#DC2626',fg='white',font=('Segoe UI',20),wraplength=580).pack(pady=18)
         def close():
             window.destroy();self.query.set('');self.render_products();self.after_idle(self.focus_search)
@@ -766,8 +766,8 @@ class SaleFrame(ttk.Frame):
             self.wait_window(editor)
             self.query.set('');self.render_products();self.focus_search()
         buttons=tk.Frame(window,bg='#DC2626');buttons.pack(pady=12)
-        ttk.Button(buttons,text=self.tr('Ajouter le produit','إضافة المنتوج'),command=create).pack(side='left',padx=8,ipady=10)
-        back=ttk.Button(buttons,text=self.tr('Retour à la vente','رجوع للبيع'),command=close)
+        ttk.Button(buttons,text=self.tr('Ajouter le produit','إضافة المنتوج','Add product'),command=create).pack(side='left',padx=8,ipady=10)
+        back=ttk.Button(buttons,text=self.tr('Retour à la vente','رجوع للبيع','Back to sale'),command=close)
         back.pack(side='left',padx=8,ipady=10);back.focus_set()
         window.protocol('WM_DELETE_WINDOW',close)
         window.bind('<Escape>',lambda e:close())
