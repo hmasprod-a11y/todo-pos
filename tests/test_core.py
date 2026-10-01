@@ -4,8 +4,8 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'todo'))
 import database as db
 from services import backup
 from services.bootstrap import ensure_defaults
-from services.cash import open_session,close_session
-from services.sales import complete_sale,create_return,hold_sale,resume_held,list_held,sale_number,return_number
+from services.cash import open_session,close_session,session_totals
+from services.sales import complete_sale,create_manual_return,create_return,hold_sale,resume_held,list_held,sale_number,return_number
 from services.pricing import resolve_unit_price,line_total
 from services.inventory import apply_stock_movement,stock_activity,reorder_list
 from services.purchases import receive_purchase
@@ -432,5 +432,17 @@ class CoreTests(unittest.TestCase):
     unit=product_label_data(pid,rows[0]['id']);pack=product_label_data(pid,pack_id)
     self.assertEqual(unit['price_cents'],500);self.assertEqual(pack['barcode'],'CARTON-6')
     self.assertEqual(pack['qty_multiplier'],6);self.assertEqual(pack['price_cents'],2700)
+
+ def test_manual_return_restocks_product_and_reduces_cash(self):
+  result=create_manual_return(self.session,self.uid,self.pid,2,1800)
+  self.assertTrue(result['return_no'].startswith('MR-'))
+  self.assertEqual(self.stock(),22)
+  with db.connect() as c:
+   row=c.execute('SELECT product_id,qty,amount_cents FROM manual_returns WHERE id=?',(result['id'],)).fetchone()
+   movement=c.execute("SELECT movement_type,qty_delta FROM stock_movements WHERE ref_type='manual_return' AND ref_id=?",(result['id'],)).fetchone()
+   totals=session_totals(c,self.session)
+  self.assertEqual(tuple(row),(self.pid,2,1800))
+  self.assertEqual(tuple(movement),('RETURN_MANUAL',2))
+  self.assertEqual(totals['cash_returns'],1800)
 
 if __name__=='__main__':unittest.main()

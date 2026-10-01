@@ -5,7 +5,7 @@ from decimal import Decimal
 from database import connect, get_setting
 from services.catalog import search_products, scan_barcode, list_categories
 from services.pricing import resolve_unit_price, line_total
-from services.sales import complete_sale, hold_sale, list_held, resume_held
+from services.sales import complete_sale, create_manual_return, hold_sale, list_held, resume_held
 from services.cash import get_open_session
 from services.money import fmt, to_cents, allocate
 from services.images import abs_image
@@ -188,6 +188,7 @@ class SaleFrame(ttk.Frame):
             (self.tr('F4  Attente','F4  انتظار','F4  HOLD'),self.hold,'Soft.TButton'),
             (self.tr('Liste attente','لائحة الانتظار','Held receipts'),self.show_held,'Soft.TButton'),
             (self.tr('F7  Remise','F7  تخفيض','F7  Discount'),self.discount,'Soft.TButton'),
+            (self.tr('F9  Retour','F9  إرجاع','F9  Return'),self.manual_return,'Danger.TButton'),
             (self.tr('ESC  Annuler','ESC  إلغاء','ESC  Cancel'),self.cancel,'Danger.TButton'),
         ]
         for label,command,style in footer_actions:
@@ -202,7 +203,7 @@ class SaleFrame(ttk.Frame):
         self.status.pack(side='left')
         tk.Label(status_bar,text='ToDo POS',bg='#E2E8F0',fg='#64748B',
                  font=('Segoe UI',9)).pack(side='right')
-        commands={'<F2>':lambda:self.set_payment('CASH'),'<F3>':lambda:self.set_payment('CARD'),'<F4>':self.hold,'<F5>':lambda:self.checkout(True),'<F7>':self.discount,'<F8>':self.set_qty,'<Escape>':self.cancel,'<Control-f>':self.focus_search}
+        commands={'<F2>':lambda:self.set_payment('CASH'),'<F3>':lambda:self.set_payment('CARD'),'<F4>':self.hold,'<F5>':lambda:self.checkout(True),'<F7>':self.discount,'<F8>':self.set_qty,'<F9>':self.manual_return,'<Escape>':self.cancel,'<Control-f>':self.focus_search}
         if get_setting('require_client_on_sale','0')=='1':commands['<F6>']=self.choose_client
         for sequence,command in commands.items():
             binding=app.bind(sequence,lambda e,c=command:self.shortcut(e,c),add='+')
@@ -1008,6 +1009,52 @@ class SaleFrame(ttk.Frame):
         self.cart=[dict(product_id=int(x['product_id']),name=x['name'],qty=float(x['qty']),unit_price_cents=str(int(x['unit_price_cents'])),
                         base_price_cents=int(x['unit_price_cents']),discount_cents=0,allow_fraction=1,barcode_id=None,barcode='') for x in payload['cart']]
         self.update_client_label();self.refresh();self.status.config(text=self.tr(f"Commande client #{order['id']} chargée.",f"تم تحميل طلب الزبون #{order['id']}.",f"Customer order #{order['id']} loaded."));self.focus_search()
+
+    def manual_return(self):
+        session=get_open_session()
+        if not session:
+            messagebox.showinfo('ToDo',self.tr('Ouvrez la caisse avant le retour.','افتح الصندوق قبل الإرجاع.','Open the cash drawer before returning.'),parent=self);return
+        w=tk.Toplevel(self);w.title(self.tr('Retour manuel','إرجاع يدوي','Manual return'));w.geometry('620x500');w.transient(self.winfo_toplevel());w.grab_set()
+        body=ttk.Frame(w,padding=16);body.pack(fill='both',expand=True)
+        ttk.Label(body,text=self.tr('Retour manuel sans ticket','إرجاع يدوي بدون تذكرة','Manual return without receipt'),style='Title.TLabel').pack(anchor='w')
+        ttk.Label(body,text=self.tr('Scannez ou recherchez le produit, puis confirmez la quantité et le montant rendu en espèces.','امسح أو ابحث عن المنتج، ثم أكد الكمية والمبلغ المعاد نقداً.','Scan or search the product, then confirm the quantity and cash refund.'),wraplength=560).pack(anchor='w',pady=(0,10))
+        query=tk.StringVar();qty=tk.StringVar(value='1');amount=tk.StringVar();selected={}
+        search=ttk.Entry(body,textvariable=query,style='Search.TEntry');search.pack(fill='x')
+        tree=ttk.Treeview(body,columns=('name','price','stock'),show='headings',height=9)
+        for key,label,width in [('name',self.tr('Article','المنتوج','Product'),330),('price',self.tr('Prix actuel','الثمن الحالي','Current price'),110),('stock',self.tr('Stock','المخزون','Stock'),80)]:
+            tree.heading(key,text=label);tree.column(key,width=width,anchor='center' if key!='name' else 'w')
+        tree.pack(fill='both',expand=True,pady=10)
+        fields=ttk.Frame(body);fields.pack(fill='x')
+        ttk.Label(fields,text=self.tr('Quantité','الكمية','Quantity')).grid(row=0,column=0,sticky='w')
+        ttk.Entry(fields,textvariable=qty,width=12).grid(row=0,column=1,sticky='w',padx=(8,24))
+        ttk.Label(fields,text=self.tr('Montant rendu','المبلغ المسترجع','Cash refund')).grid(row=0,column=2,sticky='w')
+        ttk.Entry(fields,textvariable=amount,width=14).grid(row=0,column=3,sticky='w',padx=8)
+        def choose(event=None):
+            chosen=tree.selection()
+            if not chosen:return
+            with connect() as conn:row=conn.execute('SELECT id,name,sale_price_cents FROM products WHERE id=?',(int(chosen[0]),)).fetchone()
+            selected['row']=row;amount.set(f"{row['sale_price_cents']/100:.2f}")
+        def refresh(event=None):
+            tree.delete(*tree.get_children());selected.clear()
+            for row in search_products(query.get().strip(),limit=40):
+                tree.insert('', 'end',iid=str(row['id']),values=(row['name'],fmt(row['sale_price_cents'],self.currency),f"{row['stock_qty']:g}"))
+            if len(tree.get_children())==1:
+                tree.selection_set(tree.get_children()[0]);choose()
+        def confirm():
+            row=selected.get('row')
+            if not row:
+                messagebox.showinfo('ToDo',self.tr('Choisissez un article.','اختر منتوجاً.','Choose a product.'),parent=w);return
+            try:
+                result=create_manual_return(session['id'],self.app.user['id'],row['id'],float(qty.get().replace(',','.')),to_cents(amount.get()))
+            except Exception as error:
+                messagebox.showerror('ToDo',str(error),parent=w);return
+            messagebox.showinfo('ToDo',f"{result['return_no']}\n{self.tr('Montant rendu','المبلغ المسترجع','Cash refund')}: {fmt(result['amount_cents'],self.currency)}",parent=w)
+            w.destroy();self.focus_search()
+        search.bind('<KeyRelease>',refresh);search.bind('<Return>',refresh);tree.bind('<<TreeviewSelect>>',choose)
+        buttons=ttk.Frame(body);buttons.pack(fill='x',pady=(12,0))
+        ttk.Button(buttons,text=self.tr('Annuler','إلغاء','Cancel'),command=w.destroy).pack(side='right')
+        ttk.Button(buttons,text=self.tr('Confirmer retour','تأكيد الإرجاع','Confirm return'),style='Danger.TButton',command=confirm).pack(side='right',padx=8)
+        refresh();search.focus_set()
 
     def set_payment(self,method):
         self.payment=method

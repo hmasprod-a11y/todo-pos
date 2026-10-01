@@ -220,6 +220,36 @@ def resume_held(held_id):
                 line.pop('pricing_mode',None)
         return dict(cart=cart,discount_cents=row['discount_cents'],held_id=row['id'],client_id=row['client_id'],seller_id=row['seller_id'],price_grid_id=row['price_grid_id'],payment_method=row['payment_method'])
 
+def manual_return_number():
+    return 'MR-'+datetime.now().strftime('%Y%m%d-%H%M%S')+'-'+uuid4().hex[:12].upper()
+
+
+def create_manual_return(session_id, user_id, product_id, qty, amount_cents):
+    """Fast cash-and-stock return when the original receipt is unavailable."""
+    quantity=Decimal(str(qty))
+    amount=int(amount_cents)
+    if not quantity.is_finite() or quantity<=0:
+        raise ValueError('Quantité retour invalide')
+    if amount<=0:
+        raise ValueError('Montant retour invalide')
+    with connect() as conn:
+        conn.execute('BEGIN IMMEDIATE')
+        validate_session(conn,session_id,user_id)
+        from services.security import require_permission
+        require_permission('RETURNS',conn)
+        product=conn.execute('SELECT * FROM products WHERE id=?',(int(product_id),)).fetchone()
+        if not product:
+            raise ValueError('Article introuvable')
+        if not product['allow_fraction'] and quantity!=quantity.to_integral_value():
+            raise ValueError('Cet article se retourne en unités entières.')
+        number=manual_return_number()
+        rid=conn.execute('INSERT INTO manual_returns(return_no,session_id,cashier_user_id,product_id,qty,amount_cents) VALUES(?,?,?,?,?,?)',(number,session_id,user_id,product['id'],float(quantity),amount)).lastrowid
+        if not product['is_misc']:
+            apply_stock_movement(conn,product['id'],float(quantity),'RETURN_MANUAL',product['purchase_price_cents'],'manual_return',rid,number,user_id)
+        audit(conn,'MANUAL_RETURN',rid,f'{number}; product={product["id"]}; qty={quantity}; amount={amount}',user_id)
+        return dict(id=rid,return_no=number,product_id=product['id'],qty=float(quantity),amount_cents=amount)
+
+
 def create_return(sale_id,session_id,user_id,items,reason='',refund_method='CASH'):
     if not items:raise ValueError('Aucun article à retourner')
     if refund_method not in ('CASH','CARD','AUTO'):raise ValueError('Mode de remboursement invalide')

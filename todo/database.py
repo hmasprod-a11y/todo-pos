@@ -433,6 +433,21 @@ CREATE TABLE IF NOT EXISTS returns (
     FOREIGN KEY(cashier_user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS manual_returns (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    return_no TEXT NOT NULL UNIQUE,
+    session_id INTEGER NOT NULL,
+    cashier_user_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    qty REAL NOT NULL,
+    amount_cents INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(session_id) REFERENCES cash_sessions(id),
+    FOREIGN KEY(cashier_user_id) REFERENCES users(id),
+    FOREIGN KEY(product_id) REFERENCES products(id)
+);
+CREATE INDEX IF NOT EXISTS idx_manual_returns_session ON manual_returns(session_id);
+
 CREATE TABLE IF NOT EXISTS return_payments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     return_id INTEGER NOT NULL,

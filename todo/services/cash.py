@@ -50,6 +50,7 @@ def session_totals(conn, session_id):
            WHERE r.session_id=? AND rp.payment_method='CASH'""",
         (session_id,)
     ).fetchone()["v"]
+    cash_returns += conn.execute("SELECT COALESCE(SUM(amount_cents),0) FROM manual_returns WHERE session_id=?",(session_id,)).fetchone()[0]
     expenses = conn.execute(
         "SELECT COALESCE(SUM(amount_cents),0) v FROM expenses WHERE session_id=?",
         (session_id,)
@@ -128,6 +129,10 @@ def cash_activity(session_id):
             FROM return_payments rp JOIN returns r ON r.id=rp.return_id
             WHERE r.session_id=? AND rp.payment_method='CASH'
             UNION ALL
+            SELECT mr.created_at,mr.return_no,'MANUAL_RETURN',-mr.amount_cents,p.name
+            FROM manual_returns mr JOIN products p ON p.id=mr.product_id
+            WHERE mr.session_id=?
+            UNION ALL
             SELECT e.created_at,'DEP-'||e.id,'EXPENSE',-e.amount_cents,e.label
             FROM expenses e WHERE e.session_id=?
             UNION ALL
@@ -147,5 +152,5 @@ def cash_activity(session_id):
             FROM supplier_payments sp JOIN suppliers sup ON sup.id=sp.supplier_id
             WHERE sp.session_id=? AND sp.payment_method='CASH'
             ORDER BY created_at DESC
-        """,(session_id,session_id,session_id,session_id,session_id,session_id)).fetchall()
+        """,(session_id,session_id,session_id,session_id,session_id,session_id,session_id)).fetchall()
         return [dict(r) for r in rows]
