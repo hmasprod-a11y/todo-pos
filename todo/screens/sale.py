@@ -568,7 +568,7 @@ class SaleFrame(ttk.Frame):
         window=tk.Toplevel(self);window.title(self.tr('Duplicata — choisir un ticket','نسخة التذكرة — اختر تذكرة'))
         window.transient(self.winfo_toplevel());window.grab_set()
         tree=ttk.Treeview(window,columns=('number','date','total'),show='headings',height=12)
-        for key,label in [('number',self.tr('Ticket','التذكرة')),('date',self.tr('Date','التاريخ')),('total',self.tr('Total','المجموع'))]:tree.heading(key,text=label)
+        for key,label in [('number',self.tr('Ticket','التذكرة','Receipt')),('date',self.tr('Date','التاريخ')),('total',self.tr('Total','المجموع'))]:tree.heading(key,text=label)
         tree.pack(fill='both',expand=True,padx=12,pady=12)
         for row in rows:tree.insert('','end',iid=str(row['id']),values=(row['sale_no'],row['created_at'],fmt(row['total_cents'],self.currency)))
         def choose(event=None):
@@ -1026,27 +1026,27 @@ class SaleFrame(ttk.Frame):
         self.refresh();self.focus_search()
 
     def cancel(self):
-        if self.cart and not messagebox.askyesno(self.tr('Annuler','إلغاء'),self.tr('Vider le ticket en cours ? Un ticket en attente reste sauvegardé.','إفراغ التذكرة الحالية؟ التذكرة الموضوعة في الانتظار تبقى محفوظة.'),parent=self):return
+        if self.cart and not messagebox.askyesno(self.tr('Annuler','إلغاء'),self.tr('Vider le ticket en cours ? Un ticket en attente reste sauvegardé.','إفراغ التذكرة الحالية؟ التذكرة الموضوعة في الانتظار تبقى محفوظة.','Clear the current receipt? A held receipt remains saved.'),parent=self):return
         self.clear()
 
     def hold(self):
         if not self.cart:return
-        label=simpledialog.askstring(self.tr('Attente','انتظار'),self.tr('Nom ou numéro du ticket:','اسم أو رقم التذكرة:'),parent=self)
+        label=simpledialog.askstring(self.tr('Attente','انتظار'),self.tr('Nom ou numéro du ticket:','اسم أو رقم التذكرة:','Receipt name or number:'),parent=self)
         if label is None:return
         try:
             hold_sale(self.app.user['id'],self.cart,label,self.ticket_discount_cents,self.held_id,client_id=self.client_id,seller_id=self.seller_id,price_grid_id=self.price_grid_id,payment_method=self.payment)
-            self.clear();self.status.config(text=self.tr('Ticket et remise sauvegardés.','تم حفظ التذكرة والتخفيض.'))
+            self.clear();self.status.config(text=self.tr('Ticket et remise sauvegardés.','تم حفظ التذكرة والتخفيض.','Receipt and discount saved.'))
         except Exception as e:messagebox.showerror('ToDo',str(e),parent=self)
 
     def show_held(self):
         if self.cart:
-            messagebox.showinfo('ToDo',self.tr('Mettez le ticket actuel en attente avant de reprendre un autre.','ضع التذكرة الحالية في الانتظار قبل استئناف تذكرة أخرى.'),parent=self);return
+            messagebox.showinfo('ToDo',self.tr('Mettez le ticket actuel en attente avant de reprendre un autre.','ضع التذكرة الحالية في الانتظار قبل استئناف تذكرة أخرى.','Hold the current receipt before resuming another one.'),parent=self);return
         rows=list_held()
         if not rows:
-            messagebox.showinfo('ToDo',self.tr('Aucun ticket en attente.','لا توجد تذكرة في الانتظار.'),parent=self);return
-        w=tk.Toplevel(self);w.title(self.tr('Tickets en attente','التذاكر في الانتظار'));w.transient(self);w.grab_set()
+            messagebox.showinfo('ToDo',self.tr('Aucun ticket en attente.','لا توجد تذكرة في الانتظار.','No held receipts.'),parent=self);return
+        w=tk.Toplevel(self);w.title(self.tr('Tickets en attente','التذاكر في الانتظار','Held receipts'));w.transient(self);w.grab_set()
         tree=ttk.Treeview(w,columns=('date','discount'),show='tree headings')
-        tree.heading('#0',text=self.tr('Ticket','التذكرة'));tree.heading('date',text=self.tr('Date','التاريخ'));tree.heading('discount',text=self.tr('Remise','التخفيض'))
+        tree.heading('#0',text=self.tr('Ticket','التذكرة','Receipt'));tree.heading('date',text=self.tr('Date','التاريخ'));tree.heading('discount',text=self.tr('Remise','التخفيض','Discount'))
         tree.pack(fill='both',expand=True,padx=12,pady=12)
         for r in rows:tree.insert('','end',iid=str(r['id']),text=r['label'],values=(r['created_at'],fmt(r['discount_cents'])))
         def resume(event=None):
@@ -1064,15 +1064,15 @@ class SaleFrame(ttk.Frame):
             self.set_payment(state.get('payment_method') or 'CASH')
             self.refresh();w.destroy();self.focus_search()
         tree.bind('<Return>',resume);tree.bind('<Double-1>',resume)
-        ttk.Button(w,text=self.tr('Reprendre','استئناف'),command=resume).pack(pady=8)
+        ttk.Button(w,text=self.tr('Reprendre','استئناف','Resume'),command=resume).pack(pady=8)
 
     def checkout(self, print_ticket=True):
         if not print_ticket and get_setting('sans_ticket_enabled','1')!='1':
-            messagebox.showinfo('ToDo',self.tr('Le paiement sans ticket est désactivé dans les paramètres.','الأداء بدون تذكرة معطل من الإعدادات.'),parent=self);return
+            messagebox.showinfo('ToDo',self.tr('Le paiement sans ticket est désactivé dans les paramètres.','الأداء بدون تذكرة معطل من الإعدادات.','Payment without a receipt is disabled in settings.'),parent=self);return
         if not self.cart or self.busy:return
         session=get_open_session()
         if not session:
-            messagebox.showinfo('ToDo',self.tr('Ouvrez la caisse avant de vendre.','افتح الصندوق قبل البيع.'),parent=self);return
+            messagebox.showinfo('ToDo',self.tr('Ouvrez la caisse avant de vendre.','افتح الصندوق قبل البيع.','Open the cash drawer before selling.'),parent=self);return
         self.busy=True
         self.last_sale_snapshot=None
         try:
