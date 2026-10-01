@@ -38,7 +38,7 @@ class BackupValidationTests(unittest.TestCase):
                 with sqlite3.connect(live_db) as conn:
                     conn.executescript(SCHEMA)
                     conn.execute(
-                        "INSERT INTO settings(key,value) VALUES(?,?)",
+                        "INSERT OR REPLACE INTO settings(key,value) VALUES(?,?)",
                         ("shop_name", "Original shop"),
                     )
                     conn.commit()
