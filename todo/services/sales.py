@@ -224,30 +224,49 @@ def manual_return_number():
     return 'MR-'+datetime.now().strftime('%Y%m%d-%H%M%S')+'-'+uuid4().hex[:12].upper()
 
 
-def create_manual_return(session_id, user_id, product_id, qty, amount_cents):
-    """Fast cash-and-stock return when the original receipt is unavailable."""
-    quantity=Decimal(str(qty))
-    amount=int(amount_cents)
-    if not quantity.is_finite() or quantity<=0:
-        raise ValueError('Quantité retour invalide')
-    if amount<=0:
-        raise ValueError('Montant retour invalide')
+def create_manual_returns(session_id, user_id, cart, ticket_discount_cents=0):
+    """Register the current cashier cart as a cash return, without an original receipt."""
+    if not cart:
+        raise ValueError('Ticket vide')
+    discount=max(0,int(ticket_discount_cents))
     with connect() as conn:
         conn.execute('BEGIN IMMEDIATE')
         validate_session(conn,session_id,user_id)
         from services.security import require_permission
         require_permission('RETURNS',conn)
-        product=conn.execute('SELECT * FROM products WHERE id=?',(int(product_id),)).fetchone()
-        if not product:
-            raise ValueError('Article introuvable')
-        if not product['allow_fraction'] and quantity!=quantity.to_integral_value():
-            raise ValueError('Cet article se retourne en unités entières.')
-        number=manual_return_number()
-        rid=conn.execute('INSERT INTO manual_returns(return_no,session_id,cashier_user_id,product_id,qty,amount_cents) VALUES(?,?,?,?,?,?)',(number,session_id,user_id,product['id'],float(quantity),amount)).lastrowid
-        if not product['is_misc']:
-            apply_stock_movement(conn,product['id'],float(quantity),'RETURN_MANUAL',product['purchase_price_cents'],'manual_return',rid,number,user_id)
-        audit(conn,'MANUAL_RETURN',rid,f'{number}; product={product["id"]}; qty={quantity}; amount={amount}',user_id)
-        return dict(id=rid,return_no=number,product_id=product['id'],qty=float(quantity),amount_cents=amount)
+        lines=[]
+        weights=[]
+        for line in cart:
+            quantity=Decimal(str(line['qty']))
+            if not quantity.is_finite() or quantity<=0:
+                raise ValueError('Quantité retour invalide')
+            product=conn.execute('SELECT * FROM products WHERE id=?',(int(line['product_id']),)).fetchone()
+            if not product:
+                raise ValueError('Article introuvable')
+            if not product['allow_fraction'] and quantity!=quantity.to_integral_value():
+                raise ValueError('Cet article se retourne en unités entières.')
+            amount=max(0,line_total(line['unit_price_cents'],quantity)-int(line.get('discount_cents',0)))
+            lines.append((product,quantity,amount))
+            weights.append(amount)
+        total=max(0,sum(weights)-discount)
+        amounts=allocate(total,weights)
+        document_no=manual_return_number()
+        saved=[]
+        for position,((product,quantity,_),amount) in enumerate(zip(lines,amounts),start=1):
+            number=f'{document_no}-{position:02d}'
+            rid=conn.execute('INSERT INTO manual_returns(return_no,session_id,cashier_user_id,product_id,qty,amount_cents) VALUES(?,?,?,?,?,?)',(number,session_id,user_id,product['id'],float(quantity),amount)).lastrowid
+            if not product['is_misc']:
+                apply_stock_movement(conn,product['id'],float(quantity),'RETURN_MANUAL',product['purchase_price_cents'],'manual_return',rid,number,user_id)
+            audit(conn,'MANUAL_RETURN',rid,f'{number}; product={product["id"]}; qty={quantity}; amount={amount}',user_id)
+            saved.append(dict(id=rid,return_no=number,product_id=product['id'],qty=float(quantity),amount_cents=amount))
+        return dict(return_no=document_no,amount_cents=total,items=saved)
+
+
+def create_manual_return(session_id, user_id, product_id, qty, amount_cents):
+    """Compatibility entry point for one manually priced returned item."""
+    result=create_manual_returns(session_id,user_id,[dict(product_id=product_id,qty=qty,unit_price_cents=int(amount_cents)/float(qty),discount_cents=0)])
+    item=result['items'][0]
+    return dict(id=item['id'],return_no=item['return_no'],product_id=item['product_id'],qty=item['qty'],amount_cents=item['amount_cents'])
 
 
 def create_return(sale_id,session_id,user_id,items,reason='',refund_method='CASH'):

@@ -5,7 +5,7 @@ from decimal import Decimal
 from database import connect, get_setting
 from services.catalog import search_products, scan_barcode, list_categories
 from services.pricing import resolve_unit_price, line_total
-from services.sales import complete_sale, create_manual_return, hold_sale, list_held, resume_held
+from services.sales import complete_sale, create_manual_returns, hold_sale, list_held, resume_held
 from services.cash import get_open_session
 from services.money import fmt, to_cents, allocate
 from services.images import abs_image
@@ -39,6 +39,7 @@ class SaleFrame(ttk.Frame):
         self.search_job=None
         self.scan_submit_job=None
         self.busy=False
+        self.return_mode=False
         self.last_sale_snapshot=None
         self.customer_order_id=None
         self.quotation_id=None
@@ -158,13 +159,14 @@ class SaleFrame(ttk.Frame):
 
         self.checkout_buttons=ttk.Frame(checkout_area,style='Card.TFrame')
         self.checkout_buttons.pack(fill='x',pady=(2,0))
-        ttk.Button(self.checkout_buttons,text=self.tr('✓ SOLDER avec ticket F5','✓ الأداء مع التذكرة F5','✓ PAY with receipt F5'),
-                   style='Success.TButton',command=lambda:self.checkout(True)).pack(
-                       side='left',expand=True,fill='x',padx=(0,2),ipady=3)
+        self.checkout_main=ttk.Button(self.checkout_buttons,text=self.tr('✓ SOLDER avec ticket F5','✓ الأداء مع التذكرة F5','✓ PAY with receipt F5'),
+                                      style='Success.TButton',command=lambda:self.checkout(True))
+        self.checkout_main.pack(side='left',expand=True,fill='x',padx=(0,2),ipady=3)
+        self.checkout_without_ticket=None
         if get_setting('sans_ticket_enabled','1')=='1':
-            ttk.Button(self.checkout_buttons,text=self.tr('SOLDER sans ticket','الأداء بدون تذكرة','PAY without receipt'),
-                       style='Primary.TButton',command=lambda:self.checkout(False)).pack(
-                           side='left',expand=True,fill='x',padx=(2,0),ipady=3)
+            self.checkout_without_ticket=ttk.Button(self.checkout_buttons,text=self.tr('SOLDER sans ticket','الأداء بدون تذكرة','PAY without receipt'),
+                                                     style='Primary.TButton',command=lambda:self.checkout(False))
+            self.checkout_without_ticket.pack(side='left',expand=True,fill='x',padx=(2,0),ipady=3)
 
         ticket_header=ttk.Frame(right,style='Card.TFrame')
         ticket_header.pack(fill='x',pady=(0,8))
@@ -188,11 +190,13 @@ class SaleFrame(ttk.Frame):
             (self.tr('F4  Attente','F4  انتظار','F4  HOLD'),self.hold,'Soft.TButton'),
             (self.tr('Liste attente','لائحة الانتظار','Held receipts'),self.show_held,'Soft.TButton'),
             (self.tr('F7  Remise','F7  تخفيض','F7  Discount'),self.discount,'Soft.TButton'),
-            (self.tr('F9  Retour','F9  إرجاع','F9  Return'),self.manual_return,'Danger.TButton'),
+            (self.tr('F9  Retour','F9  إرجاع','F9  Return'),self.toggle_return_mode,'Danger.TButton'),
             (self.tr('ESC  Annuler','ESC  إلغاء','ESC  Cancel'),self.cancel,'Danger.TButton'),
         ]
         for label,command,style in footer_actions:
-            ttk.Button(footer,text=label,style=style,command=command).pack(side='left',expand=True,fill='x',padx=3,ipady=3)
+            button=ttk.Button(footer,text=label,style=style,command=command)
+            button.pack(side='left',expand=True,fill='x',padx=3,ipady=3)
+            if command==self.toggle_return_mode:self.return_button=button
         self.custom_shortcut_bar=ttk.Frame(self)
         self.custom_shortcut_bar.pack(fill='x',pady=(6,0))
         self.build_custom_shortcuts()
@@ -203,7 +207,7 @@ class SaleFrame(ttk.Frame):
         self.status.pack(side='left')
         tk.Label(status_bar,text='ToDo POS',bg='#E2E8F0',fg='#64748B',
                  font=('Segoe UI',9)).pack(side='right')
-        commands={'<F2>':lambda:self.set_payment('CASH'),'<F3>':lambda:self.set_payment('CARD'),'<F4>':self.hold,'<F5>':lambda:self.checkout(True),'<F7>':self.discount,'<F8>':self.set_qty,'<F9>':self.manual_return,'<Escape>':self.cancel,'<Control-f>':self.focus_search}
+        commands={'<F2>':lambda:self.set_payment('CASH'),'<F3>':lambda:self.set_payment('CARD'),'<F4>':self.hold,'<F5>':lambda:self.checkout(True),'<F7>':self.discount,'<F8>':self.set_qty,'<F9>':self.toggle_return_mode,'<Escape>':self.cancel,'<Control-f>':self.focus_search}
         if get_setting('require_client_on_sale','0')=='1':commands['<F6>']=self.choose_client
         for sequence,command in commands.items():
             binding=app.bind(sequence,lambda e,c=command:self.shortcut(e,c),add='+')
@@ -839,6 +843,7 @@ class SaleFrame(ttk.Frame):
         if index is None:index=self.selected()
         self.ticket.delete(*self.ticket.get_children())
         sub,total=self.totals()
+        sign=-1 if self.return_mode else 1
         # The active ticket is always the current sale. A completed sale is shown
         # only in the separate reminder block, Logica-style, while the new ticket
         # immediately returns to 0.00 and remains ready for the next customer.
@@ -852,27 +857,31 @@ class SaleFrame(ttk.Frame):
             thumb=self.thumbnail({'id':x['product_id'],'image_path':x.get('image_path','')})
             step=x.get('qty_multiplier',1)
             name=x['name']+(f' · pack ×{step:g}' if step!=1 else '')
-            quantity=f"{x['qty']/step:g}p" if step!=1 else f"{x['qty']:g}"
-            price=fmt(line_total(x['unit_price_cents'],step),'')
+            quantity=(f"{x['qty']/step:g}p" if step!=1 else f"{x['qty']:g}")
+            if self.return_mode:quantity='-'+quantity
+            price=fmt(sign*line_total(x['unit_price_cents'],step),'')
             tag='offer' if offer else ('even' if i%2==0 else 'odd')
             discount_pct=(float(gross-net)*100/float(gross)) if gross else 0
             discount_text=(f"{discount_pct:.1f}%".replace('.0%','%')) if discount_pct else '—'
-            self.ticket.insert('','end',iid=str(i),text=name,image=thumb,values=(quantity,price,discount_text,fmt(net,'')),tags=(tag,))
+            self.ticket.insert('','end',iid=str(i),text=name,image=thumb,values=(quantity,price,discount_text,fmt(sign*net,'')),tags=(tag,))
         if self.cart:
             chosen=str(min(index if index is not None else len(self.cart)-1,len(self.cart)-1))
             self.ticket.selection_set(chosen);self.ticket.see(chosen)
-        self.subtotal_label.config(text=f"{self.tr('Sous-total','المجموع الفرعي','Subtotal')} {fmt(sub,self.currency)}  ·  {self.tr('Remise ticket','تخفيض التذكرة','Receipt discount')} {fmt(display_ticket_discount,self.currency)}")
+        self.subtotal_label.config(text=f"{self.tr('Sous-total','المجموع الفرعي','Subtotal')} {fmt(sign*sub,self.currency)}  ·  {self.tr('Remise ticket','تخفيض التذكرة','Receipt discount')} {fmt(display_ticket_discount,self.currency)}")
         item_count=len(display_cart)
         completed=not self.cart and bool(self.last_sale_snapshot)
-        self.ticket_title.config(text=self.tr(f'🧾  Ticket en cours  ·  {item_count} article(s)',f'🧾  التذكرة الحالية  ·  {item_count} منتوج',f'🧾  Current receipt  ·  {item_count} item(s)'))
+        if self.return_mode:
+            self.ticket_title.config(text=self.tr(f'↩  RETOUR EN COURS  ·  {item_count} article(s)',f'↩  إرجاع جارٍ  ·  {item_count} منتوج',f'↩  RETURN IN PROGRESS  ·  {item_count} item(s)'))
+        else:
+            self.ticket_title.config(text=self.tr(f'🧾  Ticket en cours  ·  {item_count} article(s)',f'🧾  التذكرة الحالية  ·  {item_count} منتوج',f'🧾  Current receipt  ·  {item_count} item(s)'))
         if completed:
             if not self.last_sale_box.winfo_manager():self.last_sale_box.pack(fill='x',pady=(4,6),before=self.total_box)
         elif self.last_sale_box.winfo_manager():
             self.last_sale_box.pack_forget()
         if not self.edit_controls.winfo_manager():self.edit_controls.pack(fill='x',pady=(2,4),before=self.subtotal_label)
         if not self.checkout_buttons.winfo_manager():self.checkout_buttons.pack(fill='x',pady=(2,0))
-        self.total_label.config(text=fmt(total,self.currency))
-        self.app.update_customer_display(display_cart,total)
+        self.total_label.config(text=fmt(sign*total,self.currency))
+        self.app.update_customer_display(display_cart,sign*total)
 
     def update_quantity(self,index,qty):
         if not math.isfinite(float(qty)):
@@ -1010,51 +1019,31 @@ class SaleFrame(ttk.Frame):
                         base_price_cents=int(x['unit_price_cents']),discount_cents=0,allow_fraction=1,barcode_id=None,barcode='') for x in payload['cart']]
         self.update_client_label();self.refresh();self.status.config(text=self.tr(f"Commande client #{order['id']} chargée.",f"تم تحميل طلب الزبون #{order['id']}.",f"Customer order #{order['id']} loaded."));self.focus_search()
 
-    def manual_return(self):
-        session=get_open_session()
-        if not session:
-            messagebox.showinfo('ToDo',self.tr('Ouvrez la caisse avant le retour.','افتح الصندوق قبل الإرجاع.','Open the cash drawer before returning.'),parent=self);return
-        w=tk.Toplevel(self);w.title(self.tr('Retour manuel','إرجاع يدوي','Manual return'));w.geometry('620x500');w.transient(self.winfo_toplevel());w.grab_set()
-        body=ttk.Frame(w,padding=16);body.pack(fill='both',expand=True)
-        ttk.Label(body,text=self.tr('Retour manuel sans ticket','إرجاع يدوي بدون تذكرة','Manual return without receipt'),style='Title.TLabel').pack(anchor='w')
-        ttk.Label(body,text=self.tr('Scannez ou recherchez le produit, puis confirmez la quantité et le montant rendu en espèces.','امسح أو ابحث عن المنتج، ثم أكد الكمية والمبلغ المعاد نقداً.','Scan or search the product, then confirm the quantity and cash refund.'),wraplength=560).pack(anchor='w',pady=(0,10))
-        query=tk.StringVar();qty=tk.StringVar(value='1');amount=tk.StringVar();selected={}
-        search=ttk.Entry(body,textvariable=query,style='Search.TEntry');search.pack(fill='x')
-        tree=ttk.Treeview(body,columns=('name','price','stock'),show='headings',height=9)
-        for key,label,width in [('name',self.tr('Article','المنتوج','Product'),330),('price',self.tr('Prix actuel','الثمن الحالي','Current price'),110),('stock',self.tr('Stock','المخزون','Stock'),80)]:
-            tree.heading(key,text=label);tree.column(key,width=width,anchor='center' if key!='name' else 'w')
-        tree.pack(fill='both',expand=True,pady=10)
-        fields=ttk.Frame(body);fields.pack(fill='x')
-        ttk.Label(fields,text=self.tr('Quantité','الكمية','Quantity')).grid(row=0,column=0,sticky='w')
-        ttk.Entry(fields,textvariable=qty,width=12).grid(row=0,column=1,sticky='w',padx=(8,24))
-        ttk.Label(fields,text=self.tr('Montant rendu','المبلغ المسترجع','Cash refund')).grid(row=0,column=2,sticky='w')
-        ttk.Entry(fields,textvariable=amount,width=14).grid(row=0,column=3,sticky='w',padx=8)
-        def choose(event=None):
-            chosen=tree.selection()
-            if not chosen:return
-            with connect() as conn:row=conn.execute('SELECT id,name,sale_price_cents FROM products WHERE id=?',(int(chosen[0]),)).fetchone()
-            selected['row']=row;amount.set(f"{row['sale_price_cents']/100:.2f}")
-        def refresh(event=None):
-            tree.delete(*tree.get_children());selected.clear()
-            for row in search_products(query.get().strip(),limit=40):
-                tree.insert('', 'end',iid=str(row['id']),values=(row['name'],fmt(row['sale_price_cents'],self.currency),f"{row['stock_qty']:g}"))
-            if len(tree.get_children())==1:
-                tree.selection_set(tree.get_children()[0]);choose()
-        def confirm():
-            row=selected.get('row')
-            if not row:
-                messagebox.showinfo('ToDo',self.tr('Choisissez un article.','اختر منتوجاً.','Choose a product.'),parent=w);return
-            try:
-                result=create_manual_return(session['id'],self.app.user['id'],row['id'],float(qty.get().replace(',','.')),to_cents(amount.get()))
-            except Exception as error:
-                messagebox.showerror('ToDo',str(error),parent=w);return
-            messagebox.showinfo('ToDo',f"{result['return_no']}\n{self.tr('Montant rendu','المبلغ المسترجع','Cash refund')}: {fmt(result['amount_cents'],self.currency)}",parent=w)
-            w.destroy();self.focus_search()
-        search.bind('<KeyRelease>',refresh);search.bind('<Return>',refresh);tree.bind('<<TreeviewSelect>>',choose)
-        buttons=ttk.Frame(body);buttons.pack(fill='x',pady=(12,0))
-        ttk.Button(buttons,text=self.tr('Annuler','إلغاء','Cancel'),command=w.destroy).pack(side='right')
-        ttk.Button(buttons,text=self.tr('Confirmer retour','تأكيد الإرجاع','Confirm return'),style='Danger.TButton',command=confirm).pack(side='right',padx=8)
-        refresh();search.focus_set()
+    def toggle_return_mode(self):
+        if self.busy:return
+        if self.cart:
+            messagebox.showinfo('ToDo',self.tr('Validez, annulez ou mettez le ticket actuel en attente avant de changer de mode.','أكد أو ألغ أو علّق التذكرة الحالية قبل تغيير الوضع.','Complete, cancel, or hold the current receipt before changing mode.'),parent=self)
+            return
+        self.return_mode=not self.return_mode
+        self.ticket_discount_cents=0
+        self._update_return_controls()
+        self.refresh()
+        self.status.config(text=self.tr('↩ Retour activé : scannez les articles à reprendre, puis SOLDER.','↩ تم تفعيل الإرجاع: امسح المنتوجات المرجعة ثم اضغط الأداء.','↩ Return mode: scan returned items, then PAY.') if self.return_mode else self.tr('● Vente activée : scanner prêt.','● تم تفعيل البيع: الماسح جاهز.','● Sale mode: scanner ready.'))
+        self.focus_search()
+
+    def _update_return_controls(self):
+        if not hasattr(self,'return_button'):return
+        if self.return_mode:
+            self.return_button.config(text=self.tr('F9  VENTE','F9  البيع','F9  SALE'),style='Success.TButton')
+            self.checkout_main.config(text=self.tr('↩ VALIDER RETOUR F5','↩ تأكيد الإرجاع F5','↩ CONFIRM RETURN F5'),style='Danger.TButton')
+            if self.checkout_without_ticket:self.checkout_without_ticket.pack_forget()
+            self.payment_label.config(text=self.tr('Remboursement : Espèces','الاسترجاع: نقداً','Refund: Cash'),bg='#FEE2E2',fg='#B91C1C')
+        else:
+            self.return_button.config(text=self.tr('F9  Retour','F9  إرجاع','F9  Return'),style='Danger.TButton')
+            self.checkout_main.config(text=self.tr('✓ SOLDER avec ticket F5','✓ الأداء مع التذكرة F5','✓ PAY with receipt F5'),style='Success.TButton')
+            if self.checkout_without_ticket and not self.checkout_without_ticket.winfo_manager():
+                self.checkout_without_ticket.pack(side='left',expand=True,fill='x',padx=(2,0),ipady=3)
+            self.payment_label.config(text=self.tr('Paiement : Espèces','الأداء: نقداً','Payment: Cash'),bg='#DCFCE7',fg='#166534')
 
     def set_payment(self,method):
         self.payment=method
@@ -1068,7 +1057,7 @@ class SaleFrame(ttk.Frame):
 
     def clear(self,preserve_last_sale=False):
         self._cancel_pending_input_jobs()
-        self.cart=[];self.ticket_discount_cents=0;self.held_id=None;self.client_id=None;self.customer_order_id=None;self.quotation_id=None;self.seller_id=None;self.price_grid_id=None;self.price_grid_name=self.tr('Normal','عادي','Normal');self.payment='CASH';self.query.set('');self.scan_quantity.set('1');self.payment_label.config(text=self.tr('Paiement : Espèces','الأداء: نقداً','Payment: Cash'),bg='#DCFCE7',fg='#166534');self.update_client_label();self.update_seller_label()
+        self.cart=[];self.ticket_discount_cents=0;self.return_mode=False;self._update_return_controls();self.held_id=None;self.client_id=None;self.customer_order_id=None;self.quotation_id=None;self.seller_id=None;self.price_grid_id=None;self.price_grid_name=self.tr('Normal','عادي','Normal');self.payment='CASH';self.query.set('');self.scan_quantity.set('1');self.payment_label.config(text=self.tr('Paiement : Espèces','الأداء: نقداً','Payment: Cash'),bg='#DCFCE7',fg='#166534');self.update_client_label();self.update_seller_label()
         if not preserve_last_sale:
             self.last_sale_snapshot=None;self.last_sale_discount_cents=0
         self.refresh();self.focus_search()
@@ -1125,6 +1114,12 @@ class SaleFrame(ttk.Frame):
         self.last_sale_snapshot=None
         try:
             total=self.totals()[1]
+            if self.return_mode:
+                result=create_manual_returns(session['id'],self.app.user['id'],self.cart,self.ticket_discount_cents)
+                self.clear()
+                self.status.config(text=self.tr(f"Retour validé : {fmt(result['amount_cents'],self.currency)} rendus en espèces · {result['return_no']}",f"تم تأكيد الإرجاع: {fmt(result['amount_cents'],self.currency)} نقداً · {result['return_no']}",f"Return completed: {fmt(result['amount_cents'],self.currency)} cash refunded · {result['return_no']}"))
+                self.render_products()
+                return
             loyalty_points_used=0
             from services.clients import get_client
             client_name=get_client(self.client_id)['name'] if self.client_id is not None else None

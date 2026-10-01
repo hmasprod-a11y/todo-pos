@@ -5,7 +5,7 @@ import database as db
 from services import backup
 from services.bootstrap import ensure_defaults
 from services.cash import open_session,close_session,session_totals
-from services.sales import complete_sale,create_manual_return,create_return,hold_sale,resume_held,list_held,sale_number,return_number
+from services.sales import complete_sale,create_manual_return,create_manual_returns,create_return,hold_sale,resume_held,list_held,sale_number,return_number
 from services.pricing import resolve_unit_price,line_total
 from services.inventory import apply_stock_movement,stock_activity,reorder_list
 from services.purchases import receive_purchase
@@ -444,5 +444,21 @@ class CoreTests(unittest.TestCase):
   self.assertEqual(tuple(row),(self.pid,2,1800))
   self.assertEqual(tuple(movement),('RETURN_MANUAL',2))
   self.assertEqual(totals['cash_returns'],1800)
+
+ def test_cart_return_uses_displayed_prices_and_restocks_all_lines(self):
+  second=self.product('Deuxième',stock=5)
+  result=create_manual_returns(self.session,self.uid,[
+   dict(product_id=self.pid,qty=2,unit_price_cents='900',discount_cents=100),
+   dict(product_id=second,qty=1,unit_price_cents='500',discount_cents=0),
+  ],200)
+  self.assertTrue(result['return_no'].startswith('MR-'))
+  self.assertEqual(result['amount_cents'],2000)
+  self.assertEqual(len(result['items']),2)
+  with db.connect() as c:
+   first_stock=c.execute('SELECT stock_qty FROM products WHERE id=?',(self.pid,)).fetchone()[0]
+   second_stock=c.execute('SELECT stock_qty FROM products WHERE id=?',(second,)).fetchone()[0]
+   totals=session_totals(c,self.session)
+  self.assertEqual((first_stock,second_stock),(22,6))
+  self.assertEqual(totals['cash_returns'],2000)
 
 if __name__=='__main__':unittest.main()
