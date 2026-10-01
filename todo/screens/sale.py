@@ -403,7 +403,7 @@ class SaleFrame(ttk.Frame):
     def add_misc(self):
         from services.misc import misc_line
         window=tk.Toplevel(self)
-        window.title(self.tr('Divers','منتوج إضافي'))
+        window.title(self.tr('Divers','منتوج إضافي','Miscellaneous item'))
         window.transient(self.winfo_toplevel())
         window.grab_set()
         window.geometry('560x360')
@@ -421,11 +421,11 @@ class SaleFrame(ttk.Frame):
         price_entry=ttk.Entry(form,textvariable=price_var,font=('Segoe UI',22,'bold'),justify='right',style='Search.TEntry')
         price_entry.pack(fill='x',pady=(4,12),ipady=5)
 
-        ttk.Label(form,text=self.tr('Nom (facultatif)','الاسم (اختياري)')).pack(anchor='w')
+        ttk.Label(form,text=self.tr('Nom (facultatif)','الاسم (اختياري)','Name (optional)')).pack(anchor='w')
         name_entry=ttk.Entry(form,textvariable=name_var)
         name_entry.pack(fill='x',pady=(4,12),ipady=3)
 
-        ttk.Label(form,text=self.tr('Quantité','الكمية')).pack(anchor='w')
+        ttk.Label(form,text=self.tr('Quantité','الكمية','Quantity')).pack(anchor='w')
         qty_entry=ttk.Entry(form,textvariable=qty_var,font=('Segoe UI',16,'bold'),justify='right')
         qty_entry.pack(fill='x',pady=(4,14),ipady=3)
 
@@ -458,15 +458,15 @@ class SaleFrame(ttk.Frame):
             window.destroy();self.focus_search()
         def save():
             try:
-                label=name_var.get().strip() or self.tr('Divers','متنوع')
+                label=name_var.get().strip() or self.tr('Divers','متنوع','Miscellaneous')
                 line=misc_line(label,price_var.get(),qty_var.get())
                 self.cart.append(line);self.refresh(len(self.cart)-1)
                 window.destroy();self.focus_search()
             except (ValueError,ArithmeticError) as error:
-                messagebox.showerror(self.tr('Divers','منتوج إضافي'),str(error),parent=window)
+                messagebox.showerror(self.tr('Divers','منتوج إضافي','Miscellaneous item'),str(error),parent=window)
                 price_entry.focus_set();price_entry.selection_range(0,'end')
-        ttk.Button(buttons,text=self.tr('✓ Valider','✓ تأكيد'),style='Success.TButton',command=save).pack(side='left',expand=True,fill='x',padx=(0,4),ipady=8)
-        ttk.Button(buttons,text=self.tr('Annuler','إلغاء'),style='Soft.TButton',command=close).pack(side='left',expand=True,fill='x',padx=(4,0),ipady=8)
+        ttk.Button(buttons,text=self.tr('✓ Valider','✓ تأكيد','✓ Confirm'),style='Success.TButton',command=save).pack(side='left',expand=True,fill='x',padx=(0,4),ipady=8)
+        ttk.Button(buttons,text=self.tr('Annuler','إلغاء','Cancel'),style='Soft.TButton',command=close).pack(side='left',expand=True,fill='x',padx=(4,0),ipady=8)
 
         window.bind('<Return>',lambda e:save())
         window.bind('<Escape>',lambda e:close())
@@ -774,9 +774,9 @@ class SaleFrame(ttk.Frame):
         window.bind('<Return>',lambda e:close())
 
     def pick_barcode(self,rows):
-        w=tk.Toplevel(self);w.title(self.tr('Même code-barres — choisir le produit','نفس الباركود — اختر المنتوج'));w.geometry('900x620');w.transient(self);w.grab_set()
-        ttk.Label(w,text=self.tr(f'{len(rows)} produits utilisent ce même code-barres',f'{len(rows)} منتوجات تستعمل نفس الباركود'),font=('Segoe UI',16,'bold')).pack(anchor='w',padx=16,pady=(14,2))
-        ttk.Label(w,text=self.tr('Choisissez le produit selon le nom, la photo et le prix.','اختر المنتوج حسب الاسم والصورة والثمن.')).pack(anchor='w',padx=16,pady=(0,10))
+        w=tk.Toplevel(self);w.title(self.tr('Même code-barres — choisir le produit','نفس الباركود — اختر المنتوج','Same barcode — choose product'));w.geometry('900x620');w.transient(self);w.grab_set()
+        ttk.Label(w,text=self.tr(f'{len(rows)} produits utilisent ce même code-barres',f'{len(rows)} منتوجات تستعمل نفس الباركود',f'{len(rows)} products use this same barcode'),font=('Segoe UI',16,'bold')).pack(anchor='w',padx=16,pady=(14,2))
+        ttk.Label(w,text=self.tr('Choisissez le produit selon le nom, la photo et le prix.','اختر المنتوج حسب الاسم والصورة والثمن.','Choose the product by name, photo and price.')).pack(anchor='w',padx=16,pady=(0,10))
         canvas=tk.Canvas(w,highlightthickness=0);scroll=ttk.Scrollbar(w,orient='vertical',command=canvas.yview);inner=ttk.Frame(canvas)
         inner.bind('<Configure>',lambda e:canvas.configure(scrollregion=canvas.bbox('all')));canvas.create_window((0,0),window=inner,anchor='nw');canvas.configure(yscrollcommand=scroll.set);canvas.pack(side='left',fill='both',expand=True,padx=(16,0),pady=(0,16));scroll.pack(side='right',fill='y',padx=(0,16),pady=(0,16))
         try:
@@ -789,7 +789,7 @@ class SaleFrame(ttk.Frame):
         for i,(r,p,price) in enumerate(details):
             card=tk.Frame(inner,bg='white',bd=1,relief='solid',cursor='hand2');card.grid(row=i//3,column=i%3,padx=7,pady=7,sticky='nsew')
             thumb=self.thumbnail({'id':r['id'],'image_path':p['image_path']},110);pic=tk.Label(card,image=thumb or '',text='' if thumb else '📦',bg='white',font=('Segoe UI',34));pic.pack(fill='both',expand=True,padx=8,pady=6)
-            tk.Label(card,text=r['name'],bg='white',font=('Segoe UI',11,'bold'),wraplength=230).pack(fill='x',padx=8);pack=(self.tr('Pack','علبة')+f" ×{r['qty_multiplier']:g}") if r['qty_multiplier']!=1 else self.tr('Unité','وحدة');tk.Label(card,text=f"{pack} · {self.tr('Stock','المخزون')} {p['stock_qty']:g}",bg='white').pack(fill='x',padx=8)
+            tk.Label(card,text=r['name'],bg='white',font=('Segoe UI',11,'bold'),wraplength=230).pack(fill='x',padx=8);pack=(self.tr('Pack','علبة','Pack')+f" ×{r['qty_multiplier']:g}") if r['qty_multiplier']!=1 else self.tr('Unité','وحدة','Unit');tk.Label(card,text=f"{pack} · {self.tr('Stock','المخزون','Stock')} {p['stock_qty']:g}",bg='white').pack(fill='x',padx=8)
             tk.Label(card,text=fmt(line_total(price,r['qty_multiplier']*scan_multiplier),self.currency),bg='#2563EB',fg='white',font=('Segoe UI',15,'bold'),pady=6).pack(fill='x',pady=(6,0))
             for widget in [card,*card.winfo_children()]:widget.bind('<Button-1>',lambda e,x=r:choose(x))
         for col in range(3):inner.columnconfigure(col,weight=1)
@@ -804,11 +804,11 @@ class SaleFrame(ttk.Frame):
             self._begin_new_sale()
             qty=float(qty)*float(self.scan_quantity.get().replace(',','.'))
             if not math.isfinite(float(qty)) or float(qty)<=0:
-                raise ValueError(self.tr('Quantité invalide','الكمية غير صالحة'))
+                raise ValueError(self.tr('Quantité invalide','الكمية غير صالحة','Invalid quantity'))
             with connect() as conn:
                 p=conn.execute('SELECT * FROM products WHERE id=? AND active=1',(pid,)).fetchone()
-                if not p:raise ValueError(self.tr('Article introuvable','المنتوج غير موجود'))
-                if not p['allow_fraction'] and not float(qty).is_integer():raise ValueError(self.tr('Quantité entière requise','الكمية يجب أن تكون عدداً صحيحاً'))
+                if not p:raise ValueError(self.tr('Article introuvable','المنتوج غير موجود','Product not found'))
+                if not p['allow_fraction'] and not float(qty).is_integer():raise ValueError(self.tr('Quantité entière requise','الكمية يجب أن تكون عدداً صحيحاً','A whole quantity is required'))
                 index=next((i for i,x in enumerate(self.cart) if x['product_id']==pid and x.get('barcode_id')==barcode_id),None)
                 new_qty=float(qty)+(self.cart[index]['qty'] if index is not None else 0)
                 unit=resolve_unit_price(pid,new_qty,barcode_id,conn,self.price_grid_id)
@@ -822,7 +822,7 @@ class SaleFrame(ttk.Frame):
                     index=len(self.cart)-1
                 else:self.cart[index].update(qty=new_qty,unit_price_cents=str(unit))
             self.query.set('');self.scan_quantity.set('1');self.refresh(index);self.focus_search()
-            self.status.config(text=self.tr('Ajouté : ','تمت الإضافة: ')+p['name'])
+            self.status.config(text=self.tr('Ajouté : ','تمت الإضافة: ','Added: ')+p['name'])
         except Exception as e:messagebox.showerror('ToDo',str(e),parent=self)
 
     def selected(self):
