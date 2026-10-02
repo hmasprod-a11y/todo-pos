@@ -44,7 +44,7 @@ class SaleFrame(ttk.Frame):
         self.customer_order_id=None
         self.quotation_id=None
         self.bindings=[]
-        top=ttk.Frame(self)
+        top=ttk.Frame(self,style='Card.TFrame',padding=(14,10))
         top.pack(fill='x',pady=(0,12))
         title_box=ttk.Frame(top)
         title_box.pack(side='left')
