@@ -100,6 +100,12 @@ class ToDoApp(tk.Tk):
         st.configure('Card.TFrame',background='white')
         st.configure('Card.TLabel',background='white')
         st.configure('CardTitle.TLabel',background='white',font=('Segoe UI',15,'bold'))
+        # Shared visual language for forms, settings and operational screens.
+        st.configure('TLabelframe',background='white',borderwidth=1,relief='solid')
+        st.configure('TLabelframe.Label',background='white',foreground='#334155',font=('Segoe UI',10,'bold'))
+        st.configure('TSeparator',background='#E2E8F0')
+        st.configure('TCheckbutton',background='white',foreground='#334155',font=('Segoe UI',10))
+        st.configure('TRadiobutton',background='white',foreground='#334155',font=('Segoe UI',10))
         st.configure('Search.TEntry',font=('Segoe UI',17),padding=(10,8),fieldbackground='white',foreground='#0F172A')
         st.configure('Quantity.TEntry',font=('Segoe UI',17,'bold'),padding=(8,8),fieldbackground='#F8FAFC',foreground='#0F172A')
         st.configure('TNotebook',background='#F6F7FB',borderwidth=0)
