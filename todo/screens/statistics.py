@@ -399,8 +399,8 @@ class StatisticsFrame(ttk.Frame):
         data=finance_overview(self._period, self._year if self._period=='year' else None)
         self.finance_summary.config(text=self.tr(
             f"Achats période: {fmt(data['purchases'])}   ·   Créances clients: {fmt(data['client_debt'])}   ·   Dettes fournisseurs: {fmt(data['supplier_debt'])}",
-            f"Period purchases: {fmt(data['purchases'])}   ·   Customer debt: {fmt(data['client_debt'])}   ·   Supplier debt: {fmt(data['supplier_debt'])}",
-            f"مشتريات الفترة: {fmt(data['purchases'])}   ·   ديون الزبناء: {fmt(data['client_debt'])}   ·   ديون الموردين: {fmt(data['supplier_debt'])}"
+            f"مشتريات الفترة: {fmt(data['purchases'])}   ·   ديون الزبناء: {fmt(data['client_debt'])}   ·   ديون الموردين: {fmt(data['supplier_debt'])}",
+            f"Period purchases: {fmt(data['purchases'])}   ·   Customer debt: {fmt(data['client_debt'])}   ·   Supplier debt: {fmt(data['supplier_debt'])}"
         ))
 
     def _load_payments(self):
