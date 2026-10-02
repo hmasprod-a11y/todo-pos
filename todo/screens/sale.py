@@ -167,6 +167,11 @@ class SaleFrame(ttk.Frame):
             self.checkout_without_ticket=ttk.Button(self.checkout_buttons,text=self.tr('SOLDER sans ticket','الأداء بدون تذكرة','PAY without receipt'),
                                                      style='Primary.TButton',command=lambda:self.checkout(False))
             self.checkout_without_ticket.pack(side='left',expand=True,fill='x',padx=(2,0),ipady=3)
+        # Return is an immediate cashier action: keep it beside payment, never
+        # in a lower toolbar that can be hidden on a compact screen.
+        self.return_button=ttk.Button(self.checkout_buttons,text=self.tr('↩ RETOUR  F9','↩ إرجاع  F9','↩ RETURN  F9'),
+                                      style='Danger.TButton',command=self.toggle_return_mode)
+        self.return_button.pack(side='left',expand=True,fill='x',padx=(2,0),ipady=3)
 
         ticket_header=ttk.Frame(right,style='Card.TFrame')
         ticket_header.pack(fill='x',pady=(0,8))
@@ -190,13 +195,11 @@ class SaleFrame(ttk.Frame):
             (self.tr('F4  Attente','F4  انتظار','F4  HOLD'),self.hold,'Soft.TButton'),
             (self.tr('Liste attente','لائحة الانتظار','Held receipts'),self.show_held,'Soft.TButton'),
             (self.tr('F7  Remise','F7  تخفيض','F7  Discount'),self.discount,'Soft.TButton'),
-            (self.tr('F9  Retour','F9  إرجاع','F9  Return'),self.toggle_return_mode,'Danger.TButton'),
             (self.tr('ESC  Annuler','ESC  إلغاء','ESC  Cancel'),self.cancel,'Danger.TButton'),
         ]
         for label,command,style in footer_actions:
             button=ttk.Button(footer,text=label,style=style,command=command)
             button.pack(side='left',expand=True,fill='x',padx=3,ipady=3)
-            if command==self.toggle_return_mode:self.return_button=button
         self.custom_shortcut_bar=ttk.Frame(self)
         self.custom_shortcut_bar.pack(fill='x',pady=(6,0))
         self.build_custom_shortcuts()
