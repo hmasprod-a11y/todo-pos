@@ -255,13 +255,19 @@ class ToDoApp(tk.Tk):
     def apply_window_mode(self, windowed=None):
         if windowed is None:
             windowed=get_setting('windows_mode','1')=='1'
-        # Windowed is the safe default. POS/kiosk mode uses borderless fullscreen.
+        # A Windows window must fill the available work area.  Kiosk mode removes
+        # the native title bar, leaving only the POS navigation header.
         if windowed:
             try:self.attributes('-fullscreen',False)
             except tk.TclError:pass
             self.overrideredirect(False)
             self.resizable(True,True)
+            try:self.state('zoomed')
+            except tk.TclError:
+                self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
         else:
+            try:self.state('normal')
+            except tk.TclError:pass
             self.overrideredirect(False)
             try:self.attributes('-fullscreen',True)
             except tk.TclError:pass
@@ -276,6 +282,10 @@ class ToDoApp(tk.Tk):
         height=min(820,self.winfo_screenheight()-80)
         self.geometry(f'{width}x{height}')
         self.minsize(min(1100,width),min(640,height))
+        # Apply the saved window mode after every login/startup.  Previously this
+        # was only applied when the setting was clicked, so a new session could
+        # reopen as a small, half-empty window.
+        self.apply_window_mode()
         self.shell=ttk.Frame(self);self.shell.pack(fill="both",expand=True)
         self.bind_all('<FocusIn>', self.remember_keyboard_target, add='+')
         bar=tk.Frame(self.shell,bg="#0F172A",height=64);self.nav_bar=bar
