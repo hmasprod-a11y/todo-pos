@@ -7,31 +7,41 @@ from services.money import fmt
 
 class StockFrame(ttk.Frame):
     def __init__(self,master,app=None):
-        super().__init__(master,padding=16)
+        super().__init__(master,padding=0)
         self.lang=get_setting('language','fr');self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
-        top=ttk.Frame(self);top.pack(fill="x",pady=(0,8))
-        ttk.Label(top,text=self.tr('Stock','المخزون','Stock'),style="Title.TLabel").pack(side="left")
-        ttk.Label(self,text=self.tr('Quantités, mouvements et inventaire — nom, prix et photo restent dans Articles.','الكميات والحركات والجرد — تعديل الاسم والثمن والصورة يبقى في المنتجات.','Quantities, movements and inventory — name, price and photo remain in Products.'),foreground="#475569").pack(anchor="w",pady=(0,8))
-        ttk.Button(top,text=self.tr('Ajustement','تسوية المخزون','Adjust stock'),style="Primary.TButton",command=self.adjust).pack(side="right")
-        ttk.Button(top,text=self.tr('Désactiver','تعطيل','Deactivate'),style='Danger.TButton',command=self.deactivate_selected).pack(side='right',padx=4)
-        ttk.Button(top,text=self.tr('+ Nouveau','+ جديد','+ New'),style='Success.TButton',command=self.new_product).pack(side='right',padx=4)
+        root=ttk.Frame(self,padding=16);root.pack(fill="both",expand=True)
+        header=ttk.Frame(root);header.pack(fill="x",pady=(0,12))
+        title=ttk.Frame(header);title.pack(side="left")
+        ttk.Label(title,text=self.tr('Stock','المخزون','Stock'),style="Title.TLabel").pack(anchor="w")
+        ttk.Label(title,text=self.tr('Articles, niveaux et mouvements de stock.','المنتجات والمستويات وحركات المخزون.','Items, levels and stock movements.'),foreground="#64748B").pack(anchor="w",pady=(2,0))
+        actions=ttk.Frame(header);actions.pack(side="right")
+        ttk.Button(actions,text=self.tr('+ Nouveau','+ جديد','+ New'),style='Success.TButton',command=self.new_product).pack(side='left',padx=3)
+        ttk.Button(actions,text=self.tr('Ajustement','تسوية المخزون','Adjust stock'),style="Primary.TButton",command=self.adjust).pack(side="left",padx=3)
+        ttk.Button(actions,text=self.tr('Désactiver','تعطيل','Deactivate'),style='Danger.TButton',command=self.deactivate_selected).pack(side='left',padx=3)
+
+        filters=ttk.Frame(root,style='Card.TFrame',padding=10);filters.pack(fill="x",pady=(0,12))
+        ttk.Label(filters,text=self.tr('Rechercher','بحث','Search'),style='Card.TLabel',font=('Segoe UI',9,'bold')).pack(side="left",padx=(0,8))
         self.q=tk.StringVar();self.filter=tk.StringVar(value=self.tr('Tous','الكل','All'))
-        self.search_entry=ttk.Entry(top,textvariable=self.q,width=22,style="Search.TEntry");self.search_entry.pack(side="left",padx=(20,8));self.search_entry.bind("<KeyRelease>",lambda e:self.refresh())
-        box=ttk.Combobox(top,textvariable=self.filter,values=[self.tr('Tous','الكل','All'),self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),self.tr('Stock négatif','مخزون سالب','Negative stock')],state="readonly",width=14);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
+        self.search_entry=ttk.Entry(filters,textvariable=self.q,width=25,style="Search.TEntry");self.search_entry.pack(side="left",padx=(0,8));self.search_entry.bind("<KeyRelease>",lambda e:self.refresh())
+        box=ttk.Combobox(filters,textvariable=self.filter,values=[self.tr('Tous','الكل','All'),self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),self.tr('Stock négatif','مخزون سالب','Negative stock')],state="readonly",width=14);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
         with connect() as c:
             category_rows=c.execute("SELECT id,name FROM categories WHERE active=1 ORDER BY sort_order,name COLLATE NOCASE").fetchall()
         self.family_values=[(self.tr('Toutes familles','كل الفئات','All categories'),None)]+[(r['name'],r['id']) for r in category_rows]
         self.family_map={label:cid for label,cid in self.family_values}
         self.family=tk.StringVar(value=self.family_values[0][0])
-        family_box=ttk.Combobox(top,textvariable=self.family,values=[label for label,_ in self.family_values],state='readonly',width=18)
+        family_box=ttk.Combobox(filters,textvariable=self.family,values=[label for label,_ in self.family_values],state='readonly',width=18)
         family_box.pack(side='left',padx=(6,0));family_box.bind('<<ComboboxSelected>>',lambda e:self.refresh())
-        ttk.Button(top,text=self.tr('Réapprovisionnement','إعادة الطلب','Reorder'),style="Soft.TButton",command=self.reorder_window).pack(side="right",padx=8)
-        ttk.Button(top,text=self.tr('Journal global','السجل العام','Global journal'),style="Soft.TButton",command=self.global_ledger).pack(side="right",padx=8)
-        ttk.Button(top,text=self.tr('Historique','السجل','History'),style="Soft.TButton",command=self.ledger).pack(side="right",padx=8)
+        tools=ttk.Frame(filters,style='Card.TFrame');tools.pack(side="right")
+        for label,command in [
+            (self.tr('Historique','السجل','History'),self.ledger),
+            (self.tr('Journal global','السجل العام','Global journal'),self.global_ledger),
+            (self.tr('Réapprovisionnement','إعادة الطلب','Reorder'),self.reorder_window),
+        ]:
+            ttk.Button(tools,text=label,style="Soft.TButton",command=command).pack(side="left",padx=3)
         if app is not None:
-            ttk.Button(top,text=self.tr('Articles','المنتجات','Products'),style="Soft.TButton",command=lambda: app.show("products")).pack(side="right",padx=8)
+            ttk.Button(tools,text=self.tr('Articles','المنتجات','Products'),style="Soft.TButton",command=lambda: app.show("products")).pack(side="left",padx=3)
         cols=("code","name","family","purchase","sale","stock","alert","last")
-        self.t=ttk.Treeview(self,columns=cols,show="headings",height=14)
+        self.t=ttk.Treeview(root,columns=cols,show="headings",height=14)
         for c,h,w,anchor in [
             ("code",self.tr("Code","الكود","Code"),120,"center"),
             ("name",self.tr("Article","المنتوج","Product"),230,"w"),
@@ -44,7 +54,7 @@ class StockFrame(ttk.Frame):
         ]:
             self.t.heading(c,text=h);self.t.column(c,width=w,anchor=anchor)
         self.t.pack(fill="both",expand=True)
-        self.kpi=tk.Frame(self,bg="#F6F7FB");self.kpi.pack(fill="x",pady=(8,0))
+        self.kpi=tk.Frame(root,bg="#F6F7FB");self.kpi.pack(fill="x",pady=(8,0))
         self.kpi_values=[]
         for title,bg in [(self.tr("Articles","المنتجات","Products"),"#2563EB"),(self.tr("Alertes","التنبيهات","Alerts"),"#F59E0B"),(self.tr("Stock négatif","المخزون السالب","Negative stock"),"#DC2626"),(self.tr("Promotions actives","العروض النشطة","Active promotions"),"#BE185D"),(self.tr("Valeur achat","قيمة الشراء","Purchase value"),"#16A34A"),(self.tr("Valeur vente","قيمة البيع","Sale value"),"#7C3AED")]:
             card=tk.Frame(self.kpi,bg=bg,height=62);card.pack(side="left",fill="x",expand=True,padx=3);card.pack_propagate(False)
