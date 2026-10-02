@@ -1,150 +1,123 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from database import get_setting
 
 
-# group definitions: (emoji, label, route, bg, fg)
-GROUPS = [
-    [
-        ("📥", "Réceptions",         "purchases",  "#0891B2", "#fff"),
-        ("📤", "Sorties",             "sorties",    "#D97706", "#fff"),
-        ("🏷️", "Promotions",          "promotions", "#BE185D", "#fff"),
-        ("📝", "Inventaire",          "inventory",  "#16A34A", "#fff"),
-        ("🧾", "Inventaires enregistrés","inventory_sessions","#0F766E","#fff"),
-        ("🔄", "Mouvements de stock", "stock",      "#7C3AED", "#fff"),
-    ],
-    [
-        ("🚚", "Fournisseurs",              "suppliers",  "#EA580C", "#fff"),
-        ("💳", "Règlements fournisseurs",   "supplier_payments", "#EA580C", "#fff"),
-        ("↩️", "Retours fournisseurs",       "supplier_returns",  "#B45309", "#fff"),
-        ("📊", "État crédits fournisseurs", "supplier_credits",  "#DC2626", "#fff"),
-    ],
-    [
-        ("👥", "Clients",             "clients",         "#2563EB", "#fff"),
-        ("💰", "Règlements clients",  "clients_payments","#16A34A", "#fff"),
-        ("📈", "État crédits clients","clients_credits", "#DC2626", "#fff"),
-        ("⭐", "Fidélité clients",    "loyalty",         "#A16207", "#fff"),
-        ("🧺", "Commandes clients",   "customer_orders", "#0F766E", "#fff"),
-        ("🧾", "Devis",               "quotations",      "#475569", "#fff"),
-    ],
-    [
-        ("💸", "Dépenses",    "cash", "#D97706", "#fff"),
-        ("📅", "Rendez-vous", "rendez_vous", "#0891B2", "#fff"),
-    ],
+SECTIONS = [
+    ("Flux de stock", "حركة المخزون", "Stock workflow", [
+        ("Réceptions", "purchases", "↓", "#0891B2"),
+        ("Sorties", "sorties", "↑", "#D97706"),
+        ("Promotions", "promotions", "%", "#7C3AED"),
+        ("Inventaire", "inventory", "≡", "#16A34A"),
+        ("Inventaires enregistrés", "inventory_sessions", "✓", "#0F766E"),
+        ("Mouvements de stock", "stock", "↔", "#2563EB"),
+    ]),
+    ("Partenaires", "الشركاء", "Partners", [
+        ("Fournisseurs", "suppliers", "F", "#EA580C"),
+        ("Règlements fournisseurs", "supplier_payments", "€", "#EA580C"),
+        ("Retours fournisseurs", "supplier_returns", "↩", "#B45309"),
+        ("État crédits fournisseurs", "supplier_credits", "!", "#DC2626"),
+    ]),
+    ("Relation client", "الزبناء", "Customers", [
+        ("Clients", "clients", "C", "#2563EB"),
+        ("Règlements clients", "clients_payments", "€", "#16A34A"),
+        ("État crédits clients", "clients_credits", "!", "#DC2626"),
+        ("Fidélité clients", "loyalty", "★", "#A16207"),
+        ("Commandes clients", "customer_orders", "□", "#0F766E"),
+        ("Devis", "quotations", "≋", "#475569"),
+    ]),
+    ("Caisse et planning", "الصندوق والمواعيد", "Cash and scheduling", [
+        ("Dépenses", "cash", "−", "#D97706"),
+        ("Rendez-vous", "rendez_vous", "◷", "#0891B2"),
+    ]),
 ]
 
-CARD_W, CARD_H = 205, 104
-
-
-def _recolor(w, c):
-    try: w.configure(bg=c)
-    except Exception: pass
-    for ch in w.winfo_children():
-        _recolor(ch, c)
-
-
-def _hover_color(hex_color, delta=0.10):
-    import colorsys
-    r2,g2,b2 = int(hex_color[1:3],16)/255, int(hex_color[3:5],16)/255, int(hex_color[5:7],16)/255
-    h,s,v = colorsys.rgb_to_hsv(r2,g2,b2)
-    nr,ng,nb = colorsys.hsv_to_rgb(h, s, min(v+delta, 1))
-    return '#%02x%02x%02x' % (int(nr*255), int(ng*255), int(nb*255))
+LABELS = {
+    "Réceptions": ("الاستلامات", "Receipts"), "Sorties": ("الإخراجات", "Stock out"),
+    "Promotions": ("العروض", "Promotions"), "Inventaire": ("الجرد", "Inventory"),
+    "Inventaires enregistrés": ("سجلات الجرد", "Saved inventories"), "Mouvements de stock": ("حركات المخزون", "Stock movements"),
+    "Fournisseurs": ("الموردون", "Suppliers"), "Règlements fournisseurs": ("دفعات الموردين", "Supplier payments"),
+    "Retours fournisseurs": ("إرجاع للمورد", "Supplier returns"), "État crédits fournisseurs": ("ديون الموردين", "Supplier credit status"),
+    "Clients": ("الزبائن", "Customers"), "Règlements clients": ("دفعات الزبائن", "Customer payments"),
+    "État crédits clients": ("ديون الزبائن", "Customer credit status"), "Fidélité clients": ("وفاء الزبائن", "Customer loyalty"),
+    "Commandes clients": ("طلبات الزبائن", "Customer orders"), "Devis": ("عروض الأسعار", "Quotations"),
+    "Dépenses": ("المصاريف", "Expenses"), "Rendez-vous": ("المواعيد", "Appointments"),
+}
 
 
 class ManagementFrame(ttk.Frame):
-    """Gestion — stock, fournisseurs, clients, dépenses."""
+    """Structured access to management modules without visual overload."""
 
     def __init__(self, master, app):
         super().__init__(master, padding=0)
-        self.app = app
-        self.lang = get_setting("language","fr")
-        self.tr = lambda fr,ar,en=None: ar if self.lang=="ar" else (en if self.lang=="en" and en else fr)
+        self.app=app
+        self.lang=get_setting("language","fr")
+        self.tr=lambda fr,ar,en=None: ar if self.lang=="ar" else (en if self.lang=="en" and en else fr)
         self._build()
 
     def _build(self):
-        # header
-        header = tk.Frame(self, bg="#0F172A", height=66)
-        header.pack(fill="x")
-        header.pack_propagate(False)
-        tk.Label(header, text=self.tr("🗂️  Gestion","🗂️  الإدارة","🗂️  Management"), bg="#0F172A", fg="white",
-                 font=("Segoe UI", 19, "bold")).pack(side="left", padx=24, pady=12)
+        root=tk.Frame(self,bg="#F6F7FB")
+        root.pack(fill="both",expand=True)
+        header=tk.Frame(root,bg="#FFFFFF",height=96)
+        header.pack(fill="x");header.pack_propagate(False)
+        tk.Label(header,text=self.tr("Gestion","الإدارة","Management"),bg="#FFFFFF",fg="#0F172A",
+                 font=("Segoe UI",23,"bold")).pack(anchor="w",padx=30,pady=(19,0))
+        tk.Label(header,text=self.tr("Stocks, partenaires et opérations commerciales.","المخزون والشركاء والعمليات التجارية.","Stock, partners and commercial operations."),
+                 bg="#FFFFFF",fg="#64748B",font=("Segoe UI",10)).pack(anchor="w",padx=30,pady=(3,0))
 
-        # cards area
-        area = tk.Frame(self, bg="#F6F7FB")
-        area.pack(fill="both", expand=True, padx=30, pady=24)
+        canvas=tk.Canvas(root,bg="#F6F7FB",highlightthickness=0)
+        scroll=ttk.Scrollbar(root,orient="vertical",command=canvas.yview)
+        canvas.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right",fill="y");canvas.pack(side="left",fill="both",expand=True)
+        body=tk.Frame(canvas,bg="#F6F7FB")
+        window=canvas.create_window((0,0),window=body,anchor="nw")
+        body.bind("<Configure>",lambda e:canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>",lambda e:canvas.itemconfigure(window,width=e.width))
+        canvas.bind("<MouseWheel>",lambda e:canvas.yview_scroll(int(-e.delta/120),"units"))
 
-        for group in GROUPS:
-            row = tk.Frame(area, bg="#F6F7FB")
-            row.pack(anchor="center", pady=8)
-            for emoji, label, key, bg, fg in group:
-                labels = {
-                    'Réceptions': ('الاستلامات', 'Receipts'), 'Sorties': ('الإخراجات', 'Stock out'),
-                    'Inventaire': ('الجرد', 'Inventory'), 'Mouvements de stock': ('حركات المخزون', 'Stock movements'),
-                    'Fournisseurs': ('الموردون', 'Suppliers'), 'Règlements fournisseurs': ('دفعات الموردين', 'Supplier payments'),
-                    'État crédits fournisseurs': ('ديون الموردين', 'Supplier credit status'), 'Clients': ('الزبائن', 'Customers'),
-                    'Règlements clients': ('دفعات الزبائن', 'Customer payments'), 'État crédits clients': ('ديون الزبائن', 'Customer credit status'),
-                    'Dépenses': ('المصاريف', 'Expenses'), 'Rendez-vous': ('المواعيد', 'Appointments'),
-                    'Promotions': ('العروض', 'Promotions'), 'Inventaires enregistrés': ('سجلات الجرد', 'Saved inventories'),
-                    'Fidélité clients': ('وفاء الزبائن', 'Customer loyalty'), 'Retours fournisseurs': ('إرجاع للمورد', 'Supplier returns'),
-                    'Commandes clients': ('طلبات الزبائن', 'Customer orders'), 'Devis': ('عروض الأسعار', 'Quotations'),
-                }
-                arabic, english = labels.get(label, (label, label))
-                self._card(row, emoji, self.tr(label, arabic, english), key, bg, fg)
+        for fr,ar,en,items in SECTIONS:
+            section=tk.Frame(body,bg="#F6F7FB")
+            section.pack(fill="x",padx=30,pady=(18,0))
+            tk.Label(section,text=self.tr(fr,ar,en),bg="#F6F7FB",fg="#334155",font=("Segoe UI",11,"bold")).pack(anchor="w",pady=(0,8))
+            grid=tk.Frame(section,bg="#F6F7FB");grid.pack(fill="x")
+            for col in range(3):grid.grid_columnconfigure(col,weight=1,uniform="management")
+            for index,(label,key,symbol,color) in enumerate(items):
+                self._card(grid,index//3,index%3,label,key,symbol,color)
 
-    def _card(self, parent, emoji, label, key, bg, fg):
-        is_placeholder = key is None
-        actual_bg = "#CBD5E1" if is_placeholder else bg
-        actual_fg = "#6B7280" if is_placeholder else fg
+    def _card(self,parent,row,column,label,key,symbol,color):
+        card=tk.Frame(parent,bg="#FFFFFF",highlightbackground="#E2E8F0",highlightthickness=1,cursor="hand2")
+        card.grid(row=row,column=column,sticky="ew",padx=(0 if column==0 else 10,0),pady=(0,10))
+        accent=tk.Frame(card,bg=color,width=5);accent.pack(side="left",fill="y")
+        content=tk.Frame(card,bg="#FFFFFF");content.pack(side="left",fill="both",expand=True,padx=14,pady=13)
+        icon=tk.Label(content,text=symbol,bg="#F1F5F9",fg=color,font=("Segoe UI",15,"bold"),width=3,pady=4)
+        icon.pack(side="left",padx=(0,11))
+        text=tk.Frame(content,bg="#FFFFFF");text.pack(side="left",fill="both",expand=True)
+        arabic,english=LABELS[label]
+        tk.Label(text,text=self.tr(label,arabic,english),bg="#FFFFFF",fg="#0F172A",font=("Segoe UI",10,"bold"),
+                 anchor="w").pack(fill="x")
+        tk.Label(text,text=self.tr("Ouvrir le module","فتح الوحدة","Open module"),bg="#FFFFFF",fg="#64748B",
+                 font=("Segoe UI",8),anchor="w").pack(fill="x",pady=(3,0))
+        arrow=tk.Label(content,text="›",bg="#FFFFFF",fg="#94A3B8",font=("Segoe UI",21))
+        arrow.pack(side="right")
+        def enter(event):
+            card.configure(highlightbackground=color,highlightthickness=2)
+        def leave(event):
+            card.configure(highlightbackground="#E2E8F0",highlightthickness=1)
+        def open_module(event=None):
+            self._activate(key)
+        for widget in (card,accent,content,icon,text,arrow,*text.winfo_children()):
+            widget.bind("<Button-1>",open_module);widget.bind("<Enter>",enter);widget.bind("<Leave>",leave)
 
-        card = tk.Frame(parent, bg=actual_bg, width=CARD_W, height=CARD_H,
-                        cursor="hand2" if not is_placeholder else "arrow",
-                        bd=0, relief="flat")
-        card.pack(side="left", padx=7)
-        card.pack_propagate(False)
-
-        inner = tk.Frame(card, bg=actual_bg)
-        inner.place(relx=0.5, rely=0.5, anchor="center")
-
-        tk.Label(inner, text=emoji, bg=actual_bg, fg=actual_fg,
-                 font=("Segoe UI", 25)).pack()
-        tk.Label(inner, text=label, bg=actual_bg, fg=actual_fg,
-                 font=("Segoe UI", 10, "bold" if not is_placeholder else "normal"),
-                 wraplength=CARD_W-16, justify="center").pack(pady=(2, 0))
-
-        if is_placeholder:
-            tk.Label(inner, text="bientôt", bg=actual_bg, fg="#9CA3AF",
-                     font=("Segoe UI", 7)).pack()
-            return
-
-        hover = _hover_color(actual_bg)
-
-        def on_enter(e, c=card, h=hover):
-            _recolor(c, h)
-        def on_leave(e, c=card, b=actual_bg):
-            _recolor(c, b)
-        def on_click(e=None, k=key, lbl=label):
-            self._activate(k, lbl)
-
-        for w in [card, inner] + inner.winfo_children():
-            try:
-                w.bind("<Button-1>", on_click)
-                w.bind("<Enter>",    on_enter)
-                w.bind("<Leave>",    on_leave)
-            except Exception:
-                pass
-
-    def _activate(self, key, label):
-        app = self.app
-        if key == "clients_payments":
-            app.show("clients"); return
-        if key == "clients_credits":
+    def _activate(self,key):
+        if key=="clients_payments":
+            self.app.show("clients");return
+        if key=="clients_credits":
             from screens.clients import CreditStateWindow
-            CreditStateWindow(app); return
-        if key == "supplier_credits":
+            CreditStateWindow(self.app);return
+        if key=="supplier_credits":
             from screens.supplier_payments import SupplierCreditStateWindow
-            SupplierCreditStateWindow(app); return
-        if key:
-            app.show(key)
-            if key == "cash":
-                try: app.current.expense()
-                except Exception: pass
+            SupplierCreditStateWindow(self.app);return
+        self.app.show(key)
+        if key=="cash":
+            try:self.app.current.expense()
+            except Exception:pass
