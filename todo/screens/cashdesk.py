@@ -14,7 +14,7 @@ class CashFrame(ttk.Frame):
         self.info=ttk.Label(self,text="",font=("Segoe UI",11,'bold'),foreground='#334155');self.info.pack(anchor="w",pady=(0,8))
         self.kpis=ttk.Frame(self,style='Card.TFrame',padding=8);self.kpis.pack(fill="x",pady=8);self.kpi_labels={}
         for key,title in [("expected",self.tr("Cash attendu","النقد المتوقع","Expected cash")),("sales",self.tr("Ventes cash","المبيعات النقدية","Cash sales")),("card",self.tr("Ventes carte","مبيعات البطاقة","Card sales")),("expenses",self.tr("Dépenses","المصاريف","Expenses")),("returns",self.tr("Retours cash","المرتجعات النقدية","Cash returns"))]:
-            card=ttk.LabelFrame(self.kpis,text=title,padding=8);card.pack(side="left",fill="x",expand=True,padx=3);lbl=ttk.Label(card,text="—",font=("Segoe UI",16,"bold"));lbl.pack();self.kpi_labels[key]=lbl
+            card=tk.Frame(self.kpis,bg="#FFFFFF",highlightbackground="#E2E8F0",highlightthickness=1);card.pack(side="left",fill="x",expand=True,padx=3);tk.Label(card,text=title.upper(),bg="#FFFFFF",fg="#64748B",font=("Segoe UI",8,"bold")).pack(anchor="w",padx=10,pady=(8,1));lbl=tk.Label(card,text="—",bg="#FFFFFF",fg="#0F172A",font=("Segoe UI",16,"bold"));lbl.pack(anchor="w",padx=10,pady=(0,8));self.kpi_labels[key]=lbl
         b=ttk.Frame(self);b.pack(anchor="w",pady=8)
         ttk.Button(b,text=self.tr('Ouvrir caisse','فتح الصندوق','Open drawer'),style='Success.TButton',command=self.open).pack(side='left',padx=4)
         ttk.Button(b,text=self.tr('Dépense','مصروف','Expense'),style='Danger.TButton',command=self.expense).pack(side='left',padx=4)
