@@ -178,7 +178,7 @@ class StatisticsFrame(ttk.Frame):
         self._year = datetime.date.today().year
 
         # ── Header ────────────────────────────────────────────────────────────
-        header = ttk.Frame(self)
+        header = ttk.Frame(self,style='Card.TFrame',padding=14)
         header.pack(fill='x', pady=(0, 14))
         ttk.Label(header, text=self.tr('Statistiques','الإحصائيات','Statistics'),
                   style='Title.TLabel').pack(side='left')
