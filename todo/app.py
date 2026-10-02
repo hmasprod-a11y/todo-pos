@@ -270,58 +270,52 @@ class ToDoApp(tk.Tk):
         height=min(820,self.winfo_screenheight()-80)
         self.geometry(f'{width}x{height}')
         self.minsize(min(1100,width),min(640,height))
-        # The shop workflow uses a compact blue module bar like the reference
-        # screen: the cashier sees the current module immediately and has more
-        # room for the product table and the cart than with a permanent sidebar.
         self.shell=ttk.Frame(self);self.shell.pack(fill="both",expand=True)
         self.bind_all('<FocusIn>', self.remember_keyboard_target, add='+')
-        bar=tk.Frame(self.shell,bg="#0878C9",height=64)
-        self.nav_bar=bar
+        bar=tk.Frame(self.shell,bg="#0F172A",height=64);self.nav_bar=bar
         bar.pack(fill="x");bar.pack_propagate(False)
-        self.shop_label=tk.Label(bar,text=get_setting("shop_name","ToDo"),bg="#0878C9",fg="white",font=("Segoe UI",18,"bold"))
-        self.shop_label.pack(side="left",padx=(18,14))
-        nav=[
-            ("🛒 "+self.ui_text("nav.sale"), "sale"),
-            ("📦 "+self.ui_text("nav.stock"), "stock"),
-            ("📋 "+self.ui_text("nav.journal"), "journal"),
-            ("🗂 "+self.ui_text("nav.management"), "management"),
-            ("⚙ "+self.ui_text("nav.settings"), "settings"),
-            ("📊 "+self.ui_text("nav.statistics"), "statistics"),
-        ]
+        shop=get_setting("shop_name","ToDo").strip() or "ToDo"
+        self.shop_label=tk.Label(bar,text=shop[:24],bg="#0F172A",fg="white",font=("Segoe UI",18,"bold"))
+        self.shop_label.pack(side="left",padx=(18,18))
+        nav=[("sale","🛒"),("stock","▦"),("journal","▤")]
         self.nav_buttons={}
-        from services.security import has_permission
-        nav_permissions={'settings':'SETTINGS','journal':'REPORTS','statistics':'REPORTS','management':'MANAGEMENT'}
-        for txt,key in nav:
-            needed=nav_permissions.get(key)
-            if needed and not has_permission(needed,self.user['id']):continue
-            b=tk.Button(bar,text=txt,bg="#0878C9",fg="white",activebackground="#075B96",activeforeground="white",relief="flat",bd=0,font=("Segoe UI",10,"bold"),padx=10,command=lambda k=key:self.show(k))
-            b.pack(side="left",fill="y");self.nav_buttons[key]=b
-        # Touch-friendly controls: explicit, large and high-contrast on POS tablets.
+        for key,icon in nav:
+            button=tk.Button(bar,text=icon+" "+self.ui_text("nav."+key),bg="#0F172A",fg="#CBD5E1",activebackground="#1E293B",
+                             activeforeground="white",relief="flat",bd=0,font=("Segoe UI",10,"bold"),padx=12,
+                             command=lambda k=key:self.show(k),cursor="hand2")
+            button.pack(side="left",fill="y");self.nav_buttons[key]=button
+        self.more_button=tk.Button(bar,text="☰  "+("المزيد" if get_setting("language","fr")=="ar" else "Plus"),
+                                   bg="#0F172A",fg="#CBD5E1",activebackground="#1E293B",activeforeground="white",
+                                   relief="flat",bd=0,font=("Segoe UI",10,"bold"),padx=12,command=self._show_more_modules,cursor="hand2")
+        self.more_button.pack(side="left",fill="y")
         self.close_button=tk.Button(bar,text="✕",bg="#DC2626",fg="white",activebackground="#B91C1C",activeforeground="white",
-                  relief="flat",bd=0,font=("Segoe UI",15,"bold"),width=4,cursor="hand2",
-                  command=self.on_close)
+                  relief="flat",bd=0,font=("Segoe UI",15,"bold"),width=4,cursor="hand2",command=self.on_close)
         self.close_button.pack(side="right",fill="y")
-        self.minimize_button=tk.Button(bar,text="—",bg="#0F5F9A",fg="white",activebackground="#0B4F80",activeforeground="white",
-                  relief="flat",bd=0,font=("Segoe UI",16,"bold"),width=4,cursor="hand2",
-                  command=self.iconify)
+        self.minimize_button=tk.Button(bar,text="—",bg="#1E293B",fg="white",activebackground="#334155",activeforeground="white",
+                  relief="flat",bd=0,font=("Segoe UI",16,"bold"),width=4,cursor="hand2",command=self.iconify)
         self.minimize_button.pack(side="right",fill="y")
-        self.keyboard_button=tk.Button(bar,text="⌨ "+self.ui_text("nav.keyboard"),bg="#F59E0B",fg="#111827",
-                  activebackground="#D97706",activeforeground="white",relief="flat",bd=0,
-                  font=("Segoe UI",10,"bold"),padx=14,cursor="hand2",
-                  command=self.toggle_keyboard)
-        self.keyboard_button.pack(side="right",fill="y",padx=(6,4))
-        self.customer_button=tk.Button(bar,text=self.ui_text("nav.customer_display"),bg="#0878C9",fg="white",
-                  activebackground="#075B96",activeforeground="white",relief="flat",bd=0,
-                  font=("Segoe UI",9,"bold"),padx=10,cursor="hand2",
-                  command=self.toggle_customer_display)
-        self.customer_button.pack(side="right",fill="y",padx=4)
-        self.user_badge=tk.Label(bar,text=f"{self.user['display_name']} · {self.user['role']}",bg="#0878C9",fg="white",
-                 font=("Segoe UI",9,"bold"))
-        self.user_badge.pack(side="right",padx=8)
+        self.keyboard_button=tk.Button(bar,text="⌨",bg="#0F172A",fg="#FBBF24",activebackground="#1E293B",
+                  activeforeground="#FBBF24",relief="flat",bd=0,font=("Segoe UI",15,"bold"),width=4,cursor="hand2",command=self.toggle_keyboard)
+        self.keyboard_button.pack(side="right",fill="y",padx=(4,2))
+        self.customer_button=tk.Button(bar,text="▣",bg="#0F172A",fg="#CBD5E1",activebackground="#1E293B",
+                  activeforeground="white",relief="flat",bd=0,font=("Segoe UI",14,"bold"),width=4,cursor="hand2",command=self.toggle_customer_display)
+        self.customer_button.pack(side="right",fill="y")
+        display_name=(self.user.get('display_name') or self.user.get('username') or "")[:18]
+        self.user_badge=tk.Label(bar,text=display_name,bg="#0F172A",fg="#E2E8F0",font=("Segoe UI",9,"bold"))
+        self.user_badge.pack(side="right",padx=(8,4))
         self.content=ttk.Frame(self.shell);self.content.pack(fill="both",expand=True)
         self.apply_theme()
-        if get_setting('customer_display_enabled','0')=='1':
-            self.after(250,self._open_enabled_customer_display)
+        if get_setting('customer_display_enabled','0')=='1':self.after(250,self._open_enabled_customer_display)
+
+    def _show_more_modules(self):
+        from services.security import has_permission
+        menu=tk.Menu(self,tearoff=0,bg="#FFFFFF",fg="#0F172A",activebackground="#DBEAFE",activeforeground="#0F172A",font=("Segoe UI",10),relief="flat",bd=1)
+        for fr,key,permission in [("Gestion","management","MANAGEMENT"),("Paramètres","settings","SETTINGS"),("Statistiques","statistics","REPORTS")]:
+            if has_permission(permission,self.user['id']):
+                label={"Gestion":"الإدارة","Paramètres":"الإعدادات","Statistiques":"الإحصائيات"}[fr] if get_setting("language","fr")=="ar" else fr
+                menu.add_command(label=label,command=lambda k=key:self.show(k))
+        try:menu.tk_popup(self.more_button.winfo_rootx(),self.more_button.winfo_rooty()+self.more_button.winfo_height())
+        finally:menu.grab_release()
 
     def _open_enabled_customer_display(self):
         if get_setting('customer_display_enabled','0')=='1' and not (self.customer_window and self.customer_window.winfo_exists()):
@@ -392,13 +386,12 @@ class ToDoApp(tk.Tk):
 
     def _mark_nav(self,key):
         for name,button in getattr(self,'nav_buttons',{}).items():
-            is_active = (name==key)
-            button.configure(
-                bg=self.theme_active if is_active else self.theme_color,
-                relief='solid' if is_active else 'flat',
-                bd=0,
-                font=('Segoe UI',10,'bold') if is_active else ('Segoe UI',10,'normal'),
-            )
+            is_active=(name==key)
+            button.configure(bg="#1E293B" if is_active else "#0F172A",fg="white" if is_active else "#CBD5E1",relief='flat',bd=0,font=('Segoe UI',10,'bold'))
+        more=getattr(self,'more_button',None)
+        if more is not None and more.winfo_exists():
+            is_more=key in ('management','settings','statistics')
+            more.configure(bg="#1E293B" if is_more else "#0F172A",fg="white" if is_more else "#CBD5E1")
         self.current_key=key
 
     def apply_theme(self):
@@ -409,19 +402,15 @@ class ToDoApp(tk.Tk):
         style.map('Primary.TButton',background=[('active',self.theme_active)])
         style.configure('Accent.TLabel',foreground=self.theme_color)
         style.configure('Total.TLabel',foreground=self.theme_color)
+        # Navigation stays neutral; theme colors apply to purposeful in-page actions.
         bar=getattr(self,'nav_bar',None)
         if bar is not None and bar.winfo_exists():
-            bar.configure(bg=self.theme_color)
-            for button in getattr(self,'nav_buttons',{}).values():
-                if button.winfo_exists():
-                    button.configure(bg=self.theme_color,activebackground=self.theme_active)
-            for widget_name in ('shop_label','customer_button','user_badge'):
+            bar.configure(bg="#0F172A")
+            for widget_name in ('shop_label','customer_button','user_badge','keyboard_button','more_button'):
                 widget=getattr(self,widget_name,None)
                 if widget is not None and widget.winfo_exists():
-                    widget.configure(bg=self.theme_color)
-                    if isinstance(widget,tk.Button):
-                        widget.configure(activebackground=self.theme_active)
-            # Close/minimize/keyboard keep their dedicated high-contrast colors.
+                    widget.configure(bg="#0F172A")
+                    if isinstance(widget,tk.Button):widget.configure(activebackground="#1E293B")
             self._mark_nav(getattr(self,'current_key','home'))
 
     def choose_theme(self):

@@ -4,117 +4,87 @@ from services.reports import today_summary
 from services.money import fmt
 
 
-# card definitions: emoji, label, route, bg, fg
-NAV_CARDS = [
-    ("🛒", "Vente",        "sale",       "#2563EB", "#ffffff"),
-    ("📦", "Stock",        "stock",      "#0891B2", "#ffffff"),
-    ("📋", "Journal",      "journal",    "#7C3AED", "#ffffff"),
-    ("🗂️", "Gestion",     "management", "#1E293B", "#ffffff"),
-    ("⚙️", "Paramètres",  "settings",   "#64748B", "#ffffff"),
-    ("📊", "Statistiques", "statistics", "#16A34A", "#ffffff"),
+MODULES = [
+    ("Vente", "البيع", "Sales", "sale", "01", "#2563EB"),
+    ("Stock", "المخزون", "Stock", "stock", "02", "#0891B2"),
+    ("Journal", "السجل", "Journal", "journal", "03", "#7C3AED"),
+    ("Gestion", "الإدارة", "Management", "management", "04", "#0F766E"),
+    ("Paramètres", "الإعدادات", "Settings", "settings", "05", "#64748B"),
+    ("Statistiques", "الإحصائيات", "Statistics", "statistics", "06", "#16A34A"),
 ]
 
 
 class HomeFrame(ttk.Frame):
     def __init__(self, master, app):
         super().__init__(master, padding=0)
-        self.app = app
+        self.app=app
         from database import get_setting
-        self.lang = get_setting("language", "fr")
-        self.tr = lambda fr, ar, en=None: ar if self.lang == "ar" else (en if self.lang == "en" and en else fr)
+        self.lang=get_setting("language","fr")
+        self.tr=lambda fr,ar,en=None: ar if self.lang=="ar" else (en if self.lang=="en" and en else fr)
         self._build()
 
     def _build(self):
-        # ── top banner ────────────────────────────────────────────────────
-        from database import get_setting
-        shop = get_setting("shop_name", "ToDo")
-        banner_color=getattr(self.app,"theme_color","#2563EB")
-        banner = tk.Frame(self, bg=banner_color, height=96)
-        banner.pack(fill="x")
-        banner.pack_propagate(False)
-        tk.Label(banner, text=shop, bg=banner_color, fg="white",
-                 font=("Segoe UI", 32, "bold")).pack(side="left", padx=30, pady=12)
-        tk.Label(banner, text=self.tr("Point de Vente","نقطة البيع","Point of Sale"),
-                 bg=banner_color, fg="#DBEAFE",
-                 font=("Segoe UI", 11)).pack(side="left", padx=4)
+        root=tk.Frame(self,bg="#F6F7FB")
+        root.pack(fill="both",expand=True)
 
-        # ── KPI strip ────────────────────────────────────────────────────
-        kpi_bar = tk.Frame(self, bg="#FFFFFF", height=76)
-        kpi_bar.pack(fill="x")
-        kpi_bar.pack_propagate(False)
+        header=tk.Frame(root,bg="#FFFFFF",height=116)
+        header.pack(fill="x");header.pack_propagate(False)
+        tk.Label(header,text=self.tr("Bonjour","مرحباً","Welcome"),bg="#FFFFFF",fg="#0F172A",
+                 font=("Segoe UI",24,"bold")).pack(anchor="w",padx=34,pady=(23,0))
+        tk.Label(header,text=self.tr("Choisissez un module pour commencer.","اختر وحدة للبدء.","Choose a module to get started."),
+                 bg="#FFFFFF",fg="#64748B",font=("Segoe UI",10)).pack(anchor="w",padx=34,pady=(3,0))
+
+        metrics=tk.Frame(root,bg="#F6F7FB")
+        metrics.pack(fill="x",padx=34,pady=(22,10))
         try:
-            s = today_summary()
-            kpis = [
-                (self.tr("💰 Ventes aujourd'hui","💰 مبيعات اليوم","💰 Today's sales"),  fmt(s["net_sales"])),
-                (self.tr("🎫 Tickets","🎫 التذاكر","🎫 Receipts"),               str(s["tickets"])),
-                (self.tr("📈 Marge brute","📈 الهامش الإجمالي","📈 Gross margin"),           fmt(s["gross_margin"])),
-                (self.tr("⚠️ Stock faible","⚠️ مخزون منخفض","⚠️ Low stock"),          str(s["alerts"])),
+            s=today_summary()
+            kpis=[
+                (self.tr("Ventes aujourd’hui","مبيعات اليوم","Today's sales"),fmt(s["net_sales"])),
+                (self.tr("Tickets","التذاكر","Receipts"),str(s["tickets"])),
+                (self.tr("Marge brute","الهامش الإجمالي","Gross margin"),fmt(s["gross_margin"])),
+                (self.tr("Alertes stock","تنبيهات المخزون","Stock alerts"),str(s["alerts"])),
             ]
         except Exception:
-            kpis = []
-        for label, val in kpis:
-            cell = tk.Frame(kpi_bar, bg="#FFFFFF")
-            cell.pack(side="left", padx=24, pady=8)
-            tk.Label(cell, text=label, bg="#FFFFFF",
-                     fg="#64748B", font=("Segoe UI", 9)).pack(anchor="w")
-            tk.Label(cell, text=val, bg="#FFFFFF",
-                     fg="#0F172A", font=("Segoe UI", 13, "bold")).pack(anchor="w")
-        tk.Frame(kpi_bar, bg="#E2E8F0", width=1).pack(side="left", fill="y", pady=12)
+            kpis=[]
+        for i,(label,value) in enumerate(kpis):
+            card=tk.Frame(metrics,bg="#FFFFFF",highlightbackground="#E2E8F0",highlightthickness=1)
+            card.grid(row=0,column=i,sticky="nsew",padx=(0 if i==0 else 8,0))
+            metrics.grid_columnconfigure(i,weight=1)
+            tk.Label(card,text=label.upper(),bg="#FFFFFF",fg="#64748B",font=("Segoe UI",8,"bold")).pack(anchor="w",padx=16,pady=(12,2))
+            tk.Label(card,text=value,bg="#FFFFFF",fg="#0F172A",font=("Segoe UI",18,"bold")).pack(anchor="w",padx=16,pady=(0,12))
 
-        # ── Nav cards ────────────────────────────────────────────────────
-        cards_area = tk.Frame(self, bg="#F6F7FB")
-        cards_area.pack(fill="both", expand=True, padx=40, pady=32)
+        workspace=tk.Frame(root,bg="#F6F7FB")
+        workspace.pack(fill="both",expand=True,padx=34,pady=(10,30))
+        tk.Label(workspace,text=self.tr("Modules","الوحدات","Modules"),bg="#F6F7FB",fg="#334155",
+                 font=("Segoe UI",12,"bold")).grid(row=0,column=0,columnspan=3,sticky="w",pady=(0,10))
+        for column in range(3):workspace.grid_columnconfigure(column,weight=1,uniform="module")
 
-        row_frame = None
-        nav_labels = {"Vente":("البيع","Sales"),"Stock":("المخزون","Stock"),"Journal":("السجل","Journal"),"Gestion":("الإدارة","Management"),"Paramètres":("الإعدادات","Settings"),"Statistiques":("الإحصائيات","Statistics")}
-        for i, (emoji, label, key, bg, fg) in enumerate(NAV_CARDS):
-            arabic, english = nav_labels.get(label, (label, label))
-            label = self.tr(label, arabic, english)
-            if i % 3 == 0:
-                row_frame = tk.Frame(cards_area, bg="#F6F7FB")
-                row_frame.pack(anchor="center", pady=8)
-
-            card = tk.Frame(row_frame, bg=bg, width=220, height=150,
-                            cursor="hand2", bd=0, relief="flat")
-            card.pack(side="left", padx=10)
-            card.pack_propagate(False)
-
-            inner = tk.Frame(card, bg=bg)
-            inner.place(relx=0.5, rely=0.5, anchor="center")
-
-            tk.Label(inner, text=emoji, bg=bg, fg=fg,
-                     font=("Segoe UI", 38)).pack()
-            tk.Label(inner, text=label, bg=bg, fg=fg,
-                     font=("Segoe UI", 13, "bold")).pack(pady=(6, 0))
-
-            # hover effect
-            def _enter(e, f=card, c=bg):
-                import colorsys, struct
-                r2,g2,b2=int(c[1:3],16)/255,int(c[3:5],16)/255,int(c[5:7],16)/255
-                h,s,v=colorsys.rgb_to_hsv(r2,g2,b2)
-                nr,ng,nb=colorsys.hsv_to_rgb(h,s,min(v+0.12,1))
-                hover='#%02x%02x%02x'%(int(nr*255),int(ng*255),int(nb*255))
-                for w in f.winfo_children(): _recolor(w, hover)
-                f.configure(bg=hover)
-            def _leave(e, f=card, c=bg):
-                for w in f.winfo_children(): _recolor(w, c)
-                f.configure(bg=c)
-            def _recolor(w, c):
-                try: w.configure(bg=c)
-                except Exception: pass
-                for ch in w.winfo_children(): _recolor(ch, c)
-
-            cmd = lambda k=key: self.app.show(k)
-            for w in [card, inner] + inner.winfo_children():
-                try:
-                    w.bind("<Button-1>", lambda e, k=key: self.app.show(k))
-                    w.bind("<Enter>", _enter)
-                    w.bind("<Leave>", _leave)
-                except Exception:
-                    pass
-            card.bind("<Button-1>", lambda e, k=key: self.app.show(k))
-            inner.bind("<Button-1>", lambda e, k=key: self.app.show(k))
-
-        # ── exit button ──────────────────────────────────────────────────
-        ttk.Button(cards_area, text=self.tr("⏻  Quitter","⏻  خروج","⏻  Exit"),style="Danger.TButton",
-                   command=self.app.on_close).pack(pady=(18, 0),ipadx=10)
+        for index,(fr,ar,en,key,number,color) in enumerate(MODULES):
+            row=index//3+1;column=index%3
+            card=tk.Frame(workspace,bg="#FFFFFF",highlightbackground="#E2E8F0",highlightthickness=1,cursor="hand2")
+            card.grid(row=row,column=column,sticky="nsew",padx=(0 if column==0 else 10,0),pady=(0,10),ipadx=0,ipady=0)
+            accent=tk.Frame(card,bg=color,height=5);accent.pack(fill="x")
+            content=tk.Frame(card,bg="#FFFFFF");content.pack(fill="both",expand=True,padx=18,pady=16)
+            badge=tk.Label(content,text=number,bg="#F1F5F9",fg=color,font=("Segoe UI",10,"bold"),width=4,pady=6)
+            badge.pack(side="left",padx=(0,14))
+            text=tk.Frame(content,bg="#FFFFFF");text.pack(side="left",fill="both",expand=True)
+            tk.Label(text,text=self.tr(fr,ar,en),bg="#FFFFFF",fg="#0F172A",font=("Segoe UI",13,"bold")).pack(anchor="w")
+            subtitles={
+                "sale":self.tr("Encaisser et scanner","البيع والمسح","Scan and checkout"),
+                "stock":self.tr("Articles et mouvements","المنتجات والحركات","Items and movements"),
+                "journal":self.tr("Ventes et rapports","المبيعات والتقارير","Sales and reports"),
+                "management":self.tr("Clients, fournisseurs, achats","الزبناء والموردون والمشتريات","Customers, suppliers, purchases"),
+                "settings":self.tr("Appareils et configuration","الأجهزة والإعدادات","Devices and configuration"),
+                "statistics":self.tr("Suivi de l’activité","متابعة النشاط","Business insights"),
+            }
+            tk.Label(text,text=subtitles[key],bg="#FFFFFF",fg="#64748B",font=("Segoe UI",9)).pack(anchor="w",pady=(3,0))
+            arrow=tk.Label(content,text="›",bg="#FFFFFF",fg="#94A3B8",font=("Segoe UI",25))
+            arrow.pack(side="right")
+            def enter(event,box=card,accent_color=color):
+                box.configure(highlightbackground=accent_color,highlightthickness=2)
+            def leave(event,box=card):
+                box.configure(highlightbackground="#E2E8F0",highlightthickness=1)
+            def go(event=None,module=key):
+                self.app.show(module)
+            for widget in (card,accent,content,badge,text,arrow,*text.winfo_children()):
+                widget.bind("<Button-1>",go);widget.bind("<Enter>",enter);widget.bind("<Leave>",leave)
