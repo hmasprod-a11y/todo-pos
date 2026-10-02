@@ -294,8 +294,8 @@ class ToDoApp(tk.Tk):
         self.minimize_button=tk.Button(bar,text="—",bg="#1E293B",fg="white",activebackground="#334155",activeforeground="white",
                   relief="flat",bd=0,font=("Segoe UI",16,"bold"),width=4,cursor="hand2",command=self.iconify)
         self.minimize_button.pack(side="right",fill="y")
-        self.keyboard_button=tk.Button(bar,text="⌨",bg="#0F172A",fg="#FBBF24",activebackground="#1E293B",
-                  activeforeground="#FBBF24",relief="flat",bd=0,font=("Segoe UI",15,"bold"),width=4,cursor="hand2",command=self.toggle_keyboard)
+        self.keyboard_button=tk.Button(bar,text="⌨ "+self.ui_text("nav.keyboard"),bg="#0F172A",fg="#FBBF24",activebackground="#1E293B",
+                  activeforeground="#FBBF24",relief="flat",bd=0,font=("Segoe UI",10,"bold"),padx=10,cursor="hand2",command=self.toggle_keyboard)
         self.keyboard_button.pack(side="right",fill="y",padx=(4,2))
         self.customer_button=tk.Button(bar,text="▣",bg="#0F172A",fg="#CBD5E1",activebackground="#1E293B",
                   activeforeground="white",relief="flat",bd=0,font=("Segoe UI",14,"bold"),width=4,cursor="hand2",command=self.toggle_customer_display)
