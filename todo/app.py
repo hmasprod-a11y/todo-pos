@@ -290,7 +290,7 @@ class ToDoApp(tk.Tk):
                              activeforeground="white",relief="flat",bd=0,font=("Segoe UI",10,"bold"),padx=12,
                              command=lambda k=key:self.show(k),cursor="hand2")
             button.pack(side="left",fill="y");self.nav_buttons[key]=button
-        self.more_button=tk.Button(bar,text="☰  "+("المزيد" if get_setting("language","fr")=="ar" else "Plus"),
+        self.more_button=tk.Button(bar,text="☰  "+("المزيد" if get_setting("language","fr")=="ar" else ("More" if get_setting("language","fr")=="en" else "Plus")),
                                    bg="#0F172A",fg="#CBD5E1",activebackground="#1E293B",activeforeground="white",
                                    relief="flat",bd=0,font=("Segoe UI",10,"bold"),padx=12,command=self._show_more_modules,cursor="hand2")
         self.more_button.pack(side="left",fill="y")
