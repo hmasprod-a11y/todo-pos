@@ -9,9 +9,10 @@ class CashFrame(ttk.Frame):
     def __init__(self,master,app):
         super().__init__(master,padding=15);self.app=app
         self.lang=get_setting('language','fr');self.currency=current_country_profile().currency;self.tr=lambda fr,ar,en=None: ar if self.lang=='ar' else (en if self.lang=='en' and en else fr)
-        ttk.Label(self,text=self.tr('Caisse','الصندوق','Cash drawer'),style='Title.TLabel').pack(anchor='w',pady=(0,8))
-        self.info=ttk.Label(self,text="",font=("Segoe UI",12));self.info.pack(anchor="w",pady=8)
-        self.kpis=ttk.Frame(self);self.kpis.pack(fill="x",pady=8);self.kpi_labels={}
+        ttk.Label(self,text=self.tr('Caisse','الصندوق','Cash drawer'),style='Title.TLabel').pack(anchor='w')
+        ttk.Label(self,text=self.tr('Suivi de caisse et opérations du jour','متابعة الصندوق وعمليات اليوم','Cash tracking and today operations'),foreground='#64748B').pack(anchor='w',pady=(2,10))
+        self.info=ttk.Label(self,text="",font=("Segoe UI",11,'bold'),foreground='#334155');self.info.pack(anchor="w",pady=(0,8))
+        self.kpis=ttk.Frame(self,style='Card.TFrame',padding=8);self.kpis.pack(fill="x",pady=8);self.kpi_labels={}
         for key,title in [("expected",self.tr("Cash attendu","النقد المتوقع","Expected cash")),("sales",self.tr("Ventes cash","المبيعات النقدية","Cash sales")),("card",self.tr("Ventes carte","مبيعات البطاقة","Card sales")),("expenses",self.tr("Dépenses","المصاريف","Expenses")),("returns",self.tr("Retours cash","المرتجعات النقدية","Cash returns"))]:
             card=ttk.LabelFrame(self.kpis,text=title,padding=8);card.pack(side="left",fill="x",expand=True,padx=3);lbl=ttk.Label(card,text="—",font=("Segoe UI",16,"bold"));lbl.pack();self.kpi_labels[key]=lbl
         b=ttk.Frame(self);b.pack(anchor="w",pady=8)
