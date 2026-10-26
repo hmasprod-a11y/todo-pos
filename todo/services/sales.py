@@ -57,6 +57,11 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
             raise ValueError('Vendeur introuvable.')
         if payment_method=='CREDIT' and client_id is None:
             raise ValueError('Choisissez un client pour une vente à crédit.')
+        stock_management=get_setting('stock_management_enabled','1',conn)=='1'
+        block_stock=get_setting('block_insufficient_stock','0',conn)=='1'
+        allow_negative=get_setting('allow_negative_stock','1',conn)=='1'
+        must_block=stock_management and (block_stock or not allow_negative)
+        required_stock={}
         normalized=[]
         for line in cart:
             pid=int(line['product_id']);qty=float(line['qty'])
@@ -71,12 +76,11 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
                 if not p['name'] or len(p['name'])>150:raise ValueError('Libellé Divers invalide')
             if not p['allow_fraction'] and not qty.is_integer():
                 raise ValueError('Cet article se vend en unités entières.')
-            stock_management=get_setting('stock_management_enabled','1',conn)=='1'
-            block_stock=conn.execute("SELECT value FROM settings WHERE key='block_insufficient_stock'").fetchone()
-            allow_negative=conn.execute("SELECT value FROM settings WHERE key='allow_negative_stock'").fetchone()
-            must_block=stock_management and ((block_stock and block_stock[0]=='1') or not (allow_negative and allow_negative[0]=='1'))
-            if must_block and not p['is_misc'] and qty>float(p['stock_qty']):
-                raise ValueError(f"Stock insuffisant pour {p['name']} (disponible: {p['stock_qty']:g}).")
+            if must_block and not p['is_misc']:
+                # Different barcodes/pack lines can consume the same product.
+                # Validate their combined base-unit quantity before any writes.
+                entry=required_stock.setdefault(pid,[p,Decimal(0)])
+                entry[1]+=Decimal(str(qty))
             unit=line.get('unit_price_cents')
             pricing=None
             if line.get('barcode_id'):
@@ -92,6 +96,10 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
             if discount<0 or discount>gross:
                 raise ValueError('Remise ligne invalide')
             normalized.append((p,qty,unit,gross,discount,pricing['barcode'] if pricing else line.get('barcode',''),pricing))
+        for product,required in required_stock.values():
+            available=Decimal(str(product['stock_qty']))
+            if required>available:
+                raise ValueError(f"Stock insuffisant pour {product['name']} (disponible: {product['stock_qty']:g}).")
         weights=[x[3]-x[4] for x in normalized]
         subtotal=sum(weights);discount=int(discount_cents)
         if discount<0 or discount>subtotal:
