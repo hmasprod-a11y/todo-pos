@@ -66,6 +66,41 @@ with patch('tkinter.messagebox.showerror',fail):
     stats.refresh();app.update();assert sum(stats.evo_chart._values)==-1250
     for _ in range(3):
         app.show('sale');app.update();app.show('statistics');app.update()
+    # Shared-barcode popup: keypad quantity, one-click add, fractional quantities,
+    # invalid input/cancel, independent product identities and no stock columns.
+    from services.catalog import scan_barcode
+    from PIL import Image
+    photo=Path(temp.name)/'shared.png';Image.new('RGB',(20,20),'blue').save(photo)
+    with connect() as c:
+        first=c.execute("INSERT INTO products(name,sale_price_cents,stock_qty,image_path,allow_fraction) VALUES('Shared large',1000,40,?,1)",(str(photo),)).lastrowid
+        second=c.execute("INSERT INTO products(name,sale_price_cents,stock_qty,allow_fraction) VALUES('Shared small',800,50,1)").lastrowid
+        for product in (first,second):c.execute("INSERT INTO product_barcodes(product_id,barcode) VALUES(?,'SHARED-UI')",(product,))
+    app.show('sale');app.update();sale=app.sale_frame;sale.clear();sale.scan_quantity.set('1')
+    rows=scan_barcode('SHARED-UI')
+    popup=sale.pick_barcode(rows);app.update()
+    from PIL import ImageGrab
+    evidence=Path('qa-evidence');evidence.mkdir(exist_ok=True)
+    ImageGrab.grab().save(evidence/'shared-barcode-popup.png')
+    button(popup,'3').invoke()
+    label=next(w for w in descendants(popup) if w.winfo_class()=='Label' and w.cget('text')=='Shared large')
+    label.event_generate('<Button-1>');app.update()
+    assert len(sale.cart)==1 and sale.cart[0]['product_id']==first and sale.cart[0]['qty']==3
+    popup=sale.pick_barcode(rows);app.update()
+    for key in ('1','.','5'):button(popup,key).invoke()
+    next(w for w in descendants(popup) if w.winfo_class()=='Label' and w.cget('text')=='Shared small').event_generate('<Button-1>');app.update()
+    assert len(sale.cart)==2 and sale.cart[1]['product_id']==second and sale.cart[1]['qty']==1.5
+    popup=sale.pick_barcode(rows);app.update();button(popup,'0').invoke()
+    with patch('tkinter.messagebox.showerror') as invalid:
+        next(w for w in descendants(popup) if w.winfo_class()=='Label' and w.cget('text')=='Shared large').event_generate('<Button-1>');app.update()
+        assert invalid.call_count==1 and popup.winfo_exists()
+    button(popup,'Annuler').invoke();app.update();assert len(sale.cart)==2 and sale.scan_quantity.get()=='1'
+    popup=sale.pick_barcode(rows);app.update();button(popup,'2').invoke()
+    next(w for w in descendants(popup) if w.winfo_class()=='Label' and w.cget('text')=='Shared large').event_generate('<Button-1>');app.update()
+    assert sale.cart[0]['qty']==5 and len(sale.cart)==2
+    sale.clear();sale.render_products();app.update()
+    names={str(w.cget('text')) for w in descendants(sale.card_inner) if w.winfo_class()=='Label'}
+    assert 'Shared large' in names and 'Shared small' not in names
+    print('GUI SHARED BARCODE PASSED: keypad, click, fractional qty, cancel, repeated scan, photos only')
     app.destroy()
 temp.cleanup()
 print('PASS: 30 families, inline addition, multi-select save/reopen/remove, colour/icon editor, sale family button, 3 statistics periods, discounts/returns, negative chart, navigation')

@@ -220,6 +220,18 @@ CREATE TABLE IF NOT EXISTS sales (
     FOREIGN KEY(cashier_user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS checkout_requests (
+    request_key TEXT PRIMARY KEY,
+    cashier_user_id INTEGER NOT NULL,
+    session_id INTEGER NOT NULL,
+    fingerprint TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    sale_id INTEGER NOT NULL UNIQUE,
+    FOREIGN KEY(sale_id) REFERENCES sales(id),
+    FOREIGN KEY(cashier_user_id) REFERENCES users(id),
+    FOREIGN KEY(session_id) REFERENCES cash_sessions(id)
+);
+
 CREATE TABLE IF NOT EXISTS sale_payments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sale_id INTEGER NOT NULL,
@@ -743,4 +755,4 @@ def migrate(conn):
     # Backfill one payment row for legacy sales; new sales write their split directly.
     conn.execute("INSERT INTO sale_payments(sale_id,payment_method,amount_cents) SELECT s.id,s.payment_method,CASE WHEN s.payment_method='CASH' THEN s.paid_cents-s.change_cents ELSE s.paid_cents END FROM sales s WHERE NOT EXISTS (SELECT 1 FROM sale_payments sp WHERE sp.sale_id=s.id)")
     conn.execute("INSERT INTO return_payments(return_id,payment_method,amount_cents) SELECT r.id,r.refund_method,COALESCE(r.refund_paid_cents,r.total_cents) FROM returns r WHERE r.refund_method IN ('CASH','CARD') AND NOT EXISTS (SELECT 1 FROM return_payments rp WHERE rp.return_id=r.id)")
-    conn.execute('PRAGMA user_version=127')
+    conn.execute('PRAGMA user_version=128')

@@ -1,5 +1,6 @@
 from database import connect, get_setting
 from services.security import require_admin, require_permission, audit
+from services.images import valid_image
 
 
 def search_products(query='', category=None, limit=None, images_only=False, offset=0):
@@ -18,7 +19,8 @@ def search_products(query='', category=None, limit=None, images_only=False, offs
 
         if images_only:
             # Photo visibility is an explicit product choice and is independent of barcode presence.
-            cat_filter+=" AND trim(p.image_path)<>'' AND p.show_in_sale_photos=1"
+            conn.create_function("valid_product_image",1,valid_image)
+            cat_filter+=" AND trim(p.image_path)<>'' AND p.show_in_sale_photos=1 AND valid_product_image(p.image_path)=1"
         offset=max(0,int(offset))
         if not query:
             return conn.execute(

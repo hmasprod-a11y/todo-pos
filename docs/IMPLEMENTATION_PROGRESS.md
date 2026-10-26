@@ -20,7 +20,26 @@ Checkout now adds the required base-unit quantities by `product_id`, then checks
 - Full local source suite: 264 tests passed.
 - Windows workflows and packaged EXE validation must pass on the delivery commit; their status is recorded by GitHub Actions rather than assumed from local results.
 
-## Next work
+## W02 — enforce checkout permissions
 
-- W02: enforce sensitive price/discount permissions at business-service boundaries while preserving authorized price grids, promotions and stored quote/order prices.
-- W03 and later: continue the shared financial reconciliation tests and the staged diagnostic backlog. W01 does not close those separate tasks.
+Checkout rechecks PRICE_EDIT and DISCOUNT for the submitting user, including held tickets. Caller flags do not authorize manual prices. Active price grids, quantity offers, pack prices and persisted open quote/order prices remain valid; document quantity allowances cannot be reused by split lines. Manual overrides are audited. Miscellaneous free-price lines retain their original behavior.
+
+Validation: 16 additional permission regression cases; full suite includes stock-edit and returns permission tests. Catalog price restoration remains an allowed existing workflow.
+
+## W05 / W06 — shared barcode and photos
+
+The shared-barcode picker provides an editable × quantity and numeric keypad. Clicking a product adds it directly; the picker displays image, name and unit/pack price without stock/reference columns. Invalid, zero and nonfinite quantities leave the picker open. Cancel preserves the original sale quantity. Product identities and stocks remain separate.
+
+Photo search checks that the file can actually be decoded before applying pagination. Missing/corrupt files and directories never create placeholder cards. File metadata invalidates the decode/thumbnail cache when an image is replaced at the same path. Explicit photo visibility remains required, regardless of barcode presence. List Article remains the default tab.
+
+Validation: five photo service cases, existing visibility test uses a real image fixture; Windows Tk integration covers quantity3, fractional1.5, zero, cancel, repeat scan and image-only cards. Windows evidence is attached by Actions.
+
+## W08 / W09 — ownership and duplicate payment
+
+Held-ticket lists follow cashier ownership, matching existing resume/checkout rules. Checkout accepts an optional idempotency key tied to cashier, session and exact request fingerprint. A committed retry returns the original result without sale/payment/stock/sequence writes; reusing a key for a changed ticket is rejected. The Tk checkout retains the key across retries and resets after successful cart clearing. Existing transactional held-ticket consumption and post-commit print-error handling remain active.
+
+Schema128 adds the request journal, preserving prior records. Backup validation supports128. Seven new cases cover sequential/concurrent retry, mismatch, rollback/retry, held retry, concurrent held consumption and ownership. Windows installer/upgrade and full backup tests are required on the delivery SHA.
+
+## Remaining diagnostic work
+
+W03/W07/W10/W12–W19 already have substantial regression coverage in the repository (rounding, packs, tax snapshots, cash, debts, supplier orders/returns, inventory, documents, reports, full media backups and import). Existing implementation is not a claim of complete LOGICA parity. Remaining gaps and requirements must stay open until independently demonstrated. Physical peripherals and comparative measurements on the same shop PC cannot be certified by hosted CI. Lot/expiry strategy and multi-workstation topology require explicit business scope before implementation.

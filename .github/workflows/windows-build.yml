@@ -25,6 +25,16 @@ jobs:
         run: python -B tests/ui_acceptance.py
       - name: Integrated families and statistics through Tk controls
         run: python -B tests/ui_integration.py
+      - name: Synthetic Windows performance measurements
+        run: python -B tests/benchmark.py
+      - name: Save validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-validation-evidence
+          path: |
+            qa-evidence/
+            benchmark_results.json
       - name: Compile sources
         run: python -m compileall -q todo ToDo.pyw IMPORT_OLD_DATA.pyw
       - name: Build portable Windows application

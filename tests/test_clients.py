@@ -127,10 +127,13 @@ class ClientWorkflowTests(unittest.TestCase):
         self.assertEqual(len(list((database.DB_PATH.parent/'migration_backups').glob('*.db'))),1)
 
     def test_photo_catalog_uses_explicit_visibility_even_with_barcode(self):
+        from PIL import Image
+        photo=Path(self.tmp.name)/"photo.png"
+        Image.new("RGB",(4,4)).save(photo)
         with database.connect() as c:
             c.executemany('INSERT INTO products(name,category_id) VALUES(?,?)',[(f'A{i:03}',self.cat) for i in range(100)])
-            shown=c.execute("INSERT INTO products(name,category_id,image_path,show_in_sale_photos) VALUES('Z photo shown',?,'assets/test.png',1)",(self.cat,)).lastrowid
-            hidden=c.execute("INSERT INTO products(name,category_id,image_path,show_in_sale_photos) VALUES('Z photo hidden',?,'assets/test.png',0)",(self.cat,)).lastrowid
+            shown=c.execute("INSERT INTO products(name,category_id,image_path,show_in_sale_photos) VALUES('Z photo shown',?,?,1)",(self.cat,str(photo))).lastrowid
+            hidden=c.execute("INSERT INTO products(name,category_id,image_path,show_in_sale_photos) VALUES('Z photo hidden',?,?,0)",(self.cat,str(photo))).lastrowid
             c.execute("INSERT INTO product_barcodes(product_id,barcode) VALUES(?,?)",(shown,'6111111111111'))
         self.assertNotIn(shown,[r['id'] for r in search_products()])
         self.assertEqual([r['id'] for r in search_products(images_only=True)],[shown])

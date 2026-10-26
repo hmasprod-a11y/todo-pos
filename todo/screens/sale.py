@@ -1,5 +1,7 @@
 import tkinter as tk
 import math
+import json
+import uuid
 from tkinter import ttk, messagebox, simpledialog, filedialog
 from decimal import Decimal
 from database import connect, get_setting
@@ -8,7 +10,7 @@ from services.pricing import resolve_unit_price, line_total
 from services.sales import complete_sale, create_manual_returns, hold_sale, list_held, resume_held
 from services.cash import get_open_session
 from services.money import fmt, to_cents, allocate
-from services.images import abs_image
+from services.images import abs_image, image_signature
 from services.receipts import build_receipt, print_receipt_windows, export_receipt_pdf
 from screens.payment import PaymentDialog
 try:
@@ -39,6 +41,7 @@ class SaleFrame(ttk.Frame):
         self.search_job=None
         self.scan_submit_job=None
         self.busy=False
+        self.checkout_request=None
         self.return_mode=False
         self.last_sale_snapshot=None
         self.customer_order_id=None
@@ -616,7 +619,7 @@ class SaleFrame(ttk.Frame):
         self.search_job=self.after(120,self.render_products)
 
     def thumbnail(self,row,size=40):
-        key=(row['id'],row['image_path'],size)
+        key=(row['id'],image_signature(row['image_path']),size)
         if key not in self.images and Image:
             path=abs_image(row['image_path']) if row['image_path'] else None
             if path:
@@ -694,9 +697,10 @@ class SaleFrame(ttk.Frame):
         for row in rows:
             self.products.insert('', 'end',iid=str(row['id']),text=row['name'],image=self.thumbnail(row),values=(fmt(display_prices[row['id']],''),f"{row['stock_qty']:g}"))
         for index,row in enumerate(photo_rows):
+            thumb=self.thumbnail(row,90)
+            if not thumb:continue
             card=tk.Frame(self.card_inner,bg='white',bd=1,relief='solid',highlightthickness=1,highlightbackground='#E2E8F0',width=155,height=168,cursor='hand2')
             card.grid(row=index//columns,column=index%columns,padx=6,pady=6);card.grid_propagate(False)
-            thumb=self.thumbnail(row,90)
             picture=tk.Label(card,image=thumb or '',text='' if thumb else '📦',bg='white',font=('Segoe UI',26));picture.pack(fill='both',expand=True)
             tk.Label(card,text=row['name'],bg='white',fg='#0F172A',font=('Segoe UI',9,'bold'),wraplength=140,pady=2).pack()
             tk.Label(card,text=fmt(display_prices.get(row['id'],row['sale_price_cents']),self.currency),bg='#2563EB',fg='white',font=('Segoe UI',11,'bold'),pady=3).pack(fill='x')
@@ -783,26 +787,49 @@ class SaleFrame(ttk.Frame):
         window.bind('<Return>',lambda e:close())
 
     def pick_barcode(self,rows):
-        w=tk.Toplevel(self);w.title(self.tr('Même code-barres — choisir le produit','نفس الباركود — اختر المنتوج','Same barcode — choose product'));w.geometry('900x620');w.transient(self);w.grab_set()
-        ttk.Label(w,text=self.tr(f'{len(rows)} produits utilisent ce même code-barres',f'{len(rows)} منتوجات تستعمل نفس الباركود',f'{len(rows)} products use this same barcode'),font=('Segoe UI',16,'bold')).pack(anchor='w',padx=16,pady=(14,2))
-        ttk.Label(w,text=self.tr('Choisissez le produit selon le nom, la photo et le prix.','اختر المنتوج حسب الاسم والصورة والثمن.','Choose the product by name, photo and price.')).pack(anchor='w',padx=16,pady=(0,10))
-        canvas=tk.Canvas(w,highlightthickness=0);scroll=ttk.Scrollbar(w,orient='vertical',command=canvas.yview);inner=ttk.Frame(canvas)
-        inner.bind('<Configure>',lambda e:canvas.configure(scrollregion=canvas.bbox('all')));canvas.create_window((0,0),window=inner,anchor='nw');canvas.configure(yscrollcommand=scroll.set);canvas.pack(side='left',fill='both',expand=True,padx=(16,0),pady=(0,16));scroll.pack(side='right',fill='y',padx=(0,16),pady=(0,16))
-        try:
-            scan_multiplier=float(self.scan_quantity.get().replace(',','.'))
-        except ValueError:
-            scan_multiplier=1
+        w=tk.Toplevel(self);w.title(self.tr('Même code-barres','نفس الباركود','Same barcode'));w.geometry('980x620');w.transient(self);w.grab_set()
+        quantity=tk.StringVar(w,value=self.scan_quantity.get())
+        ttk.Label(w,text=self.tr('Cliquez sur le produit à ajouter','اضغط على المنتوج لإضافته','Click the product to add'),font=('Segoe UI',16,'bold')).pack(anchor='w',padx=16,pady=14)
+        body=ttk.Frame(w);body.pack(fill='both',expand=True,padx=16,pady=(0,16))
+        keypad=ttk.Frame(body);keypad.pack(side='right',fill='y',padx=(14,0))
+        ttk.Label(keypad,text=self.tr('Quantité ×','الكمية ×','Quantity ×'),font=('Segoe UI',14,'bold')).pack()
+        entry=ttk.Entry(keypad,textvariable=quantity,width=10,font=('Segoe UI',22),justify='right');entry.pack(pady=8)
+        keys=ttk.Frame(keypad);keys.pack()
+        fresh=[True]
+        def press(key):
+            old=quantity.get()
+            if fresh[0] and key not in ('⌫','C'):old=''
+            fresh[0]=False
+            quantity.set(old[:-1] if key=='⌫' else ('' if key=='C' else old+key))
+        entry.bind('<KeyPress>',lambda e:fresh.__setitem__(0,False))
+        for i,key in enumerate(('7','8','9','4','5','6','1','2','3','C','0','.','⌫')):
+            ttk.Button(keys,text=key,width=4,command=lambda k=key:press(k)).grid(row=i//3,column=i%3,padx=2,pady=3,ipady=10)
+        def close():w.destroy();self.focus_search()
+        ttk.Button(keypad,text=self.tr('Annuler','إلغاء','Cancel'),command=close).pack(fill='x',pady=14)
+        canvas=tk.Canvas(body,highlightthickness=0);scroll=ttk.Scrollbar(body,orient='vertical',command=canvas.yview);inner=ttk.Frame(canvas)
+        inner.bind('<Configure>',lambda e:canvas.configure(scrollregion=canvas.bbox('all')));canvas.create_window((0,0),window=inner,anchor='nw');canvas.configure(yscrollcommand=scroll.set);scroll.pack(side='right',fill='y');canvas.pack(side='left',fill='both',expand=True)
+        def choose(r):
+            try:
+                count=float(quantity.get().replace(',','.'))
+                if not math.isfinite(count) or count<=0:raise ValueError()
+                with connect() as conn:
+                    p=conn.execute('SELECT allow_fraction FROM products WHERE id=? AND active=1',(r['id'],)).fetchone()
+                    if not p or (not p['allow_fraction'] and not (count*r['qty_multiplier']).is_integer()):raise ValueError()
+                    resolve_unit_price(r['id'],count*r['qty_multiplier'],r['barcode_id'],conn,self.price_grid_id)
+            except (ValueError,OverflowError):
+                messagebox.showerror('ToDo',self.tr('Quantité invalide','الكمية غير صالحة','Invalid quantity'),parent=w);return
+            self.scan_quantity.set(quantity.get());w.destroy();self.add_product(r['id'],r['barcode_id'],r['qty_multiplier'],r['barcode'])
         with connect() as conn:
-            details=[(r,conn.execute('SELECT stock_qty,image_path FROM products WHERE id=?',(r['id'],)).fetchone(),resolve_unit_price(r['id'],r['qty_multiplier']*scan_multiplier,r['barcode_id'],conn,self.price_grid_id)) for r in rows]
-        def choose(r):w.destroy();self.add_product(r['id'],r['barcode_id'],r['qty_multiplier'],r['barcode'])
+            details=[(r,conn.execute('SELECT image_path FROM products WHERE id=?',(r['id'],)).fetchone(),resolve_unit_price(r['id'],r['qty_multiplier'],r['barcode_id'],conn,self.price_grid_id)) for r in rows]
         for i,(r,p,price) in enumerate(details):
             card=tk.Frame(inner,bg='white',bd=1,relief='solid',cursor='hand2');card.grid(row=i//3,column=i%3,padx=7,pady=7,sticky='nsew')
-            thumb=self.thumbnail({'id':r['id'],'image_path':p['image_path']},110);pic=tk.Label(card,image=thumb or '',text='' if thumb else '📦',bg='white',font=('Segoe UI',34));pic.pack(fill='both',expand=True,padx=8,pady=6)
-            tk.Label(card,text=r['name'],bg='white',font=('Segoe UI',11,'bold'),wraplength=230).pack(fill='x',padx=8);pack=(self.tr('Pack','علبة','Pack')+f" ×{r['qty_multiplier']:g}") if r['qty_multiplier']!=1 else self.tr('Unité','وحدة','Unit');tk.Label(card,text=f"{pack} · {self.tr('Stock','المخزون','Stock')} {p['stock_qty']:g}",bg='white').pack(fill='x',padx=8)
-            tk.Label(card,text=fmt(line_total(price,r['qty_multiplier']*scan_multiplier),self.currency),bg='#2563EB',fg='white',font=('Segoe UI',15,'bold'),pady=6).pack(fill='x',pady=(6,0))
+            thumb=self.thumbnail({'id':r['id'],'image_path':p['image_path']},100);tk.Label(card,image=thumb or '',text='' if thumb else '📦',bg='white',font=('Segoe UI',30)).pack(fill='both',expand=True,padx=6,pady=6)
+            tk.Label(card,text=r['name'],bg='white',font=('Segoe UI',11,'bold'),wraplength=180).pack(fill='x',padx=6)
+            tk.Label(card,text=fmt(line_total(price,r['qty_multiplier']),self.currency),bg='#2563EB',fg='white',font=('Segoe UI',15,'bold'),pady=6).pack(fill='x',pady=(6,0))
             for widget in [card,*card.winfo_children()]:widget.bind('<Button-1>',lambda e,x=r:choose(x))
         for col in range(3):inner.columnconfigure(col,weight=1)
-        w.bind('<Escape>',lambda e:(w.destroy(),self.focus_search()))
+        w.protocol('WM_DELETE_WINDOW',close);w.bind('<Escape>',lambda e:close())
+        return w
 
     def add_selected_product(self,event=None):
         if self.products.selection():self.add_product(int(self.products.selection()[0]))
@@ -1163,7 +1190,10 @@ class SaleFrame(ttk.Frame):
                     dialog_print=(print_ticket and mode=='always')
                 payments=None
             completed_payment=self.payment
-            result=complete_sale(session['id'],self.app.user['id'],self.cart,self.payment,paid,self.ticket_discount_cents,self.held_id,client_id=self.client_id,payments=payments,seller_id=self.seller_id,loyalty_points=loyalty_points_used,customer_order_id=self.customer_order_id,quotation_id=self.quotation_id)
+            request_signature=json.dumps([session['id'],self.app.user['id'],self.cart,self.payment,paid,self.ticket_discount_cents,self.held_id,self.client_id,payments,self.seller_id,loyalty_points_used,self.customer_order_id,self.quotation_id,self.price_grid_id],sort_keys=True,default=str)
+            if self.checkout_request is None or self.checkout_request[0]!=request_signature:
+                self.checkout_request=(request_signature,uuid.uuid4().hex)
+            result=complete_sale(session['id'],self.app.user['id'],self.cart,self.payment,paid,self.ticket_discount_cents,self.held_id,client_id=self.client_id,payments=payments,seller_id=self.seller_id,loyalty_points=loyalty_points_used,customer_order_id=self.customer_order_id,quotation_id=self.quotation_id,price_grid_id=self.price_grid_id,request_key=self.checkout_request[1])
             # The completed ticket stays visible until the first item of the next sale.
             # Business cart state is cleared immediately so the completed sale cannot be submitted twice.
             self.last_sale_snapshot=[dict(line) for line in self.cart]
@@ -1176,6 +1206,7 @@ class SaleFrame(ttk.Frame):
                 f"TOTAL : {fmt(total,self.currency)}\nPAYMENT : {labels.get(completed_payment,completed_payment)}\nPAID : {fmt(paid,self.currency)}\nCHANGE : {fmt(result['change_cents'],self.currency)}"
             ))
             self.clear(preserve_last_sale=True)
+            self.checkout_request=None
             self.status.config(text=self.tr(f"Dernière vente : {fmt(total,self.currency)} · Reçu : {fmt(paid,self.currency)} · Monnaie : {fmt(result['change_cents'],self.currency)} · {result['sale_no']}",f"آخر بيع: {fmt(total,self.currency)} · المستلم: {fmt(paid,self.currency)} · الباقي: {fmt(result['change_cents'],self.currency)} · {result['sale_no']}",f"Last sale: {fmt(total,self.currency)} · Received: {fmt(paid,self.currency)} · Change: {fmt(result['change_cents'],self.currency)} · {result['sale_no']}"))
             if get_setting('customer_serial_enabled','0')=='1':
                 try:

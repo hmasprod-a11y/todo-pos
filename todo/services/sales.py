@@ -1,3 +1,4 @@
+import hashlib
 import json, math
 from decimal import Decimal
 from datetime import datetime
@@ -7,7 +8,7 @@ from services.inventory import apply_stock_movement
 from services.pricing import resolve_unit_price, resolve_line_price, line_total
 from services.money import allocate, rounded
 from fiscal.tax import calculate_tax
-from services.security import audit, current_user
+from services.security import audit, current_user, has_permission
 
 def sale_number():
     return 'V-'+datetime.now().strftime('%Y%m%d-%H%M%S')+'-'+uuid4().hex[:12].upper()
@@ -35,7 +36,29 @@ def validate_session(conn,session_id,user_id):
         raise PermissionError('Utilisateur incompatible')
     return session
 
-def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cents=0,held_id=None,client_id=None,payments=None,seller_id=None,loyalty_points=0,customer_order_id=None,quotation_id=None):
+def _document_prices(conn, quotation_id, customer_order_id, client_id):
+    """Only persisted, open commercial documents may authorize agreed prices."""
+    if quotation_id is not None and customer_order_id is not None:
+        raise ValueError('Choisissez un seul document source.')
+    if quotation_id is not None:
+        document=conn.execute("SELECT client_id,status FROM quotations WHERE id=?",(int(quotation_id),)).fetchone()
+        if not document or document['status']!='OPEN':raise ValueError('Devis indisponible.')
+        if document['client_id'] is not None and (client_id is None or int(document['client_id'])!=int(client_id)):
+            raise ValueError('Client incompatible avec le devis.')
+        rows=conn.execute('SELECT product_id,qty,unit_price_cents FROM quotation_items WHERE quotation_id=?',(int(quotation_id),))
+    elif customer_order_id is not None:
+        document=conn.execute("SELECT client_id,status FROM customer_orders WHERE id=?",(int(customer_order_id),)).fetchone()
+        if not document or document['status'] not in ('OPEN','READY'):raise ValueError('Commande client indisponible.')
+        if client_id is None or int(document['client_id'])!=int(client_id):raise ValueError('Client incompatible avec la commande.')
+        rows=conn.execute('SELECT product_id,qty,unit_price_cents FROM customer_order_items WHERE order_id=?',(int(customer_order_id),))
+    else:return {}
+    prices={}
+    for row in rows:
+        key=(int(row['product_id']),Decimal(str(row['unit_price_cents'])))
+        prices[key]=prices.get(key,Decimal(0))+Decimal(str(row['qty']))
+    return prices
+
+def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cents=0,held_id=None,client_id=None,payments=None,seller_id=None,loyalty_points=0,customer_order_id=None,quotation_id=None,price_grid_id=None,request_key=None):
     if not cart:
         raise ValueError('Ticket vide')
     payment_method=str(payment_method).upper()
@@ -49,6 +72,17 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
             if not method_row or not method_row['active']:
                 raise ValueError('Mode de paiement invalide')
         session=validate_session(conn,session_id,user_id)
+        fingerprint=None
+        if request_key is not None:
+            request_key=str(request_key).strip()
+            if not request_key or len(request_key)>128:raise ValueError('Identifiant de paiement invalide.')
+            payload=dict(session_id=session_id,user_id=user_id,cart=cart,payment_method=payment_method,paid_cents=paid_cents,discount_cents=discount_cents,held_id=held_id,client_id=client_id,payments=payments,seller_id=seller_id,loyalty_points=loyalty_points,customer_order_id=customer_order_id,quotation_id=quotation_id,price_grid_id=price_grid_id)
+            fingerprint=hashlib.sha256(json.dumps(payload,sort_keys=True,ensure_ascii=False,default=str).encode('utf-8')).hexdigest()
+            previous=conn.execute('SELECT * FROM checkout_requests WHERE request_key=?',(request_key,)).fetchone()
+            if previous:
+                if previous['cashier_user_id']!=user_id or previous['session_id']!=session_id or previous['fingerprint']!=fingerprint:
+                    raise ValueError('Cet identifiant de paiement correspond à un autre ticket.')
+                return json.loads(previous['result_json'])
         if held_id is not None and not conn.execute('SELECT id FROM held_sales WHERE id=? AND cashier_user_id=?',(held_id,user_id)).fetchone():
             raise ValueError('Ce ticket en attente a déjà été encaissé, supprimé ou appartient à un autre utilisateur.')
         if client_id is not None and not conn.execute('SELECT id FROM clients WHERE id=? AND active=1',(client_id,)).fetchone():
@@ -57,6 +91,14 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
             raise ValueError('Vendeur introuvable.')
         if payment_method=='CREDIT' and client_id is None:
             raise ValueError('Choisissez un client pour une vente à crédit.')
+        can_edit_price=has_permission('PRICE_EDIT',user_id=user_id,conn=conn)
+        can_discount=has_permission('DISCOUNT',user_id=user_id,conn=conn)
+        if int(discount_cents)>0 and not can_discount:
+            raise PermissionError('Permission insuffisante pour la remise.')
+        if price_grid_id is not None and not conn.execute('SELECT 1 FROM price_grids WHERE id=? AND active=1',(int(price_grid_id),)).fetchone():
+            raise ValueError('Grille de prix indisponible.')
+        document_prices=_document_prices(conn,quotation_id,customer_order_id,client_id)
+        price_overrides=[]
         stock_management=get_setting('stock_management_enabled','1',conn)=='1'
         block_stock=get_setting('block_insufficient_stock','0',conn)=='1'
         allow_negative=get_setting('allow_negative_stock','1',conn)=='1'
@@ -84,17 +126,28 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
             unit=line.get('unit_price_cents')
             pricing=None
             if line.get('barcode_id'):
-                pricing=resolve_line_price(pid,qty,line['barcode_id'],conn)
+                pricing=resolve_line_price(pid,qty,line['barcode_id'],conn,price_grid_id)
                 if pricing['pricing_mode']=='PACK':unit=pricing['base_unit_price_cents']
+            automatic=p['sale_price_cents'] if p['is_misc'] else resolve_unit_price(pid,qty,line.get('barcode_id'),conn,price_grid_id)
             if unit is None:
-                unit=resolve_unit_price(pid,qty,line.get('barcode_id'),conn)
+                unit=automatic
             unit=Decimal(str(unit))
             if not unit.is_finite() or unit<0:
                 raise ValueError('Prix invalide')
+            if not p['is_misc'] and unit not in (Decimal(str(automatic)),Decimal(str(p['sale_price_cents']))):
+                key=(pid,unit);agreed=document_prices.get(key,Decimal(0))
+                if agreed>=Decimal(str(qty)):
+                    document_prices[key]=agreed-Decimal(str(qty))
+                elif not can_edit_price:
+                    raise PermissionError('Permission insuffisante pour modifier le prix.')
+                else:
+                    price_overrides.append(dict(product_id=pid,automatic=str(automatic),applied=str(unit)))
             gross=line_total(unit,qty)
             discount=int(line.get('discount_cents',0))
             if discount<0 or discount>gross:
                 raise ValueError('Remise ligne invalide')
+            if discount>0 and not can_discount:
+                raise PermissionError('Permission insuffisante pour la remise.')
             normalized.append((p,qty,unit,gross,discount,pricing['barcode'] if pricing else line.get('barcode',''),pricing))
         for product,required in required_stock.values():
             available=Decimal(str(product['stock_qty']))
@@ -186,8 +239,12 @@ def complete_sale(session_id,user_id,cart,payment_method,paid_cents,discount_cen
             award_sale_points(conn,client_id,sid,total,user_id)
         if held_id is not None:
             conn.execute('DELETE FROM held_sales WHERE id=?',(held_id,))
+        if price_overrides:audit(conn,'SALE_PRICE_OVERRIDE',sid,json.dumps(price_overrides,ensure_ascii=False),user_id)
         audit(conn,'SALE',sid,no,user_id)
-        return dict(id=sid,sale_no=no,client_ticket_no=client_ticket_no,workstation_code=workstation,stock_tracked=stock_tracked,subtotal_cents=subtotal,discount_cents=discount+loyalty_value,tax_total_cents=tax_total,total_cents=total,paid_cents=paid,change_cents=change,loyalty_points_used=loyalty_points,loyalty_value_cents=loyalty_value)
+        result=dict(id=sid,sale_no=no,client_ticket_no=client_ticket_no,workstation_code=workstation,stock_tracked=stock_tracked,subtotal_cents=subtotal,discount_cents=discount+loyalty_value,tax_total_cents=tax_total,total_cents=total,paid_cents=paid,change_cents=change,loyalty_points_used=loyalty_points,loyalty_value_cents=loyalty_value)
+        if request_key is not None:
+            conn.execute('INSERT INTO checkout_requests VALUES(?,?,?,?,?,?)',(request_key,user_id,session_id,fingerprint,json.dumps(result),sid))
+        return result
 
 def hold_sale(user_id,cart,label='',discount_cents=0,held_id=None,client_id=None,seller_id=None,price_grid_id=None,payment_method='CASH'):
     if not cart:raise ValueError('Ticket vide')
@@ -210,7 +267,8 @@ def hold_sale(user_id,cart,label='',discount_cents=0,held_id=None,client_id=None
 
 def list_held():
     with connect() as conn:
-        return conn.execute('SELECT * FROM held_sales ORDER BY id DESC').fetchall()
+        uid=current_user.get()
+        return conn.execute('SELECT * FROM held_sales WHERE cashier_user_id=? ORDER BY id DESC',(uid,)).fetchall() if uid is not None else conn.execute('SELECT * FROM held_sales ORDER BY id DESC').fetchall()
 
 def resume_held(held_id):
     with connect() as conn:
