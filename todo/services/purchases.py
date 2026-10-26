@@ -1,5 +1,6 @@
 import math
 from decimal import Decimal
+from services.money import rounded
 from database import connect
 from services.security import require_permission, audit
 from services.inventory import apply_stock_movement
@@ -32,7 +33,7 @@ def receive_purchase(supplier_id, supplier_invoice, lines, notes="", paid_cents=
             expected=quantities(conn.execute('SELECT product_id,qty FROM purchase_order_items WHERE order_id=?',(int(order_id),)))
             actual=quantities((pid,qty) for pid,qty,cost in normalized)
             if actual!=expected:raise ValueError('Réception partielle non disponible : les quantités doivent correspondre à la commande complète.')
-        total = sum(int(round(qty * cost)) for pid,qty,cost in normalized)
+        total = sum(rounded(Decimal(str(qty)) * cost) for pid,qty,cost in normalized)
         paid_cents = int(paid_cents or 0)
         payment_method = str(payment_method).upper()
         if paid_cents < 0 or paid_cents > total:
@@ -56,7 +57,7 @@ def receive_purchase(supplier_id, supplier_invoice, lines, notes="", paid_cents=
         )
         pid_purchase = cur.lastrowid
         for pid,qty,cost in normalized:
-            lt=int(round(qty*cost))
+            lt=rounded(Decimal(str(qty)) * cost)
             conn.execute(
                 "INSERT INTO purchase_items(purchase_id,product_id,qty,unit_cost_cents,line_total_cents) VALUES(?,?,?,?,?)",
                 (pid_purchase,pid,qty,cost,lt)
@@ -150,3 +151,4 @@ def cancel_purchase_order(order_id):
             raise ValueError("Commande introuvable ou déjà clôturée")
         audit(conn,"PURCHASE_ORDER_CANCEL",order_id)
         conn.commit()
+

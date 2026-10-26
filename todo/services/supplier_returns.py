@@ -1,5 +1,6 @@
 import math
 from decimal import Decimal
+from services.money import rounded
 from database import connect
 from services.security import require_admin,current_user,audit
 from services.inventory import apply_stock_movement
@@ -58,7 +59,7 @@ def create_supplier_return(purchase_id, items, reason=''):
             stock_required[row['product_id']]=stock_required.get(row['product_id'],Decimal(0))+count
             if stock_required[row['product_id']]>Decimal(str(row['stock_qty'])):raise ValueError("Stock insuffisant pour ce retour fournisseur")
             cumulative=Decimal(str(row['returned_qty']))+count
-            cumulative_total=row['line_total_cents'] if abs(float(cumulative)-float(row['qty']))<=1e-9 else min(row['line_total_cents'],int(round(cumulative*row['unit_cost_cents'])))
+            cumulative_total=row['line_total_cents'] if abs(float(cumulative)-float(row['qty']))<=1e-9 else min(row['line_total_cents'],rounded(cumulative*row['unit_cost_cents']))
             line_total=cumulative_total-row['returned_cents']
             if line_total<0:raise ValueError('Montant de retour incohérent.')
             normalized.append((row,qty,line_total));total+=line_total
@@ -89,3 +90,4 @@ def supplier_return_lines(return_id):
             FROM supplier_return_items sri JOIN products p ON p.id=sri.product_id
             WHERE sri.supplier_return_id=? ORDER BY sri.id
         """,(int(return_id),)).fetchall()]
+
