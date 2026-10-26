@@ -22,6 +22,16 @@ class CheckoutRetryTests(unittest.TestCase):
             self.assertEqual(tuple(c.execute('SELECT stock_qty,(SELECT COUNT(*) FROM sales),(SELECT COUNT(*) FROM sale_payments),(SELECT COUNT(*) FROM checkout_requests) FROM products WHERE id=?',(self.pid,)).fetchone()),(98,1,1,1))
     def test_retry_returns_original_result_and_no_second_effect(self):
         first=self.sale();db.init_db();self.assertEqual(self.sale(),first);self.assert_once()
+    def test_backup_restore_preserves_idempotency_journal(self):
+        from services import backup
+        from unittest.mock import patch
+        first=self.sale()
+        with patch.object(backup,'DB_PATH',db.DB_PATH),patch.object(backup,'BASE',Path(self.tmp.name)):
+            snapshot=backup.create_backup()
+            with db.connect() as c:c.execute('DELETE FROM checkout_requests')
+            backup.restore_backup(snapshot)
+        self.assertEqual(self.sale(),first);self.assert_once()
+
     def test_concurrent_submissions_only_commit_once(self):
         with ThreadPoolExecutor(max_workers=2) as pool:results=list(pool.map(lambda _:self.sale(),range(2)))
         self.assertEqual(results[0],results[1]);self.assert_once()

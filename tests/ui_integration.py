@@ -102,6 +102,8 @@ with patch('tkinter.messagebox.showerror',fail):
         editor=ProductEditor(app);editor.name.set(name);editor.sell.set('7');editor.bar.set('SHARED-UI');editor.stock.set(str(amount))
         def resolve_conflict():
             conflict=next(w for w in descendants(editor) if w.winfo_class()=='Toplevel')
+            selector=next(w for w in descendants(conflict) if w.winfo_class()=='TCombobox')
+            selector.set(next(value for value in selector.cget('values') if value.startswith('Shared large ')))
             button(conflict,label).invoke()
         app.after(150,resolve_conflict);button(editor,'Enregistrer').invoke();app.update()
         with connect() as c:
