@@ -165,6 +165,17 @@ class CoreTests(unittest.TestCase):
   with db.connect() as c:
    row=c.execute('SELECT qty,qty_multiplier,pricing_mode,barcode_used FROM sale_items WHERE sale_id=?',(sale['id'],)).fetchone()
   self.assertEqual((row['qty'],row['qty_multiplier'],row['pricing_mode'],row['barcode_used']),(12,6,'UNIT','CARTON6'))
+ def test_pack_barcode_without_override_rejects_partial_pack(self):
+  with db.connect() as c:
+   bid=c.execute("INSERT INTO product_barcodes(product_id,barcode,qty_multiplier) VALUES(?,'CARTON6-NO-PRICE',6)",(self.pid,)).lastrowid
+   with self.assertRaisesRegex(ValueError,'pack/carton'):
+    resolve_unit_price(self.pid,7,bid,c)
+  with self.assertRaisesRegex(ValueError,'pack/carton'):
+   complete_sale(self.session,self.uid,[dict(product_id=self.pid,qty=7,barcode_id=bid)],'CASH',7000)
+  self.assertEqual(self.stock(),20)
+  sale=complete_sale(self.session,self.uid,[dict(product_id=self.pid,qty=6,barcode_id=bid)],'CASH',6000)
+  self.assertEqual(sale['total_cents'],6000)
+  self.assertEqual(self.stock(),14)
  def test_hold_persists_discount(self):
   with db.connect() as c:
    seller=c.execute("INSERT INTO sellers(name) VALUES('Held Seller')").lastrowid
