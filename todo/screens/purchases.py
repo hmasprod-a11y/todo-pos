@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog
 from database import get_setting, connect
 from services.money import to_cents,fmt
+from services.pricing import line_total as calculate_line_total
 from services.purchases import receive_purchase,create_purchase_order,list_purchase_orders,purchase_order_lines,mark_purchase_order_received,cancel_purchase_order
 from services.suppliers import list_suppliers, save_supplier
 from screens.suppliers import SupplierEditor
@@ -88,7 +89,7 @@ class PurchasesFrame(ttk.Frame):
         self.lines_t.delete(*self.lines_t.get_children())
         total=0
         for x in self.lines:
-            line_total=round(x["qty"]*x["unit_cost_cents"]);total+=line_total
+            line_total=calculate_line_total(x["unit_cost_cents"],x["qty"]);total+=line_total
             self.lines_t.insert("", "end",values=(x["name"],f"{x['qty']:g}",fmt(x["unit_cost_cents"],""),fmt(line_total,"")))
         self.total_label.configure(text=f"{self.tr('Total','المجموع','Total')} : {fmt(total)}")
     def _selected_line_index(self):
@@ -162,3 +163,4 @@ class PurchasesFrame(ttk.Frame):
             self._pending_order_id=None
             messagebox.showinfo("ToDo",f"{self.tr('Réception','استلام','Receipt')} #{pid}\\n{self.tr('Total','المجموع','Total')}: {fmt(total)}",parent=self);self.lines=[];self.paid.set("0");self.refresh_lines();self.search()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
+

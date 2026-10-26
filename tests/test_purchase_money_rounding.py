@@ -3,6 +3,8 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'todo'))
 import database as db
@@ -23,6 +25,7 @@ class PurchaseMoneyRoundingTests(unittest.TestCase):
         with db.connect() as conn:
             uid = conn.execute('SELECT id FROM users ORDER BY id LIMIT 1').fetchone()[0]
             self.pid = conn.execute("INSERT INTO products(name,allow_fraction) VALUES('Fractional goods',1)").lastrowid
+        self.uid = uid
         self.token = current_user.set(uid)
         self.supplier = save_supplier('Supplier')
 
@@ -45,6 +48,27 @@ class PurchaseMoneyRoundingTests(unittest.TestCase):
             self.assertEqual([r[0] for r in values], [15, 1, 3])
             self.assertEqual(conn.execute('SELECT total_cents FROM purchases WHERE id=?',(purchase,)).fetchone()[0], sum(r[0] for r in values))
         self.assertEqual(supplier_credit_statement()[0]['balance_cents'], 19)
+
+    def test_purchase_screen_preview_matches_saved_decimal_totals(self):
+        from screens.purchases import PurchasesFrame
+        from services.money import fmt
+        view = SimpleNamespace(lines=[dict(name='Fraction',qty=q,unit_cost_cents=c) for q,c in ((.29,50),(.5,1),(.5,5))],
+                               lines_t=Mock(),total_label=Mock(),tr=lambda fr,ar,en: en)
+        view.lines_t.get_children.return_value = ()
+        PurchasesFrame.refresh_lines(view)
+        self.assertEqual([call.kwargs['values'][-1] for call in view.lines_t.insert.call_args_list],
+                         [fmt(c,'') for c in (15,1,3)])
+        view.total_label.configure.assert_called_once_with(text='Total : '+fmt(19))
+
+    def test_printed_addition_matches_the_actual_checkout_for_fractional_lines(self):
+        from services.cash import open_session
+        from services.sales import complete_sale
+        from services.order_slips import build_addition
+        cart=[dict(product_id=self.pid,name='Fraction',qty=q,unit_price_cents=c) for q,c in ((.29,50),(.5,1),(.5,5))]
+        text=build_addition(cart,currency='DH')
+        result=complete_sale(open_session(self.uid,0),self.uid,cart,'CASH',19)
+        self.assertEqual(result['total_cents'],19)
+        self.assertIn('TOTAL: 0.19 DH',text)
 
     def test_partial_returns_round_cumulatively_and_preserve_final_residual(self):
         purchase, total = receive_purchase(self.supplier, 'PARTIAL', [dict(product_id=self.pid, qty=1, unit_cost_cents=1)])

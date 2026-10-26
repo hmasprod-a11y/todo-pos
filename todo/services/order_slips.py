@@ -1,11 +1,12 @@
 from database import get_setting
 from services.money import fmt
+from services.pricing import line_total
 from services.printers import print_text_windows
 
 def _money_line(line):
     qty=float(line.get('qty',0))
     unit=int(float(line.get('unit_price_cents',0)))
-    gross=round(unit*qty)-int(line.get('discount_cents',0))
+    gross=line_total(unit,qty)-int(line.get('discount_cents',0))
     return qty,unit,max(0,gross)
 
 def build_addition(cart,ticket_discount_cents=0,currency=None):
@@ -44,3 +45,4 @@ def print_preparation(cart,station):
     station=str(station).upper()
     text=build_preparation_slip(cart,station)
     return print_text_windows(text,station.lower(),f'Preparation {station}')
+
