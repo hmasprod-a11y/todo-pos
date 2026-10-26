@@ -72,7 +72,7 @@ with patch('tkinter.messagebox.showerror',fail):
     from PIL import Image
     photo=Path(temp.name)/'shared.png';Image.new('RGB',(20,20),'blue').save(photo)
     with connect() as c:
-        first=c.execute("INSERT INTO products(name,sale_price_cents,stock_qty,image_path,allow_fraction) VALUES('Shared large',1000,40,?,1)",(str(photo),)).lastrowid
+        first=c.execute("INSERT INTO products(name,sale_price_cents,stock_qty,image_path,allow_fraction,show_in_sale_photos) VALUES('Shared large',1000,40,?,1,1)",(str(photo),)).lastrowid
         second=c.execute("INSERT INTO products(name,sale_price_cents,stock_qty,allow_fraction) VALUES('Shared small',800,50,1)").lastrowid
         for product in (first,second):c.execute("INSERT INTO product_barcodes(product_id,barcode) VALUES(?,'SHARED-UI')",(product,))
     app.show('sale');app.update();sale=app.sale_frame;sale.clear();sale.scan_quantity.set('1')
@@ -114,7 +114,7 @@ with patch('tkinter.messagebox.showerror',fail):
                 created=c.execute('SELECT id,stock_qty FROM products WHERE name=?',(name,)).fetchone();assert created['stock_qty']==amount
                 relation=c.execute('SELECT parent_product_id FROM product_variants WHERE product_id=?',(created['id'],)).fetchone()
                 assert (relation is not None)==(action=='variant')
-    sale.clear();sale.render_products();app.update()
+    sale.clear();sale.cat.set('Tous');sale.render_products();app.update()
     names={str(w.cget('text')) for w in descendants(sale.card_inner) if w.winfo_class()=='Label'}
     assert 'Shared large' in names and 'Shared small' not in names
     print('GUI SHARED BARCODE PASSED: keypad, click, fractional qty, cancel, repeated scan, photos only')
