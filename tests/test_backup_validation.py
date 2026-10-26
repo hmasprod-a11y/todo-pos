@@ -20,6 +20,18 @@ class BackupValidationTests(unittest.TestCase):
             conn.executescript(SCHEMA)
             validate(conn)
 
+    def test_version_127_backup_without_new_journals_is_supported(self):
+        with sqlite3.connect(':memory:') as conn:
+            conn.executescript(SCHEMA)
+            for table in ('checkout_requests','product_variants','purchase_order_receipts'):conn.execute(f'DROP TABLE {table}')
+            conn.execute('PRAGMA user_version=127')
+            validate(conn)
+
+    def test_version_128_backup_must_include_request_journal(self):
+        with sqlite3.connect(':memory:') as conn:
+            conn.executescript(SCHEMA);conn.execute('PRAGMA user_version=128');conn.execute('DROP TABLE checkout_requests')
+            with self.assertRaises(ValueError):validate(conn)
+
     def test_missing_required_table_is_rejected(self):
         with sqlite3.connect(":memory:") as conn:
             conn.execute("CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT)")

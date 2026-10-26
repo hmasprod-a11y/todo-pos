@@ -1,9 +1,10 @@
 import math
+from decimal import Decimal
 from database import connect
 from services.security import require_permission, audit
 from services.inventory import apply_stock_movement
 
-def receive_purchase(supplier_id, supplier_invoice, lines, notes="", paid_cents=0, payment_method="CARD"):
+def receive_purchase(supplier_id, supplier_invoice, lines, notes="", paid_cents=0, payment_method="CARD", order_id=None):
     if not lines:
         raise ValueError("Réception vide")
     with connect() as conn:
@@ -20,6 +21,17 @@ def receive_purchase(supplier_id, supplier_invoice, lines, notes="", paid_cents=
             if not product["allow_fraction"] and not qty.is_integer():
                 raise ValueError("Quantité fractionnée interdite pour cet article")
             normalized.append((pid,qty,cost))
+        if order_id is not None:
+            order=conn.execute('SELECT supplier_id,status FROM purchase_orders WHERE id=?',(int(order_id),)).fetchone()
+            if not order or order['status']!='OPEN':raise ValueError('Commande introuvable ou déjà réceptionnée.')
+            if order['supplier_id']!=supplier_id:raise ValueError('Fournisseur incompatible avec la commande.')
+            def quantities(rows):
+                result={}
+                for pid,qty in rows:result[pid]=result.get(pid,Decimal(0))+Decimal(str(qty))
+                return result
+            expected=quantities(conn.execute('SELECT product_id,qty FROM purchase_order_items WHERE order_id=?',(int(order_id),)))
+            actual=quantities((pid,qty) for pid,qty,cost in normalized)
+            if actual!=expected:raise ValueError('Réception partielle non disponible : les quantités doivent correspondre à la commande complète.')
         total = sum(int(round(qty * cost)) for pid,qty,cost in normalized)
         paid_cents = int(paid_cents or 0)
         payment_method = str(payment_method).upper()
@@ -68,6 +80,10 @@ def receive_purchase(supplier_id, supplier_invoice, lines, notes="", paid_cents=
                 (supplier_id,pid_purchase,paid_cents,"Règlement à la réception",payment_method,session_id,user_id)
             ).lastrowid
             audit(conn,"SUPPLIER_PAYMENT",payment_id,str(paid_cents))
+        if order_id is not None:
+            conn.execute('INSERT INTO purchase_order_receipts(order_id,purchase_id) VALUES(?,?)',(int(order_id),pid_purchase))
+            conn.execute("UPDATE purchase_orders SET status='RECEIVED',received_at=CURRENT_TIMESTAMP WHERE id=?",(int(order_id),))
+            audit(conn,'PURCHASE_ORDER_RECEIVED',order_id,str(pid_purchase))
         audit(conn,"PURCHASE_RECEIVE",pid_purchase,str(total))
         conn.commit()
         return pid_purchase, total

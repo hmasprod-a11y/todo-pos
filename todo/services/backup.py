@@ -19,6 +19,8 @@ def validate(conn):
     with closing(sqlite3.connect(':memory:')) as expected:
         expected.executescript(SCHEMA)
         for (table,) in expected.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"):
+            if table in ('checkout_requests','product_variants','purchase_order_receipts') and table not in tables and conn.execute('PRAGMA user_version').fetchone()[0]<128:
+                continue
             if table in ('clients','client_payments','product_categories') and table not in tables:
                 continue
             needed={r[1] for r in expected.execute(f'PRAGMA table_info({table})')}

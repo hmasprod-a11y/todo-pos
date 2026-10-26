@@ -97,6 +97,21 @@ with patch('tkinter.messagebox.showerror',fail):
     popup=sale.pick_barcode(rows);app.update();button(popup,'2').invoke()
     next(w for w in descendants(popup) if w.winfo_class()=='Label' and w.cget('text')=='Shared large').event_generate('<Button-1>');app.update()
     assert sale.cart[0]['qty']==5 and len(sale.cart)==2
+    # Three explicit stock-entry choices operate on the original ProductEditor.
+    for action,label,name,amount in [('variant','Créer une variante liée (stock et prix séparés)','Shared linked',3),('independent','Créer un produit indépendant','Shared independent',2),('stock','Ajouter la quantité au stock existant','Ignored topup name',4)]:
+        editor=ProductEditor(app);editor.name.set(name);editor.sell.set('7');editor.bar.set('SHARED-UI');editor.stock.set(str(amount))
+        def resolve_conflict():
+            conflict=next(w for w in descendants(editor) if w.winfo_class()=='Toplevel')
+            button(conflict,label).invoke()
+        app.after(150,resolve_conflict);button(editor,'Enregistrer').invoke();app.update()
+        with connect() as c:
+            if action=='stock':
+                assert c.execute('SELECT stock_qty FROM products WHERE id=?',(first,)).fetchone()[0]==44
+                assert not c.execute('SELECT 1 FROM products WHERE name=?',(name,)).fetchone()
+            else:
+                created=c.execute('SELECT id,stock_qty FROM products WHERE name=?',(name,)).fetchone();assert created['stock_qty']==amount
+                relation=c.execute('SELECT parent_product_id FROM product_variants WHERE product_id=?',(created['id'],)).fetchone()
+                assert (relation is not None)==(action=='variant')
     sale.clear();sale.render_products();app.update()
     names={str(w.cget('text')) for w in descendants(sale.card_inner) if w.winfo_class()=='Label'}
     assert 'Shared large' in names and 'Shared small' not in names

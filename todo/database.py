@@ -220,6 +220,18 @@ CREATE TABLE IF NOT EXISTS sales (
     FOREIGN KEY(cashier_user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS product_variants (
+    product_id INTEGER PRIMARY KEY REFERENCES products(id),
+    parent_product_id INTEGER NOT NULL REFERENCES products(id),
+    CHECK(product_id<>parent_product_id)
+);
+CREATE INDEX IF NOT EXISTS idx_product_variants_parent ON product_variants(parent_product_id);
+
+CREATE TABLE IF NOT EXISTS purchase_order_receipts (
+    order_id INTEGER PRIMARY KEY REFERENCES purchase_orders(id),
+    purchase_id INTEGER NOT NULL UNIQUE REFERENCES purchases(id)
+);
+
 CREATE TABLE IF NOT EXISTS checkout_requests (
     request_key TEXT PRIMARY KEY,
     cashier_user_id INTEGER NOT NULL,

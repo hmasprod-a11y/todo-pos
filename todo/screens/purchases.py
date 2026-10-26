@@ -158,9 +158,7 @@ class PurchasesFrame(ttk.Frame):
                 supplier_id=rows[0]['id'] if rows else save_supplier(sname)
                 self.refresh_suppliers(supplier_id)
             paid=to_cents(self.paid.get() or "0")
-            pid,total=receive_purchase(supplier_id,self.invoice.get().strip(),self.lines,paid_cents=paid,payment_method=self.payment_method.get())
-            order_id=getattr(self,'_pending_order_id',None)
-            if order_id:
-                mark_purchase_order_received(order_id);self._pending_order_id=None
+            pid,total=receive_purchase(supplier_id,self.invoice.get().strip(),self.lines,paid_cents=paid,payment_method=self.payment_method.get(),order_id=getattr(self,'_pending_order_id',None))
+            self._pending_order_id=None
             messagebox.showinfo("ToDo",f"{self.tr('Réception','استلام','Receipt')} #{pid}\\n{self.tr('Total','المجموع','Total')}: {fmt(total)}",parent=self);self.lines=[];self.paid.set("0");self.refresh_lines();self.search()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)

@@ -691,6 +691,8 @@ class SaleFrame(ttk.Frame):
         self.photo_more.configure(state='normal' if len(photo_rows)>60 else 'disabled')
         photo_rows=photo_rows[:60]
         visible_rows={r['id']:r for r in [*rows,*photo_rows]}
+        visible_ids=set(visible_rows)
+        self.images={key:value for key,value in self.images.items() if key[0] in visible_ids}
         with connect() as conn:
             display_prices={pid:resolve_unit_price(pid,1,None,conn,self.price_grid_id) for pid in visible_rows}
         columns=max(1,self.card_canvas.winfo_width()//167)

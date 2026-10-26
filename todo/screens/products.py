@@ -10,7 +10,7 @@ from services.money import to_cents
 from services.globalization import new_product_tax_defaults
 from services.images import import_image, abs_image
 from screens.common import labeled_entry
-from services.catalog import list_categories, get_product_categories, set_product_categories, add_product_barcode, list_product_label_barcodes, product_label_data
+from services.catalog import list_categories, get_product_categories, set_product_categories, add_product_barcode, list_product_label_barcodes, product_label_data, link_product_variant, top_up_product
 try:
     from PIL import Image,ImageTk
     PIL=True
@@ -337,6 +337,21 @@ class ProductEditor(tk.Toplevel):
         q=abs_image(self.img_rel)
         if q:self.preview_image(q)
 
+    def duplicate_choice(self,conflicts):
+        window=tk.Toplevel(self);window.title(self.tr('Barcode partagé','باركود مشترك','Shared barcode'));window.geometry('740x350');window.transient(self);window.grab_set()
+        ttk.Label(window,text=self.tr('Ce barcode appartient déjà à un produit.','هاد الباركود كاين عند منتوج آخر.','This barcode already belongs to a product.'),font=('Segoe UI',13,'bold')).pack(padx=18,pady=18)
+        candidates={r['id']:r for _,rows in conflicts for r in rows}
+        labels={f"{r['name']}  · #{r['id']}":r['id'] for r in candidates.values()}
+        selected=tk.StringVar(window,value=next(iter(labels)))
+        ttk.Combobox(window,textvariable=selected,values=list(labels),state='readonly',width=70).pack(padx=18,pady=8)
+        result=[]
+        def choose(action):result.append((action,labels[selected.get()]));window.destroy()
+        options=[('stock',self.tr('Ajouter la quantité au stock existant','زيد الكمية لمخزون نفس المنتوج','Add quantity to existing stock')),('variant',self.tr('Créer une variante liée (stock et prix séparés)','حجم/نوع مرتبط بثمن وستوك مستقلين','Create linked variant (separate stock and price)')),('independent',self.tr('Créer un produit indépendant','سجل منتوج مستقل','Create independent product'))]
+        for action,label in options:ttk.Button(window,text=label,command=lambda a=action:choose(a)).pack(fill='x',padx=18,pady=5,ipady=6)
+        ttk.Button(window,text=self.tr('Annuler','إلغاء','Cancel'),command=window.destroy).pack(pady=8)
+        window.bind('<Escape>',lambda e:window.destroy());self.wait_window(window)
+        return result[0] if result else (None,None)
+
     def save(self):
         try:
             barcode=self.bar.get().strip();name=self.name.get().strip()
@@ -378,7 +393,17 @@ class ProductEditor(tk.Toplevel):
                                                ORDER BY p.name,p.id""",
                                             (code,int(self.pid or 0))).fetchall()
                         if rows:conflicts.append((code,[dict(r) for r in rows]))
-            if conflicts:
+            variant_parent=None
+            if conflicts and not self.pid:
+                action,target=self.duplicate_choice(conflicts)
+                if action is None:return
+                if action=='stock':
+                    if stock<=0:raise ValueError(self.tr('Saisissez la quantité à ajouter dans Stock.','دخل الكمية لي بغيتي تزيد فخانة Stock.','Enter the quantity to add in Stock.'))
+                    top_up_product(target,stock,self.stock_note.get().strip() or 'Ajout depuis le conflit barcode')
+                    if self.on_saved:self.on_saved()
+                    self.destroy();return
+                if action=='variant':variant_parent=target
+            if conflicts and self.pid:
                 details=[]
                 for code,rows in conflicts:
                     names=", ".join(r["name"] for r in rows[:4])
@@ -413,6 +438,7 @@ class ProductEditor(tk.Toplevel):
                 else:
                     cur=c.execute("""INSERT INTO products(name,category_id,purchase_price_cents,sale_price_cents,stock_qty,alert_qty,image_path,show_in_sale_photos,tax_rate_basis_points,tax_included,tax_class) VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
                                   (name,catid,buy,sell,0,alert,img,1 if self.show_in_sale_photos.get() else 0,tax_rate_basis_points,1 if self.tax_included.get() else 0,tax_class));pid=cur.lastrowid
+                if variant_parent is not None:link_product_variant(c,pid,variant_parent)
                 set_product_categories(c,pid,selected_cats or [catid])
                 old=c.execute('SELECT stock_qty FROM products WHERE id=?',(pid,)).fetchone()[0]
                 if abs(stock-self.loaded_stock)>1e-9 and abs(stock-old)>1e-9:

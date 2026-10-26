@@ -1,4 +1,5 @@
 import math
+from decimal import Decimal
 from database import connect
 from services.security import require_admin,current_user,audit
 from services.inventory import apply_stock_movement
@@ -35,11 +36,17 @@ def create_supplier_return(purchase_id, items, reason=''):
         if not purchase or purchase['supplier_id'] is None: raise ValueError("Facture fournisseur introuvable")
         normalized=[]
         total=0
+        requested={}
         for purchase_item_id,qty in items:
-            qty=float(qty)
-            if not math.isfinite(qty) or qty<=0: raise ValueError("Quantité retour invalide")
+            qty=Decimal(str(qty))
+            if not qty.is_finite() or qty<=0:raise ValueError("Quantité retour invalide")
+            key=int(purchase_item_id);requested[key]=requested.get(key,Decimal(0))+qty
+        stock_required={}
+        for purchase_item_id,count in requested.items():
+            qty=float(count)
             row=conn.execute("""
-                SELECT pi.id,pi.product_id,pi.qty,pi.unit_cost_cents,p.stock_qty,
+                SELECT pi.id,pi.product_id,pi.qty,pi.unit_cost_cents,pi.line_total_cents,p.stock_qty,p.allow_fraction,
+                       COALESCE((SELECT SUM(sri.line_total_cents) FROM supplier_return_items sri WHERE sri.purchase_item_id=pi.id),0) returned_cents,
                        COALESCE((SELECT SUM(sri.qty) FROM supplier_return_items sri WHERE sri.purchase_item_id=pi.id),0) returned_qty
                 FROM purchase_items pi JOIN products p ON p.id=pi.product_id
                 WHERE pi.id=? AND pi.purchase_id=?
@@ -47,8 +54,13 @@ def create_supplier_return(purchase_id, items, reason=''):
             if not row: raise ValueError("Ligne achat introuvable")
             remaining=float(row['qty'])-float(row['returned_qty'])
             if qty>remaining+1e-9: raise ValueError("Quantité supérieure au reliquat retournable")
-            if qty>float(row['stock_qty'])+1e-9: raise ValueError("Stock insuffisant pour ce retour fournisseur")
-            line_total=int(round(qty*int(row['unit_cost_cents'])))
+            if not row['allow_fraction'] and not count==count.to_integral_value():raise ValueError('Quantité entière requise.')
+            stock_required[row['product_id']]=stock_required.get(row['product_id'],Decimal(0))+count
+            if stock_required[row['product_id']]>Decimal(str(row['stock_qty'])):raise ValueError("Stock insuffisant pour ce retour fournisseur")
+            cumulative=Decimal(str(row['returned_qty']))+count
+            cumulative_total=row['line_total_cents'] if abs(float(cumulative)-float(row['qty']))<=1e-9 else min(row['line_total_cents'],int(round(cumulative*row['unit_cost_cents'])))
+            line_total=cumulative_total-row['returned_cents']
+            if line_total<0:raise ValueError('Montant de retour incohérent.')
             normalized.append((row,qty,line_total));total+=line_total
         uid=current_user.get()
         rid=conn.execute("INSERT INTO supplier_returns(supplier_id,purchase_id,reason,total_cents,user_id) VALUES(?,?,?,?,?)",

@@ -31,4 +31,21 @@ class SupplierReturnTests(unittest.TestCase):
         create_supplier_return(self.purchase_id,[(line['purchase_item_id'],4)],'Bad batch')
         with self.assertRaises(ValueError):create_supplier_return(self.purchase_id,[(line['purchase_item_id'],2)],'Too much')
 
+    def test_duplicate_rows_cannot_exceed_purchase_remainder(self):
+        line=purchase_returnable_lines(self.purchase_id)[0]
+        with self.assertRaises(ValueError):create_supplier_return(self.purchase_id,[(line['purchase_item_id'],3),(line['purchase_item_id'],3)],'Duplicate')
+        self.assertEqual(list_supplier_returns(),[])
+    def test_stock_is_checked_across_purchase_lines(self):
+        purchase,_=receive_purchase(self.sid,'MULTI',[dict(product_id=self.pid,qty=3,unit_cost_cents=500)]*2)
+        lines=purchase_returnable_lines(purchase)
+        with database.connect() as c:c.execute('UPDATE products SET stock_qty=4 WHERE id=?',(self.pid,))
+        with self.assertRaises(ValueError):create_supplier_return(purchase,[(r['purchase_item_id'],3) for r in lines],'Shared stock')
+        self.assertEqual(list_supplier_returns(),[])
+    def test_partial_rounding_never_exceeds_original_purchase(self):
+        with database.connect() as c:c.execute('UPDATE products SET allow_fraction=1 WHERE id=?',(self.pid,))
+        purchase,total=receive_purchase(self.sid,'FRACTION',[dict(product_id=self.pid,qty=1,unit_cost_cents=1)])
+        line=purchase_returnable_lines(purchase)[0]['purchase_item_id']
+        amounts=[create_supplier_return(purchase,[(line,qty)],'Fraction')[1] for qty in (.6,.2,.2)]
+        self.assertEqual(sum(amounts),total)
+
 if __name__=='__main__':unittest.main()

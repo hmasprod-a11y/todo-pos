@@ -174,3 +174,31 @@ def deactivate_product(product_id):
         audit(conn,'PRODUCT_DEACTIVATE',pid,row['name'])
         conn.commit()
     return pid
+
+
+def link_product_variant(conn, product_id, parent_id):
+    """Link identity only: variants never share stock, price or sale history."""
+    require_permission('MANAGEMENT',conn)
+    product_id=int(product_id);parent_id=int(parent_id)
+    if product_id==parent_id:raise ValueError('Variante invalide.')
+    for pid in (product_id,parent_id):
+        if not conn.execute('SELECT 1 FROM products WHERE id=? AND active=1',(pid,)).fetchone():raise ValueError('Article introuvable.')
+    parent=conn.execute('SELECT parent_product_id FROM product_variants WHERE product_id=?',(parent_id,)).fetchone()
+    root=parent[0] if parent else parent_id
+    if root==product_id or conn.execute('SELECT 1 FROM product_variants WHERE parent_product_id=?',(product_id,)).fetchone():raise ValueError('Lien de variantes cyclique.')
+    conn.execute('INSERT INTO product_variants(product_id,parent_product_id) VALUES(?,?) ON CONFLICT(product_id) DO UPDATE SET parent_product_id=excluded.parent_product_id',(product_id,root))
+    audit(conn,'PRODUCT_VARIANT_LINK',product_id,str(root))
+
+
+def top_up_product(product_id, quantity, note='Ajout de stock depuis le conflit barcode'):
+    from services.inventory import apply_stock_movement
+    import math
+    quantity=float(quantity)
+    if not math.isfinite(quantity) or quantity<=0:raise ValueError('Quantité positive obligatoire.')
+    with connect() as conn:
+        conn.execute('BEGIN IMMEDIATE')
+        require_permission('MANAGEMENT',conn)
+        p=conn.execute('SELECT * FROM products WHERE id=? AND active=1',(product_id,)).fetchone()
+        if not p:raise ValueError('Article introuvable.')
+        if not p['allow_fraction'] and not quantity.is_integer():raise ValueError('Quantité entière requise.')
+        return apply_stock_movement(conn,product_id,quantity,'ADJUSTMENT',p['purchase_price_cents'],'product',product_id,note)

@@ -43,3 +43,26 @@ Schema128 adds the request journal, preserving prior records. Backup validation 
 ## Remaining diagnostic work
 
 W03/W07/W10/W12–W19 already have substantial regression coverage in the repository (rounding, packs, tax snapshots, cash, debts, supplier orders/returns, inventory, documents, reports, full media backups and import). Existing implementation is not a claim of complete LOGICA parity. Remaining gaps and requirements must stay open until independently demonstrated. Physical peripherals and comparative measurements on the same shop PC cannot be certified by hosted CI. Lot/expiry strategy and multi-workstation topology require explicit business scope before implementation.
+
+## W11 — duplicate barcode stock entry
+
+New-product conflicts now offer three explicit actions: top up one selected existing product; create a linked variant with independent stock/prices; create an independent product. Top-up changes only the selected stock through the ledger and enforces manual-stock settings/permissions. Variant links are flattened to their root and cycles are rejected. Existing product edits retain their confirmation. No historical product IDs are merged.
+
+Five service cases and Windows ProductEditor controls cover these actions. New schema128 tables are optional when validating older backups, required for schema128 backups.
+
+## W14 — supplier integrity
+
+Supplier returns now aggregate repeated purchase-item rows and the total stock consumed across separate purchase lines for the same product. Partial refunds use cumulative rounding against the original purchase-line total. Regression cases reproduce over-return/over-stock requests and check final cents.
+
+Receiving a loaded supplier order now changes stock, writes the purchase/payment and closes/links the order in one transaction. A repeated receipt is rejected even without a supplier invoice reference; failure rolls everything back. This path supports complete receipts only: a partial quantity is rejected with an explicit message instead of silently closing the whole order. A full partial-receipt/remainder workflow remains an open business requirement.
+
+## W03 / W13 / W19 — shared shop-day reconciliation
+
+A single isolated fixture opens with100DH, receives10units at5DH with10DH supplier payment, sells cash/mixed/credit, collects a client debt, refunds half the mixed sale, returns one unit to the supplier, makes another supplier payment, records an expense and cash in/out, then closes. Expected outcomes: stock3; client debt15DH; supplier debt30DH; net revenue59DH; gross margin29DH; counted/expected cash122DH and difference0. The fixture asserts the services, report totals and movement ledger together.
+
+## Release limitations that remain open
+
+- Physical printer/drawer/scanner/scale/RFID/display models and real drivers are unavailable to hosted CI. Simulated tests do not certify hardware.
+- Comparative LOGICA/ToDo timings on the same shop computer, touch/DPI/RTL visual acceptance and a real second-device backup transfer remain unverified. Synthetic Windows measurements are published separately.
+- Full LOGICA transaction-history migration needs a source database/schema sample and an agreed mapping; the existing ToDo catalogue exchange does not prove that migration.
+- Partial supplier receipts, BL/invoice lifecycle beyond the current quote/order/receipt flow, lot/expiry FEFO/FIFO policy, specialized sector modules and the multi-cashier network topology need a product scope decision. None are silently presented as implemented.

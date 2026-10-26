@@ -96,14 +96,16 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     photo_editor=ProductEditor(app)
     photo_editor.name.set('TEST Photo Internal')
     photo_editor.sell.set('4')
-    photo_editor.img_rel='missing-test-image.jpg'
+    from PIL import Image
+    valid_photo=Path(temp.name)/'valid-photo.png';Image.new('RGB',(20,20),'blue').save(valid_photo)
+    photo_editor.img_rel=str(valid_photo)
     photo_editor.show_in_sale_photos.set(True)
     button(photo_editor,'Enregistrer').invoke();app.update()
     with connect() as c:
         photo_internal_pid=c.execute("SELECT id FROM products WHERE name='TEST Photo Internal'").fetchone()[0]
         internal_barcode=c.execute("SELECT barcode FROM product_barcodes WHERE product_id=?",(photo_internal_pid,)).fetchone()[0]
         assert internal_barcode==f'TODO-{photo_internal_pid:08d}'
-        c.execute("INSERT INTO products(name,sale_price_cents,active,image_path,show_in_sale_photos) VALUES('TEST Photo Regular',500,1,'missing-test-image-2.jpg',1)")
+        c.execute("INSERT INTO products(name,sale_price_cents,active,image_path,show_in_sale_photos) VALUES('TEST Photo Regular',500,1,?,1)",(str(valid_photo),))
         photo_regular_pid=c.execute("SELECT last_insert_rowid()").fetchone()[0]
         c.execute("INSERT INTO product_barcodes(product_id,barcode,qty_multiplier) VALUES(?,?,1)",(photo_regular_pid,'REGULAR123'))
         c.execute("INSERT INTO products(name,sale_price_cents,active) VALUES('TEST Inactive Export',999,0)")
