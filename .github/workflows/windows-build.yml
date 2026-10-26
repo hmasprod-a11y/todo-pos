@@ -193,6 +193,22 @@ jobs:
         run: |
           Get-FileHash dist/ToDo-POS-1.1.0-Windows.zip -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  ToDo-POS-1.1.0-Windows.zip" } | Set-Content dist/SHA256SUMS.txt
           Get-FileHash dist/ToDo-POS-1.1.0-Setup.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  ToDo-POS-1.1.0-Setup.exe" } | Add-Content dist/SHA256SUMS.txt
+      - name: Verify portable ZIP and release identity
+        shell: pwsh
+        run: |
+          $zip = "dist/ToDo-POS-1.1.0-Windows.zip"
+          $expanded = Join-Path $env:RUNNER_TEMP "todo-portable-verification"
+          Expand-Archive -LiteralPath $zip -DestinationPath $expanded -Force
+          foreach ($entry in @("ToDo.exe", "ImporterToDo.exe", "RELEASE_HEAD.txt", "_internal")) {
+            if (-not (Test-Path (Join-Path $expanded $entry))) { throw "Portable ZIP is missing $entry" }
+          }
+          if (-not (Get-ChildItem (Join-Path $expanded "_internal") -File -Recurse | Select-Object -First 1)) {
+            throw "Portable ZIP contains no runtime files"
+          }
+          $release = Get-Content (Join-Path $expanded "RELEASE_HEAD.txt")
+          if ($release -notcontains "Commit=$env:GITHUB_SHA") {
+            throw "Portable ZIP release identity does not match this commit"
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: ToDo-POS-1.1.0-Windows
