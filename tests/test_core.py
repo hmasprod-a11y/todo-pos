@@ -165,6 +165,13 @@ class CoreTests(unittest.TestCase):
   with db.connect() as c:
    row=c.execute('SELECT qty,qty_multiplier,pricing_mode,barcode_used FROM sale_items WHERE sale_id=?',(sale['id'],)).fetchone()
   self.assertEqual((row['qty'],row['qty_multiplier'],row['pricing_mode'],row['barcode_used']),(12,6,'UNIT','CARTON6'))
+ def test_unit_barcode_preserves_fractional_product_quantities(self):
+  with db.connect() as c:
+   c.execute('UPDATE products SET allow_fraction=1 WHERE id=?',(self.pid,))
+   bid=c.execute("INSERT INTO product_barcodes(product_id,barcode,qty_multiplier) VALUES(?,'UNIT-FRACTION',1)",(self.pid,)).lastrowid
+   self.assertEqual(resolve_unit_price(self.pid,0.5,bid,c),1000)
+  sale=complete_sale(self.session,self.uid,[dict(product_id=self.pid,qty=0.5,barcode_id=bid)],'CASH',500)
+  self.assertEqual(sale['total_cents'],500);self.assertEqual(self.stock(),19.5)
  def test_pack_barcode_without_override_rejects_partial_pack(self):
   with db.connect() as c:
    bid=c.execute("INSERT INTO product_barcodes(product_id,barcode,qty_multiplier) VALUES(?,'CARTON6-NO-PRICE',6)",(self.pid,)).lastrowid

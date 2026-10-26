@@ -66,3 +66,9 @@ A single isolated fixture opens with100DH, receives10units at5DH with10DH suppli
 - Comparative LOGICA/ToDo timings on the same shop computer, touch/DPI/RTL visual acceptance and a real second-device backup transfer remain unverified. Synthetic Windows measurements are published separately.
 - Full LOGICA transaction-history migration needs a source database/schema sample and an agreed mapping; the existing ToDo catalogue exchange does not prove that migration.
 - Partial supplier receipts, BL/invoice lifecycle beyond the current quote/order/receipt flow, lot/expiry FEFO/FIFO policy, specialized sector modules and the multi-cashier network topology need a product scope decision. None are silently presented as implemented.
+
+## W07 — pack quantity regression after the handoff
+
+The subsequent pack guard correctly rejects partial carton quantities even when there is no special carton price. Its first version also rejected fractional quantities scanned through an ordinary unit barcode, breaking both the stock-boundary regression and the required fractional shared-barcode workflow. Unit barcodes without a price override now retain fractional-product behavior; carton multipliers and explicit pack-price barcodes still enforce whole packs. Both cases are covered by service tests; delivery requires the full Windows GUI gate.
+
+Price precedence is unchanged: explicit pack price, otherwise applicable quantity offer, otherwise active grid price, otherwise catalog price. Authorized manual prices are checked at checkout; explicit catalog-price restoration remains available. Existing stored sale prices/costs/taxes are snapshots used by returns and reports rather than recalculated from later catalog edits.

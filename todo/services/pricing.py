@@ -17,7 +17,9 @@ def resolve_unit_price(product_id, qty, barcode_id=None, conn=None, grid_id=None
         if not math.isfinite(b['qty_multiplier']) or b['qty_multiplier']<=0:
             raise ValueError('Quantité pack invalide')
         packs=float(qty)/b['qty_multiplier']
-        if not math.isfinite(packs) or abs(packs-round(packs))>1e-9:
+        # A unit barcode keeps the product's fractional-sale policy; a pack
+        # (including one without a special price) remains indivisible.
+        if not math.isfinite(packs) or ((b['qty_multiplier']!=1 or b['price_override_cents'] is not None) and abs(packs-round(packs))>1e-9):
             raise ValueError('La quantité doit respecter le pack/carton.')
         if b['price_override_cents'] is not None:
             return Decimal(b['price_override_cents'])/Decimal(str(b['qty_multiplier']))
