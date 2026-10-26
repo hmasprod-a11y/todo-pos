@@ -117,14 +117,26 @@ def create_purchase_order(supplier_id, lines, notes=''):
 
 def list_purchase_orders(status='OPEN'):
     with connect() as conn:
-        return [dict(r) for r in conn.execute("""
+        conn.execute('BEGIN')
+        rows=[dict(r) for r in conn.execute("""
             SELECT po.id,po.supplier_id,po.status,po.created_at,po.received_at,po.notes,s.name supplier_name,
-                   COUNT(poi.id) lines,COALESCE(SUM(poi.qty*poi.unit_cost_cents),0) total_cents
+                   COUNT(poi.id) lines
             FROM purchase_orders po JOIN suppliers s ON s.id=po.supplier_id
             LEFT JOIN purchase_order_items poi ON poi.order_id=po.id
             WHERE (?='' OR po.status=?)
             GROUP BY po.id ORDER BY po.id DESC
         """,(status,status)).fetchall()]
+        # Sum rounded decimal lines, exactly as receipt creation does. A raw
+        # SQLite SUM(qty*cost) can expose fractional cents and binary drift.
+        totals={}
+        for item in conn.execute("""
+            SELECT poi.order_id,poi.qty,poi.unit_cost_cents
+            FROM purchase_order_items poi JOIN purchase_orders po ON po.id=poi.order_id
+            WHERE (?='' OR po.status=?)
+        """,(status,status)):
+            totals[item['order_id']]=totals.get(item['order_id'],0)+rounded(Decimal(str(item['qty']))*item['unit_cost_cents'])
+        for row in rows:row['total_cents']=totals.get(row['id'],0)
+        return rows
 
 def purchase_order_lines(order_id):
     with connect() as conn:

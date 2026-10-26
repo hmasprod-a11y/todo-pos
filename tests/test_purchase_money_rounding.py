@@ -9,7 +9,7 @@ import database as db
 from services.bootstrap import ensure_defaults
 from services.security import current_user
 from services.suppliers import save_supplier
-from services.purchases import receive_purchase
+from services.purchases import receive_purchase, create_purchase_order, list_purchase_orders
 from services.supplier_returns import create_supplier_return, purchase_returnable_lines
 from services.supplier_payments import supplier_credit_statement
 
@@ -36,7 +36,9 @@ class PurchaseMoneyRoundingTests(unittest.TestCase):
         # is an exact half, where Python's round would choose the even zero.
         lines = [dict(product_id=self.pid, qty=qty, unit_cost_cents=cost)
                  for qty, cost in ((.29, 50), (.5, 1), (.5, 5))]
-        purchase, total = receive_purchase(self.supplier, 'HALF-UP', lines)
+        order = create_purchase_order(self.supplier, lines)
+        self.assertEqual(next(r['total_cents'] for r in list_purchase_orders() if r['id']==order), 19)
+        purchase, total = receive_purchase(self.supplier, 'HALF-UP', lines, order_id=order)
         self.assertEqual(total, 19)
         with db.connect() as conn:
             values = conn.execute('SELECT line_total_cents FROM purchase_items WHERE purchase_id=? ORDER BY id', (purchase,)).fetchall()
