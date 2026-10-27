@@ -4,6 +4,7 @@ import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
+import tkinter as tk
 import tkinter.ttk as ttk
 
 sys.dont_write_bytecode = True
@@ -55,6 +56,26 @@ try:
                 if buttons:
                     last = buttons[-1]
                     assert last.winfo_rootx() + last.winfo_width() <= canvas.winfo_rootx() + canvas.winfo_width(), (language, last.cget('text'))
+    # English administrative dialogs must explain destructive restore choices.
+    page.database_tools()
+    app.update()
+    dialog = next(child for child in page.winfo_children() if isinstance(child, tk.Toplevel))
+    assert dialog.title() == 'Database'
+    table = next(child for child in dialog.winfo_children() if isinstance(child, ttk.Treeview))
+    assert table.heading('rows')['text'] == 'Rows'
+    bar = next(child for child in dialog.winfo_children() if isinstance(child, ttk.Frame))
+    rows = [child for child in bar.winfo_children() if isinstance(child, ttk.Frame)]
+    assert len(rows) == 2
+    assert all(row.winfo_reqwidth() <= dialog.winfo_width() - 24 for row in rows)
+    labels = [button.cget('text') for row in rows for button in row.winfo_children() if isinstance(button, ttk.Button)]
+    assert 'Check integrity' in labels and 'Close' in labels
+    dialog.destroy()
+    with patch('tkinter.filedialog.askopenfilename', return_value='unused.db'), patch('tkinter.messagebox.askyesno', return_value=False) as confirm:
+        page.restore()
+        assert 'Restore this backup?' in confirm.call_args.args[1]
+    with patch('tkinter.filedialog.askopenfilename', return_value='unused.todozip'), patch('tkinter.messagebox.askyesno', return_value=False) as confirm:
+        page.full_restore()
+        assert 'Restore all data and media?' in confirm.call_args.args[1]
 finally:
     app.destroy()
     temporary.cleanup()

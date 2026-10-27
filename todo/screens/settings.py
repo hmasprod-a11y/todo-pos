@@ -665,29 +665,29 @@ class SettingsFrame(ttk.Frame):
     def backup(self):
         try:
             p=create_backup()
-            messagebox.showinfo("ToDo",self.tr(f"Backup:\n{p}",f"نسخة احتياطية:\n{p}"),parent=self)
+            messagebox.showinfo("ToDo",self.tr(f"Backup:\n{p}",f"نسخة احتياطية:\n{p}",f"Backup:\n{p}"),parent=self)
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
     def restore(self):
-        p=filedialog.askopenfilename(parent=self,filetypes=[("SQLite DB","*.db"),(self.tr("Tous les fichiers","كل الملفات"),"*.*")])
+        p=filedialog.askopenfilename(parent=self,filetypes=[("SQLite DB","*.db"),(self.tr("Tous les fichiers","كل الملفات","All files"),"*.*")])
         if not p:return
-        if not messagebox.askyesno("ToDo",self.tr("Restaurer ce backup ? Une copie de sécurité sera créée.","استرجاع هذه النسخة؟ سيتم إنشاء نسخة أمان أولاً."),parent=self):return
+        if not messagebox.askyesno("ToDo",self.tr("Restaurer ce backup ? Une copie de sécurité sera créée.","استرجاع هذه النسخة؟ سيتم إنشاء نسخة أمان أولاً.","Restore this backup? A safety copy will be created."),parent=self):return
         try:
             s=restore_backup(p)
-            messagebox.showinfo("ToDo",self.tr(f"Restauré. Copie sécurité: {s}\nLe programme va se fermer. Relancez ToDo.",f"تم الاسترجاع. نسخة الأمان: {s}\nسيتم إغلاق البرنامج. أعد تشغيل ToDo."),parent=self)
+            messagebox.showinfo("ToDo",self.tr(f"Restauré. Copie sécurité: {s}\nLe programme va se fermer. Relancez ToDo.",f"تم الاسترجاع. نسخة الأمان: {s}\nسيتم إغلاق البرنامج. أعد تشغيل ToDo.",f"Restored. Safety copy: {s}\nThe application will close. Restart ToDo."),parent=self)
             self.app.destroy()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
     def full_backup(self):
         try:
             p=create_full_backup()
-            messagebox.showinfo("ToDo",self.tr(f"Backup complet créé:\n{p}",f"تم إنشاء النسخة الكاملة:\n{p}"),parent=self)
+            messagebox.showinfo("ToDo",self.tr(f"Backup complet créé:\n{p}",f"تم إنشاء النسخة الكاملة:\n{p}",f"Full backup created:\n{p}"),parent=self)
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
     def full_restore(self):
         p=filedialog.askopenfilename(parent=self,filetypes=[("ToDo Full Backup","*.todozip")])
         if not p:return
-        if not messagebox.askyesno("ToDo",self.tr("Restaurer toutes les données et médias ? Une copie complète de sécurité sera créée.","استرجاع جميع البيانات والوسائط؟ سيتم إنشاء نسخة أمان كاملة أولاً."),parent=self):return
+        if not messagebox.askyesno("ToDo",self.tr("Restaurer toutes les données et médias ? Une copie complète de sécurité sera créée.","استرجاع جميع البيانات والوسائط؟ سيتم إنشاء نسخة أمان كاملة أولاً.","Restore all data and media? A complete safety copy will be created."),parent=self):return
         try:
             safety=restore_full_backup(p)
-            messagebox.showinfo("ToDo",self.tr(f"Restauration complète terminée.\nCopie sécurité: {safety}\nToDo va se fermer.","تم الاسترجاع الكامل.\nنسخة الأمان: {safety}\nسيتم إغلاق ToDo."),parent=self)
+            messagebox.showinfo("ToDo",self.tr(f"Restauration complète terminée.\nCopie sécurité: {safety}\nToDo va se fermer.","تم الاسترجاع الكامل.\nنسخة الأمان: {safety}\nسيتم إغلاق ToDo.",f"Full restore completed.\nSafety copy: {safety}\nToDo will close."),parent=self)
             self.app.destroy()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
 
@@ -730,7 +730,7 @@ class SettingsFrame(ttk.Frame):
                 messagebox.showerror('ToDo',str(e),parent=w);return
             messagebox.showinfo('ToDo',self.tr('Configuration licence enregistrée.','تم حفظ إعدادات الترخيص.'),parent=w);w.destroy()
         def activate():
-            path=filedialog.askopenfilename(parent=w,filetypes=[('ToDo Licence','*.json'),(self.tr('Tous les fichiers','كل الملفات'),'*.*')])
+            path=filedialog.askopenfilename(parent=w,filetypes=[('ToDo Licence','*.json'),(self.tr('Tous les fichiers','كل الملفات',"All files"),'*.*')])
             if not path:return
             try:
                 result=install_license(path)
@@ -739,7 +739,7 @@ class SettingsFrame(ttk.Frame):
         bar=ttk.Frame(w);bar.pack(fill='x',padx=18,pady=12)
         ttk.Button(bar,text=self.tr('Installer licence','تثبيت الترخيص'),style='Primary.TButton',command=activate).pack(side='left')
         ttk.Button(bar,text=self.tr('Enregistrer configuration','حفظ الإعداد'),command=save_cfg).pack(side='left',padx=6)
-        ttk.Button(bar,text=self.tr('Fermer','إغلاق'),command=w.destroy).pack(side='right')
+        ttk.Button(bar,text=self.tr('Fermer','إغلاق',"Close"),command=w.destroy).pack(side='right')
 
     def about_help(self):
         from services.support import diagnostics,diagnostic_text,documentation_paths,open_document
@@ -789,8 +789,8 @@ class SettingsFrame(ttk.Frame):
             messagebox.showinfo('ToDo',self.tr('Diagnostic copié.','تم نسخ التشخيص.','Diagnostics copied.'),parent=w)
         bar=ttk.Frame(w);bar.pack(fill='x',padx=18,pady=12)
         ttk.Button(bar,text=self.tr('Copier diagnostic','نسخ التشخيص','Copy diagnostics'),style='Primary.TButton',command=copy_diag).pack(side='left')
-        ttk.Button(bar,text=self.tr('Base de Données','قاعدة البيانات'),command=lambda:(w.destroy(),self.database_tools())).pack(side='left',padx=6)
-        ttk.Button(bar,text=self.tr('Fermer','إغلاق'),command=w.destroy).pack(side='right')
+        ttk.Button(bar,text=self.tr('Base de Données','قاعدة البيانات',"Database"),command=lambda:(w.destroy(),self.database_tools())).pack(side='left',padx=6)
+        ttk.Button(bar,text=self.tr('Fermer','إغلاق',"Close"),command=w.destroy).pack(side='right')
 
     def launch_isolated_demo(self,parent):
         try:
@@ -810,22 +810,22 @@ class SettingsFrame(ttk.Frame):
 
     def database_tools(self):
         from services.database_admin import table_inventory,export_table_csv,import_reference_csv,integrity_status,export_schema_sql,export_database_bundle
-        w=tk.Toplevel(self);w.title(self.tr('Base de Données','قاعدة البيانات'));w.geometry('850x590');w.transient(self.winfo_toplevel());w.grab_set()
+        w=tk.Toplevel(self);w.title(self.tr('Base de Données','قاعدة البيانات',"Database"));w.geometry('850x590');w.transient(self.winfo_toplevel());w.grab_set()
         warning=self.tr("ATTENTION ! Les tables de ventes, caisse et stock sont protégées contre l'import direct. Utilisez Backup/Restore pour une migration complète.",
-                        "انتباه! جداول المبيعات والصندوق والمخزون محمية من الاستيراد المباشر. استعمل النسخ الاحتياطي/الاسترجاع للنقل الكامل.")
+                        "انتباه! جداول المبيعات والصندوق والمخزون محمية من الاستيراد المباشر. استعمل النسخ الاحتياطي/الاسترجاع للنقل الكامل.","WARNING! Sales, cash drawer and stock tables are protected from direct import. Use Backup/Restore for a complete migration.")
         tk.Label(w,text=warning,bg='#FEF2F2',fg='#B91C1C',font=('Segoe UI',10,'bold'),wraplength=790,justify='left',padx=12,pady=10).pack(fill='x',padx=12,pady=12)
         tree=ttk.Treeview(w,columns=('table','rows','import'),show='headings',height=18)
-        tree.heading('table',text=self.tr('Table','الجدول'));tree.heading('rows',text=self.tr('Lignes','السجلات'));tree.heading('import',text=self.tr('Import CSV','استيراد CSV'))
+        tree.heading('table',text=self.tr('Table','الجدول',"Table"));tree.heading('rows',text=self.tr('Lignes','السجلات',"Rows"));tree.heading('import',text=self.tr('Import CSV','استيراد CSV',"CSV import"))
         tree.column('table',width=330);tree.column('rows',width=120,anchor='center');tree.column('import',width=180,anchor='center')
         tree.pack(fill='both',expand=True,padx=12)
         status=ttk.Label(w,text='');status.pack(fill='x',padx=12,pady=(5,0))
         def refresh():
             tree.delete(*tree.get_children())
             for row in table_inventory():
-                tree.insert('','end',iid=row['name'],values=(row['name'],row['rows'],self.tr('Autorisé','مسموح') if row['importable'] else self.tr('Export seulement','تصدير فقط')))
+                tree.insert('','end',iid=row['name'],values=(row['name'],row['rows'],self.tr('Autorisé','مسموح',"Allowed") if row['importable'] else self.tr('Export seulement','تصدير فقط',"Export only")))
         def selected():
             s=tree.selection()
-            if not s:messagebox.showwarning('ToDo',self.tr('Sélectionnez une table.','اختر جدولا.'),parent=w);return None
+            if not s:messagebox.showwarning('ToDo',self.tr('Sélectionnez une table.','اختر جدولا.',"Select a table."),parent=w);return None
             return s[0]
         def export_csv():
             table=selected()
@@ -833,47 +833,49 @@ class SettingsFrame(ttk.Frame):
             path=filedialog.asksaveasfilename(parent=w,defaultextension='.csv',filetypes=[('CSV','*.csv')],initialfile=table+'.csv')
             if not path:return
             try:
-                export_table_csv(table,path);status.config(text=self.tr(f'Export terminé : {path}',f'تم التصدير: {path}'))
+                export_table_csv(table,path);status.config(text=self.tr(f'Export terminé : {path}',f'تم التصدير: {path}',f'Export completed: {path}'))
             except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
         def import_csv():
             table=selected()
             if not table:return
             allowed={r['name'] for r in table_inventory() if r['importable']}
             if table not in allowed:
-                messagebox.showerror('ToDo',self.tr('Import direct interdit pour cette table.','الاستيراد المباشر ممنوع لهذا الجدول.'),parent=w);return
+                messagebox.showerror('ToDo',self.tr('Import direct interdit pour cette table.','الاستيراد المباشر ممنوع لهذا الجدول.',"Direct import is not allowed for this table."),parent=w);return
             path=filedialog.askopenfilename(parent=w,filetypes=[('CSV','*.csv')])
             if not path:return
-            if not messagebox.askyesno('ToDo',self.tr('Importer ce CSV ? Un backup de sécurité sera créé automatiquement.','استيراد CSV؟ سيتم إنشاء نسخة أمان تلقائيا.'),parent=w):return
+            if not messagebox.askyesno('ToDo',self.tr('Importer ce CSV ? Un backup de sécurité sera créé automatiquement.','استيراد CSV؟ سيتم إنشاء نسخة أمان تلقائيا.',"Import this CSV? A safety backup will be created automatically."),parent=w):return
             try:
                 result=import_reference_csv(table,path);refresh()
-                messagebox.showinfo('ToDo',self.tr(f"{result['rows']} ligne(s) importée(s).\nBackup: {result['safety']}",f"تم استيراد {result['rows']} سجل.\nنسخة الأمان: {result['safety']}"),parent=w)
+                messagebox.showinfo('ToDo',self.tr(f"{result['rows']} ligne(s) importée(s).\nBackup: {result['safety']}",f"تم استيراد {result['rows']} سجل.\nنسخة الأمان: {result['safety']}",f"{result['rows']} row(s) imported.\nBackup: {result['safety']}"),parent=w)
             except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
         def export_schema():
             path=filedialog.asksaveasfilename(parent=w,defaultextension='.sql',filetypes=[('SQL','*.sql')],initialfile='todo_schema.sql')
             if not path:return
             try:
-                result=export_schema_sql(path);status.config(text=self.tr(f'Schéma exporté : {result}',f'تم تصدير البنية: {result}'))
+                result=export_schema_sql(path);status.config(text=self.tr(f'Schéma exporté : {result}',f'تم تصدير البنية: {result}',f'Schema exported: {result}'))
             except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
         def export_bundle():
             path=filedialog.asksaveasfilename(parent=w,defaultextension='.zip',filetypes=[('ZIP','*.zip')],initialfile='todo_database_export.zip')
             if not path:return
             try:
-                result=export_database_bundle(path);status.config(text=self.tr(f'Export complet : {result}',f'تم التصدير الكامل: {result}'))
+                result=export_database_bundle(path);status.config(text=self.tr(f'Export complet : {result}',f'تم التصدير الكامل: {result}',f'Full export: {result}'))
             except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
         def check():
             try:
                 result=integrity_status()
-                text_value=self.tr('Base saine.','قاعدة البيانات سليمة.') if result['ok'] else self.tr(f"Problème: {result['integrity']} · FK {result['foreign_key_errors']}",f"مشكلة: {result['integrity']} · العلاقات {result['foreign_key_errors']}")
+                text_value=self.tr('Base saine.','قاعدة البيانات سليمة.',"Database is healthy.") if result['ok'] else self.tr(f"Problème: {result['integrity']} · FK {result['foreign_key_errors']}",f"مشكلة: {result['integrity']} · العلاقات {result['foreign_key_errors']}",f"Problem: {result['integrity']} · FK {result['foreign_key_errors']}")
                 messagebox.showinfo(self.tr('Intégrité','سلامة البيانات','Integrity'),text_value,parent=w)
             except Exception as e:messagebox.showerror('ToDo',str(e),parent=w)
         bar=ttk.Frame(w);bar.pack(fill='x',padx=12,pady=12)
-        ttk.Button(bar,text=self.tr('Actualiser','تحديث'),command=refresh).pack(side='left')
-        ttk.Button(bar,text=self.tr('Exporter CSV','تصدير CSV'),style='Soft.TButton',command=export_csv).pack(side='left',padx=6)
-        ttk.Button(bar,text=self.tr('Importer CSV','استيراد CSV'),style='Primary.TButton',command=import_csv).pack(side='left',padx=6)
-        ttk.Button(bar,text=self.tr('Exporter schéma SQL','تصدير بنية SQL'),command=export_schema).pack(side='left',padx=6)
-        ttk.Button(bar,text=self.tr('Export complet ZIP','تصدير كامل ZIP'),command=export_bundle).pack(side='left',padx=6)
-        ttk.Button(bar,text=self.tr("Vérifier l'intégrité",'فحص سلامة البيانات'),command=check).pack(side='left',padx=6)
-        ttk.Button(bar,text=self.tr('Fermer','إغلاق'),command=w.destroy).pack(side='right')
+        file_actions=ttk.Frame(bar);file_actions.pack(fill='x')
+        ttk.Button(file_actions,text=self.tr('Actualiser','تحديث',"Refresh"),command=refresh).pack(side='left')
+        ttk.Button(file_actions,text=self.tr('Exporter CSV','تصدير CSV',"Export CSV"),style='Soft.TButton',command=export_csv).pack(side='left',padx=6)
+        ttk.Button(file_actions,text=self.tr('Importer CSV','استيراد CSV',"Import CSV"),style='Primary.TButton',command=import_csv).pack(side='left',padx=6)
+        ttk.Button(file_actions,text=self.tr('Exporter schéma SQL','تصدير بنية SQL',"Export SQL schema"),command=export_schema).pack(side='left',padx=6)
+        maintenance_actions=ttk.Frame(bar);maintenance_actions.pack(fill='x',pady=(8,0))
+        ttk.Button(maintenance_actions,text=self.tr('Export complet ZIP','تصدير كامل ZIP',"Complete ZIP export"),command=export_bundle).pack(side='left',padx=6)
+        ttk.Button(maintenance_actions,text=self.tr("Vérifier l'intégrité",'فحص سلامة البيانات',"Check integrity"),command=check).pack(side='left',padx=6)
+        ttk.Button(maintenance_actions,text=self.tr('Fermer','إغلاق',"Close"),command=w.destroy).pack(side='right')
         refresh()
 
     def new_user(self):
