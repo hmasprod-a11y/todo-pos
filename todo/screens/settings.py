@@ -300,7 +300,7 @@ class SettingsFrame(ttk.Frame):
         ttk.Label(media_row,text=self.tr('Durée de chaque image (secondes)','مدة كل صورة (ثوانٍ)','Duration of each image (seconds)')).pack(side='left')
         ttk.Spinbox(media_row,from_=2,to=300,textvariable=self.customer_seconds,width=6).pack(side='left',padx=8)
         ttk.Label(media_row,text=self.tr('Dossier : customer_media · images + vidéos · format conseillé 16:9','المجلد: customer_media · صور + فيديوهات · القياس المقترح 16:9','Folder: customer_media · images + videos · recommended 16:9 format'),foreground="#475569").pack(side='left',padx=12)
-        rfid=ttk.LabelFrame(body,text=self.tr('RFID','RFID'),padding=10);rfid.pack(fill='x',pady=10)
+        rfid=ttk.LabelFrame(body,text=self.tr('RFID','RFID',"RFID"),padding=10);rfid.pack(fill='x',pady=10)
         self.rfid_enabled=tk.BooleanVar(value=get_setting('rfid_enabled','0')=='1')
         self.rfid_mode=tk.StringVar(value=get_setting('rfid_mode','HID'))
         self.rfid_port=tk.StringVar(value=get_setting('rfid_port',''))
@@ -489,7 +489,7 @@ class SettingsFrame(ttk.Frame):
         profile=get_country_profile(self.country.get())
         self.cur.set(profile.currency)
         rate=f"{profile.default_tax_rate_basis_points/100:g}%"
-        included=self.tr('taxe comprise','ضريبة مضمّنة') if profile.tax_included_by_default else self.tr('taxe ajoutée','ضريبة مضافة')
+        included=self.tr('taxe comprise','ضريبة مضمّنة',"tax included") if profile.tax_included_by_default else self.tr('taxe ajoutée','ضريبة مضافة',"tax added")
         self.country_info.set(f"{profile.currency} · {profile.tax_label} {rate} · {included}")
 
     def save(self):
@@ -651,7 +651,7 @@ class SettingsFrame(ttk.Frame):
                 value=max(1,int(row['next_no']))
             self.next_client_ticket.set(str(value))
             set_setting('receipt_next_client_ticket',str(value))
-            messagebox.showinfo('ToDo',self.tr(f'Prochain N° Ticket Client : {value}',f'رقم تذكرة الزبون التالي: {value}'),parent=self)
+            messagebox.showinfo('ToDo',self.tr(f'Prochain N° Ticket Client : {value}',f'رقم تذكرة الزبون التالي: {value}',f'Next customer receipt number: {value}'),parent=self)
         except Exception as error:messagebox.showerror('ToDo',str(error),parent=self)
 
     def refresh_printers(self):
@@ -698,47 +698,47 @@ class SettingsFrame(ttk.Frame):
         from services.license_policy import load_license_policy,save_license_policy
         w=tk.Toplevel(self);w.title(self.tr('Licence','الترخيص','License'));w.geometry('720x470');w.transient(self.winfo_toplevel());w.grab_set()
         status=license_status()
-        ttk.Label(w,text=self.tr('Licence ToDo','ترخيص ToDo'),style='Title.TLabel').pack(anchor='w',padx=18,pady=(16,8))
-        box=ttk.LabelFrame(w,text=self.tr('État','الحالة'),padding=12);box.pack(fill='x',padx=18,pady=8)
+        ttk.Label(w,text=self.tr('Licence ToDo','ترخيص ToDo',"ToDo License"),style='Title.TLabel').pack(anchor='w',padx=18,pady=(16,8))
+        box=ttk.LabelFrame(w,text=self.tr('État','الحالة',"Status"),padding=12);box.pack(fill='x',padx=18,pady=8)
         rows=[
-            (self.tr('Machine ID','معرف الجهاز'),status['machine_id']),
-            (self.tr('Protection active','الحماية مفعلة'),self.tr('Oui','نعم') if status['enforced'] else self.tr('Non','لا')),
-            (self.tr('Licence installée','الترخيص مثبت'),self.tr('Oui','نعم') if status['installed'] else self.tr('Non','لا')),
-            (self.tr('Valide','صالح'),self.tr('Oui','نعم') if status['valid'] else self.tr('Non','لا')),
-            (self.tr('Client','الزبون'),status.get('customer') or '—'),
-            (self.tr('Date de lancement','تاريخ البداية'),status.get('issued_at') or '—'),
-            (self.tr('Expiration','الانتهاء'),status.get('expires_at') or '—'),
-            (self.tr('Jours restants','الأيام المتبقية'),str(status.get('days_remaining')) if status.get('days_remaining') is not None else '—'),
-            (self.tr('Message','الرسالة'),status.get('error') or self.tr('OK','سليم')),
+            (self.tr('Machine ID','معرف الجهاز',"Machine ID"),status['machine_id']),
+            (self.tr('Protection active','الحماية مفعلة',"Protection active"),self.tr('Oui','نعم',"Yes") if status['enforced'] else self.tr('Non','لا',"No")),
+            (self.tr('Licence installée','الترخيص مثبت',"License installed"),self.tr('Oui','نعم',"Yes") if status['installed'] else self.tr('Non','لا',"No")),
+            (self.tr('Valide','صالح',"Valid"),self.tr('Oui','نعم',"Yes") if status['valid'] else self.tr('Non','لا',"No")),
+            (self.tr('Client','الزبون',"Customer"),status.get('customer') or '—'),
+            (self.tr('Date de lancement','تاريخ البداية',"Issued on"),status.get('issued_at') or '—'),
+            (self.tr('Expiration','الانتهاء',"Expiration"),status.get('expires_at') or '—'),
+            (self.tr('Jours restants','الأيام المتبقية',"Days remaining"),str(status.get('days_remaining')) if status.get('days_remaining') is not None else '—'),
+            (self.tr('Message','الرسالة',"Message"),status.get('error') or self.tr('OK','سليم',"OK")),
         ]
         for i,(label,value) in enumerate(rows):
             ttk.Label(box,text=label+':',font=('Segoe UI',9,'bold')).grid(row=i,column=0,sticky='nw',pady=3)
             ttk.Label(box,text=value,wraplength=480).grid(row=i,column=1,sticky='w',padx=8,pady=3)
-        keybox=ttk.LabelFrame(w,text=self.tr('Configuration administrateur','إعداد المدير'),padding=12);keybox.pack(fill='x',padx=18,pady=8)
+        keybox=ttk.LabelFrame(w,text=self.tr('Configuration administrateur','إعداد المدير',"Administrator configuration"),padding=12);keybox.pack(fill='x',padx=18,pady=8)
         policy=load_license_policy()
         keyvar=tk.StringVar(value=policy['public_key_b64'])
         enforce=tk.BooleanVar(value=policy['enforced'])
-        ttk.Label(keybox,text=self.tr('Clé publique Ed25519 (Base64)','المفتاح العام Ed25519 (Base64)')).grid(row=0,column=0,sticky='w')
+        ttk.Label(keybox,text=self.tr('Clé publique Ed25519 (Base64)','المفتاح العام Ed25519 (Base64)',"Ed25519 public key (Base64)")).grid(row=0,column=0,sticky='w')
         ttk.Entry(keybox,textvariable=keyvar,width=62).grid(row=1,column=0,columnspan=2,sticky='ew',pady=4)
-        ttk.Checkbutton(keybox,text=self.tr('Activer la protection licence au démarrage','تفعيل حماية الترخيص عند التشغيل'),variable=enforce).grid(row=2,column=0,columnspan=2,sticky='w',pady=4)
+        ttk.Checkbutton(keybox,text=self.tr('Activer la protection licence au démarrage','تفعيل حماية الترخيص عند التشغيل',"Enforce license at startup"),variable=enforce).grid(row=2,column=0,columnspan=2,sticky='w',pady=4)
         def save_cfg():
             key=keyvar.get().strip()
             if enforce.get() and not key:
-                messagebox.showerror('ToDo',self.tr('Clé publique obligatoire avant activation.','المفتاح العام مطلوب قبل التفعيل.'),parent=w);return
+                messagebox.showerror('ToDo',self.tr('Clé publique obligatoire avant activation.','المفتاح العام مطلوب قبل التفعيل.',"Public key required before enabling protection."),parent=w);return
             try:save_license_policy(key,enforce.get())
             except Exception as e:
                 messagebox.showerror('ToDo',str(e),parent=w);return
-            messagebox.showinfo('ToDo',self.tr('Configuration licence enregistrée.','تم حفظ إعدادات الترخيص.'),parent=w);w.destroy()
+            messagebox.showinfo('ToDo',self.tr('Configuration licence enregistrée.','تم حفظ إعدادات الترخيص.',"License configuration saved."),parent=w);w.destroy()
         def activate():
             path=filedialog.askopenfilename(parent=w,filetypes=[('ToDo Licence','*.json'),(self.tr('Tous les fichiers','كل الملفات',"All files"),'*.*')])
             if not path:return
             try:
                 result=install_license(path)
-                messagebox.showinfo('ToDo',self.tr(f"Licence activée pour {result['customer']} jusqu'au {result['expires_at']}.",f"تم تفعيل الترخيص لـ {result['customer']} حتى {result['expires_at']}."),parent=w);w.destroy()
+                messagebox.showinfo('ToDo',self.tr(f"Licence activée pour {result['customer']} jusqu'au {result['expires_at']}.",f"تم تفعيل الترخيص لـ {result['customer']} حتى {result['expires_at']}.",f"License activated for {result['customer']} until {result['expires_at']}."),parent=w);w.destroy()
             except Exception as error:messagebox.showerror('ToDo',str(error),parent=w)
         bar=ttk.Frame(w);bar.pack(fill='x',padx=18,pady=12)
-        ttk.Button(bar,text=self.tr('Installer licence','تثبيت الترخيص'),style='Primary.TButton',command=activate).pack(side='left')
-        ttk.Button(bar,text=self.tr('Enregistrer configuration','حفظ الإعداد'),command=save_cfg).pack(side='left',padx=6)
+        ttk.Button(bar,text=self.tr('Installer licence','تثبيت الترخيص',"Install license"),style='Primary.TButton',command=activate).pack(side='left')
+        ttk.Button(bar,text=self.tr('Enregistrer configuration','حفظ الإعداد',"Save configuration"),command=save_cfg).pack(side='left',padx=6)
         ttk.Button(bar,text=self.tr('Fermer','إغلاق',"Close"),command=w.destroy).pack(side='right')
 
     def about_help(self):
@@ -933,9 +933,10 @@ class SettingsFrame(ttk.Frame):
             values=list_user_permissions(uid)
             pw=tk.Toplevel(w);pw.title(self.tr('Permissions utilisateur','صلاحيات المستخدم','User permissions'));pw.transient(w);pw.grab_set()
             vars={}
+            permission_en={'DISCOUNT':'Discounts','PRICE_EDIT':'Edit prices','RETURNS':'Customer returns','STOCK_EDIT':'Edit stock','REPORTS':'Journal / statistics','MANAGEMENT':'Management','SETTINGS':'Settings'}
             for i,(code,(fr,ar)) in enumerate(PERMISSIONS.items()):
                 var=tk.BooleanVar(value=values.get(code,False));vars[code]=var
-                ttk.Checkbutton(pw,text=self.tr(fr,ar),variable=var).grid(row=i,column=0,sticky='w',padx=18,pady=6)
+                ttk.Checkbutton(pw,text=self.tr(fr,ar,permission_en[code]),variable=var).grid(row=i,column=0,sticky='w',padx=18,pady=6)
             def save_permissions():
                 try:
                     with connect() as conn:
@@ -946,25 +947,25 @@ class SettingsFrame(ttk.Frame):
                 except Exception as e:messagebox.showerror('ToDo',str(e),parent=pw)
             ttk.Button(pw,text=self.tr('Enregistrer','حفظ','Save'),style='Success.TButton',command=save_permissions).grid(row=len(vars),column=0,sticky='ew',padx=18,pady=12)
         ttk.Button(bar,text=self.tr('Activer / Désactiver','تفعيل / تعطيل','Enable / Disable'),command=toggle).pack(side="left")
-        ttk.Button(bar,text=self.tr('Admin ↔ Caissier','مدير ↔ كاشير'),command=role).pack(side="left",padx=8)
+        ttk.Button(bar,text=self.tr('Admin ↔ Caissier','مدير ↔ كاشير',"Admin ↔ Cashier"),command=role).pack(side="left",padx=8)
         ttk.Button(bar,text=self.tr('Permissions','الصلاحيات','Permissions'),command=permissions).pack(side='left',padx=8);reload()
 
     def change_pin(self):
-        pin=simpledialog.askstring('PIN',self.tr('Nouveau PIN (4 chiffres minimum):','PIN جديد (4 أرقام على الأقل):'),parent=self,show='*')
+        pin=simpledialog.askstring('PIN',self.tr('Nouveau PIN (4 chiffres minimum):','PIN جديد (4 أرقام على الأقل):',"New PIN (at least 4 digits):"),parent=self,show='*')
         if pin is None:return
         if not pin.isdigit() or len(pin)<4:
-            messagebox.showerror('ToDo',self.tr('Utilisez au moins 4 chiffres.','استعمل أربعة أرقام على الأقل.'),parent=self);return
+            messagebox.showerror('ToDo',self.tr('Utilisez au moins 4 chiffres.','استعمل أربعة أرقام على الأقل.',"Use at least 4 digits."),parent=self);return
         with connect() as conn:
             conn.execute('UPDATE users SET pin_hash=? WHERE id=?',(hash_pin(pin),self.app.user['id']))
             audit(conn,'PIN_CHANGE',self.app.user['id'])
-        messagebox.showinfo('ToDo',self.tr('PIN modifié.','تم تغيير PIN.'),parent=self)
+        messagebox.showinfo('ToDo',self.tr('PIN modifié.','تم تغيير PIN.',"PIN changed."),parent=self)
 
     def audit_log(self):
         w=tk.Toplevel(self);w.title(self.tr('Journal des actions','سجل العمليات','Action log'));w.geometry('960x520')
         tree=ttk.Treeview(w,columns=('date','user','action','document','details'),show='headings')
-        for key,label,width in [('date',self.tr('Date','التاريخ'),150),('user',self.tr('Utilisateur','المستخدم'),140),('action',self.tr('Action','العملية'),140),('document',self.tr('Document','الوثيقة'),100),('details',self.tr('Détails','التفاصيل'),300)]:
+        for key,label,width in [('date',self.tr('Date','التاريخ',"Date"),150),('user',self.tr('Utilisateur','المستخدم',"User"),140),('action',self.tr('Action','العملية',"Action"),140),('document',self.tr('Document','الوثيقة',"Document"),100),('details',self.tr('Détails','التفاصيل',"Details"),300)]:
             tree.heading(key,text=label);tree.column(key,width=width)
         tree.pack(fill='both',expand=True,padx=12,pady=12)
         with connect() as conn:
             rows=conn.execute("SELECT a.*,u.display_name username FROM audit_log a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.id DESC LIMIT 1000").fetchall()
-        for r in rows:tree.insert('','end',values=(r['created_at'],r['username'] or self.tr('Système','النظام'),r['action'],r['document'],r['details']))
+        for r in rows:tree.insert('','end',values=(r['created_at'],r['username'] or self.tr('Système','النظام',"System"),r['action'],r['document'],r['details']))

@@ -76,6 +76,13 @@ try:
     with patch('tkinter.filedialog.askopenfilename', return_value='unused.todozip'), patch('tkinter.messagebox.askyesno', return_value=False) as confirm:
         page.full_restore()
         assert 'Restore all data and media?' in confirm.call_args.args[1]
+    page.license_tools()
+    app.update()
+    license_dialog = next(child for child in page.winfo_children() if isinstance(child, tk.Toplevel))
+    assert license_dialog.title() == 'License'
+    sections = {child.cget('text') for child in license_dialog.winfo_children() if isinstance(child, ttk.LabelFrame)}
+    assert {'Status', 'Administrator configuration'} <= sections, sections
+    license_dialog.destroy()
 finally:
     app.destroy()
     temporary.cleanup()
