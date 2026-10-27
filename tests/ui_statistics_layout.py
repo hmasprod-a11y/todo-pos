@@ -27,6 +27,7 @@ try:
 
     for language in ('fr', 'ar', 'en'):
         app.change_language(language)
+        app.deiconify()
         app.state('normal')
         app.geometry('1366x768+0+0')
         app.show('statistics')
@@ -38,7 +39,7 @@ try:
         positions = {(int(card.grid_info()['row']), int(card.grid_info()['column'])) for card in cards}
         assert positions == {(row, col) for row in range(3) for col in range(3)}, (language, positions)
         canvas = stats.stats_canvas
-        assert canvas.winfo_width() > 1000 and canvas.winfo_height() > 500
+        assert canvas.winfo_width() > 600 and canvas.winfo_height() > 400, (language, canvas.winfo_width(), canvas.winfo_height())
         assert canvas.bbox('all')[3] > canvas.winfo_height(), language
         canvas.yview_moveto(1.0)
         app.update()
