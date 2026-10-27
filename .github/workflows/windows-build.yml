@@ -23,6 +23,8 @@ jobs:
         run: python -B tests/ui_smoke.py
       - name: Statistics layout in French Arabic and English
         run: python -B tests/ui_statistics_layout.py
+      - name: Settings administration layout in three languages
+        run: python -B tests/ui_settings_layout.py
       - name: Purchase to printable receipt through Tk controls
         run: python -B tests/ui_acceptance.py
       - name: Integrated families and statistics through Tk controls
