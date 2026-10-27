@@ -126,6 +126,8 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     assert any(row[barcode_col]=='REGULAR123' for row in rows_by_name['TEST Photo Regular']), 'Real barcode must remain in catalogue export'
     assert 'TEST Inactive Export' not in rows_by_name, 'Inactive products must stay out of shop-to-shop catalogue export'
     export_window.destroy()
+    # Destroyed catalogue frames can still receive StringVar traces from Tk.
+    products_frame.filter.set('Promotions')
     # Inactive local barcodes must not block shop-to-shop import as conflicts.
     from openpyxl import Workbook
     import_path=Path(temp.name)/'catalogue-import-inactive-conflict.xlsx'

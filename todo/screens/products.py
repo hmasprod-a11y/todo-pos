@@ -510,6 +510,8 @@ class ProductsFrame(ttk.Frame):
         self.after_idle(lambda:self.search_entry.focus_force() if self.search_entry.winfo_exists() else None)
         self.after(100,lambda:self.search_entry.focus_force() if self.search_entry.winfo_exists() else None)
     def go_page(self,page):
+        # A StringVar trace may fire after this frame has been destroyed.
+        if not self.winfo_exists():return
         self.page=page;self.refresh()
     def refresh(self):
         q=f"%{self.q.get().strip()}%"
