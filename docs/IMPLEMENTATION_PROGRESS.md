@@ -72,3 +72,30 @@ A single isolated fixture opens with100DH, receives10units at5DH with10DH suppli
 The subsequent pack guard correctly rejects partial carton quantities even when there is no special carton price. Its first version also rejected fractional quantities scanned through an ordinary unit barcode, breaking both the stock-boundary regression and the required fractional shared-barcode workflow. Unit barcodes without a price override now retain fractional-product behavior; carton multipliers and explicit pack-price barcodes still enforce whole packs. Both cases are covered by service tests; delivery requires the full Windows GUI gate.
 
 Price precedence is unchanged: explicit pack price, otherwise applicable quantity offer, otherwise active grid price, otherwise catalog price. Authorized manual prices are checked at checkout; explicit catalog-price restoration remains available. Existing stored sale prices/costs/taxes are snapshots used by returns and reports rather than recalculated from later catalog edits.
+
+## Post-handoff validation on main
+
+### W10 and W12 safeguards
+
+- [W12 inventory validation](https://github.com/hmasprod-a11y/todo-pos/commit/4377c0377d8cf25e2ea8e4359babb2ab87876b95) rejects fractional counted quantities for products that disallow fractions and rejects inactive counted products before any stock movement. Rejected inventory sessions remain open for correction.
+- [W10 pack returns](https://github.com/hmasprod-a11y/todo-pos/commit/6d8de69cb46b68d2cd4ff36dad6cf704a6c88f9d) preserve carton quantities on returns even when the carton barcode has no explicit price override. Fractional unit-barcode products remain supported.
+- The full Windows build at 6d8de69 ran 313 unit tests, Tk smoke and integrated purchase/report tests, installed runtime and upgrade checks, and produced a verified complete Windows ZIP and installer. The [Windows run](https://github.com/hmasprod-a11y/todo-pos/actions/runs/40424887105), [tests run](https://github.com/hmasprod-a11y/todo-pos/actions/runs/40424887134) and [Quick build](https://github.com/hmasprod-a11y/todo-pos/actions/runs/40424886968) all succeeded.
+
+### W21 automated layout and language subset
+
+- [Statistics layout](https://github.com/hmasprod-a11y/todo-pos/commit/6098251d960bb372c616ac806f2ca8eaf527692d) arranges nine KPI cards in three columns and makes the report vertically scrollable. A Windows Tk test verifies the KPI grid and access to the lower financial summary in French, Arabic and English at a requested 1366×768 window size.
+- [Settings administration layout](https://github.com/hmasprod-a11y/todo-pos/commit/4d39bba746cad592426bd4ebb28a95f210253889) separates backup and user controls into rows so their actions fit compact widths in all three languages. The Windows Tk test checks the actual control widths and labels.
+- [Data recovery and database dialogs](https://github.com/hmasprod-a11y/todo-pos/commit/40dc6ed66e00fbc3388d3061894b01345bb4a4dd) now display English labels, warnings and restore confirmations. The database actions use two rows. The UI test opens the database dialog and checks the English prompts without restoring data.
+- [License and administration labels](https://github.com/hmasprod-a11y/todo-pos/commit/275c2c6dfbe4e5b9b73f0697b96023feb9026052) complete the remaining explicit English text in Settings, including permissions, PIN and audit labels. The UI test opens the license dialog and checks its English sections.
+- On 275c2c6 the [full Windows build](https://github.com/hmasprod-a11y/todo-pos/actions/runs/40533796776), [tests](https://github.com/hmasprod-a11y/todo-pos/actions/runs/40533796137) and [Quick build](https://github.com/hmasprod-a11y/todo-pos/actions/runs/40533796579) succeeded. The [Windows package artifact](https://github.com/hmasprod-a11y/todo-pos/actions/runs/40533796776/artifacts/12748135927) includes the installer and portable application with its runtime files. The package artifact digest is `sha256:5ef3494dffbf98f9d7e4c9e3f1b80da3f3af4fa0dbd2bdcedf4ca259233ff620`.
+
+The automated W21 checks demonstrate reachability and selected English strings on the hosted Windows runner. They do not certify every visual state, physical touch interaction, right-to-left reading order or high-DPI rendering on the shop display.
+
+### Requirements still needing external evidence or scope
+
+- W04/W20: measure LOGICA and ToDo on the same shop PC with the same representative data before claiming a comparative speed or memory advantage.
+- W16/W17: verify transfer on a second computer; full LOGICA history and client balances require the source schema/sample and a signed-off mapping with dry-run totals.
+- W18: certify the exact printer, drawer, scanner, scale, RFID and display models physically.
+- W14/W15: agree how partial supplier receipts carry remainders, and the required BL/invoice states and legal fields.
+- W21: perform touch, RTL reading order, 1366×768 and DPI visual acceptance on the target hardware.
+- W23/W24/W25: decide lot/expiry allocation policy, specialized sector modules and multi-cashier topology. Local SQLite is certified only for a local workstation.
