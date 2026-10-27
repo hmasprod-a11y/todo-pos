@@ -43,8 +43,16 @@ def set_inventory_count(session_id, product_id, counted_qty):
         conn.execute("BEGIN IMMEDIATE");require_admin(conn)
         status=conn.execute("SELECT status FROM inventory_sessions WHERE id=?",(int(session_id),)).fetchone()
         if not status or status['status']!='OPEN': raise ValueError("Inventaire clôturé")
-        if conn.execute("UPDATE inventory_session_items SET counted_qty=? WHERE session_id=? AND product_id=?",
-                        (qty,int(session_id),int(product_id))).rowcount!=1: raise ValueError("Article introuvable")
+        item=conn.execute("""SELECT p.active,p.allow_fraction FROM inventory_session_items i
+                             JOIN products p ON p.id=i.product_id
+                             WHERE i.session_id=? AND i.product_id=?""",
+                          (int(session_id),int(product_id))).fetchone()
+        if not item: raise ValueError("Article introuvable")
+        if not item['active']: raise ValueError("Article inactif dans l'inventaire")
+        if not item['allow_fraction'] and not qty.is_integer():
+            raise ValueError("Cet article se compte en unités entières.")
+        conn.execute("UPDATE inventory_session_items SET counted_qty=? WHERE session_id=? AND product_id=?",
+                     (qty,int(session_id),int(product_id)))
         conn.commit()
 
 def finalize_inventory_session(session_id):
@@ -54,11 +62,20 @@ def finalize_inventory_session(session_id):
         if not row or row['status']!='OPEN': raise ValueError("Inventaire introuvable ou déjà validé")
         lines=conn.execute("SELECT * FROM inventory_session_items WHERE session_id=? AND counted_qty IS NOT NULL",(int(session_id),)).fetchall()
         if not lines: raise ValueError("Aucun comptage saisi")
-        adjusted=0
+        # Validate every counted line before moving any stock. A deactivated
+        # product must not silently disappear from a validated inventory.
+        targets=[]
         for r in lines:
-            current=conn.execute("SELECT stock_qty FROM products WHERE id=? AND active=1",(r['product_id'],)).fetchone()
-            if not current: continue
-            target=float(r['counted_qty']);now=float(current['stock_qty']);delta=target-now
+            current=conn.execute("SELECT stock_qty,allow_fraction FROM products WHERE id=? AND active=1",(r['product_id'],)).fetchone()
+            if not current: raise ValueError("Article inactif dans l'inventaire")
+            target=float(r['counted_qty'])
+            if not math.isfinite(target) or target<0: raise ValueError("Quantité comptée invalide")
+            if not current['allow_fraction'] and not target.is_integer():
+                raise ValueError("Cet article se compte en unités entières.")
+            targets.append((r,current,target))
+        adjusted=0
+        for r,current,target in targets:
+            now=float(current['stock_qty']);delta=target-now
             if abs(delta)<=1e-9: continue
             apply_stock_movement(conn,r['product_id'],delta,'INVENTORY',r['unit_cost_cents'],'inventory_session',int(session_id),
                                  f"Inventaire #{session_id}: {now:g} -> {target:g}")
