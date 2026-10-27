@@ -21,6 +21,8 @@ jobs:
         run: python -B -m unittest discover -s tests -v
       - name: Tk interface smoke test
         run: python -B tests/ui_smoke.py
+      - name: Statistics layout in French Arabic and English
+        run: python -B tests/ui_statistics_layout.py
       - name: Purchase to printable receipt through Tk controls
         run: python -B tests/ui_acceptance.py
       - name: Integrated families and statistics through Tk controls

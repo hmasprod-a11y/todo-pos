@@ -177,8 +177,21 @@ class StatisticsFrame(ttk.Frame):
         import datetime
         self._year = datetime.date.today().year
 
+        # Keep all report sections reachable on compact Windows and touch displays.
+        self.stats_canvas = tk.Canvas(self, highlightthickness=0, borderwidth=0)
+        self.stats_scroll = ttk.Scrollbar(self, orient='vertical', command=self.stats_canvas.yview)
+        self.stats_canvas.configure(yscrollcommand=self.stats_scroll.set)
+        self.stats_scroll.pack(side='right', fill='y')
+        self.stats_canvas.pack(side='left', fill='both', expand=True)
+        self.stats_body = ttk.Frame(self.stats_canvas)
+        self.stats_window = self.stats_canvas.create_window((0, 0), window=self.stats_body, anchor='nw')
+        self.stats_body.bind('<Configure>', lambda e: self.stats_canvas.configure(scrollregion=self.stats_canvas.bbox('all')))
+        self.stats_canvas.bind('<Configure>', lambda e: self.stats_canvas.itemconfigure(self.stats_window, width=e.width))
+        self.stats_canvas.bind('<MouseWheel>', self._scroll_statistics)
+        self.stats_body.bind('<MouseWheel>', self._scroll_statistics)
+
         # ── Header ────────────────────────────────────────────────────────────
-        header = ttk.Frame(self,style='Card.TFrame',padding=14)
+        header = ttk.Frame(self.stats_body,style='Card.TFrame',padding=14)
         header.pack(fill='x', pady=(0, 14))
         ttk.Label(header, text=self.tr('Statistiques','الإحصائيات','Statistics'),
                   style='Title.TLabel').pack(side='left')
@@ -203,7 +216,7 @@ class StatisticsFrame(ttk.Frame):
         self.year_label.pack(side='left')
         ttk.Button(year_box, text='›', width=3, command=lambda: self._change_year(1)).pack(side='left')
 
-        custom=ttk.Frame(self);custom.pack(fill='x',pady=(0,10))
+        custom=ttk.Frame(self.stats_body);custom.pack(fill='x',pady=(0,10))
         self._date_from=tk.StringVar(value=str(datetime.date.today().replace(day=1)))
         self._date_to=tk.StringVar(value=str(datetime.date.today()))
         ttk.Label(custom,text=self.tr('Période personnalisée','فترة مخصصة','Custom period')).pack(side='left')
@@ -213,7 +226,7 @@ class StatisticsFrame(ttk.Frame):
         ttk.Button(custom,text=self.tr('Résumé','ملخص','Summary'),style='Soft.TButton',command=self._custom_summary).pack(side='left',padx=6)
 
         # ── KPI cards row ─────────────────────────────────────────────────────
-        self.kpi_frame = ttk.Frame(self)
+        self.kpi_frame = ttk.Frame(self.stats_body)
         self.kpi_frame.pack(fill='x', pady=(0, 14))
         self._kpi_labels = {}
         kpi_defs = [
@@ -229,9 +242,9 @@ class StatisticsFrame(ttk.Frame):
         ]
         for i, (key, title, color) in enumerate(kpi_defs):
             card = tk.Frame(self.kpi_frame, bg=color, height=76)
-            card.grid(row=0, column=i, sticky='ew', padx=4)
+            card.grid(row=i//3, column=i%3, sticky='ew', padx=4, pady=4)
             card.grid_propagate(False)
-            self.kpi_frame.columnconfigure(i, weight=1)
+            self.kpi_frame.columnconfigure(i%3, weight=1)
             tk.Label(card, text=title, bg=color, fg='white',
                      font=('Segoe UI', 9)).pack(anchor='w', padx=12, pady=(8, 0))
             val_lbl = tk.Label(card, text='—', bg=color, fg='white',
@@ -240,7 +253,7 @@ class StatisticsFrame(ttk.Frame):
             self._kpi_labels[key] = val_lbl
 
         # ── Charts grid ───────────────────────────────────────────────────────
-        charts = ttk.Frame(self)
+        charts = ttk.Frame(self.stats_body)
         charts.pack(fill='both', expand=True)
         charts.columnconfigure(0, weight=3)
         charts.columnconfigure(1, weight=2)
@@ -291,7 +304,7 @@ class StatisticsFrame(ttk.Frame):
         self.client_chart.pack(fill='both', expand=True)
 
         # recent transactions sidebar
-        recent_card = ttk.LabelFrame(self, text=self.tr('Dernières opérations','آخر العمليات','Recent transactions'), padding=6)
+        recent_card = ttk.LabelFrame(self.stats_body, text=self.tr('Dernières opérations','آخر العمليات','Recent transactions'), padding=6)
         recent_card.pack(fill='x', pady=(10, 0))
         self.recent_tree = ttk.Treeview(recent_card,
             columns=('doc', 'amount', 'kind', 'time'), show='headings', height=5)
@@ -306,17 +319,21 @@ class StatisticsFrame(ttk.Frame):
         self.recent_tree.tag_configure('return', foreground='#DC2626')
         self.recent_tree.pack(fill='x')
 
-        pay_card = ttk.LabelFrame(self, text=self.tr('Paiements nets','صافي الدفعات','Net payments'), padding=6)
+        pay_card = ttk.LabelFrame(self.stats_body, text=self.tr('Paiements nets','صافي الدفعات','Net payments'), padding=6)
         pay_card.pack(fill='x', pady=(8, 0))
         self.payment_summary = ttk.Label(pay_card, text='—', font=('Segoe UI', 11, 'bold'))
         self.payment_summary.pack(anchor='w')
 
-        finance_card = ttk.LabelFrame(self, text=self.tr('Vue financière','نظرة مالية','Financial overview'), padding=6)
+        finance_card = ttk.LabelFrame(self.stats_body, text=self.tr('Vue financière','نظرة مالية','Financial overview'), padding=6)
         finance_card.pack(fill='x', pady=(8, 0))
         self.finance_summary = ttk.Label(finance_card, text='—', font=('Segoe UI', 11, 'bold'))
         self.finance_summary.pack(anchor='w')
 
         self._set_period('month')
+
+    def _scroll_statistics(self, event):
+        if event.delta:
+            self.stats_canvas.yview_scroll(-int(event.delta / 120), 'units')
 
     # ── Period ────────────────────────────────────────────────────────────────
     def _set_period(self, key):
