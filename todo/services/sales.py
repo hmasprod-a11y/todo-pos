@@ -353,7 +353,7 @@ def create_return(sale_id,session_id,user_id,items,reason='',refund_method='CASH
         for item,qty in requested.items():
             si=conn.execute('SELECT * FROM sale_items WHERE id=? AND sale_id=?',(item,sale_id)).fetchone()
             if not si:raise ValueError('Ligne introuvable')
-            if si['pricing_mode']=='PACK':
+            if si['pricing_mode']=='PACK' or si['qty_multiplier']!=1:
                 packs=qty/Decimal(str(si['qty_multiplier']))
                 if abs(packs-packs.to_integral_value())>Decimal('0.000000001'):
                     raise ValueError('Le retour doit respecter la quantité du pack/carton.')

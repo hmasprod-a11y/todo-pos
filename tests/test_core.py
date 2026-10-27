@@ -183,6 +183,12 @@ class CoreTests(unittest.TestCase):
   sale=complete_sale(self.session,self.uid,[dict(product_id=self.pid,qty=6,barcode_id=bid)],'CASH',6000)
   self.assertEqual(sale['total_cents'],6000)
   self.assertEqual(self.stock(),14)
+  item=self.item(sale)
+  with self.assertRaisesRegex(ValueError,'pack/carton'):
+   create_return(sale['id'],self.session,self.uid,[(item,1)])
+  self.assertEqual(self.stock(),14)
+  self.assertEqual(create_return(sale['id'],self.session,self.uid,[(item,6)])['total_cents'],6000)
+  self.assertEqual(self.stock(),20)
  def test_hold_persists_discount(self):
   with db.connect() as c:
    seller=c.execute("INSERT INTO sellers(name) VALUES('Held Seller')").lastrowid
