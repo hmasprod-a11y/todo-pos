@@ -3,6 +3,7 @@
 These images are evidence from the running app, not rendered mockups. Geometry
 metadata makes an off-screen window visible even when its screenshot is cropped.
 """
+import faulthandler
 import hashlib
 import json
 import os
@@ -26,9 +27,11 @@ output = project / "qa-evidence" / "ui-visual"
 output.mkdir(parents=True, exist_ok=True)
 app = ToDoApp()
 records = []
+faulthandler.dump_traceback_later(120, repeat=True)
 
 
 def capture(window, language, route):
+    print(f'Capture start: {language}/{route}', flush=True)
     app.update_idletasks()
     app.update()
     screen = (app.winfo_screenwidth(), app.winfo_screenheight())
@@ -46,6 +49,7 @@ def capture(window, language, route):
     path = output / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     image.save(path)
+    print(f'Capture saved: {language}/{route}', flush=True)
     records.append({
         "language": language, "route": route,
         "file": str(relative).replace("\\", "/"),
@@ -69,6 +73,7 @@ try:
     app.deiconify()
     app.state("normal")
     for language in ("fr", "ar", "en"):
+        print(f'Language start: {language}', flush=True)
         app.change_language(language)
         app.geometry("1366x768+0+0")
         for route in ("sale", "products", "stock", "cash", "statistics", "settings"):

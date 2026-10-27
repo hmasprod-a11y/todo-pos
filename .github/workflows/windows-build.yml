@@ -32,6 +32,7 @@ jobs:
       - name: Integrated families and statistics through Tk controls
         run: python -B tests/ui_integration.py
       - name: Capture real Windows UI screenshots
+        timeout-minutes: 4
         run: python -B tests/ui_visual_capture.py
       - name: Synthetic Windows performance measurements
         run: python -B tests/benchmark.py
