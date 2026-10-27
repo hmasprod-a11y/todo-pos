@@ -54,7 +54,7 @@ Five service cases and Windows ProductEditor controls cover these actions. New s
 
 Supplier returns now aggregate repeated purchase-item rows and the total stock consumed across separate purchase lines for the same product. Partial refunds use cumulative rounding against the original purchase-line total. Regression cases reproduce over-return/over-stock requests and check final cents.
 
-Receiving a loaded supplier order now changes stock, writes the purchase/payment and closes/links the order in one transaction. A repeated receipt is rejected even without a supplier invoice reference; failure rolls everything back. This path supports complete receipts only: a partial quantity is rejected with an explicit message instead of silently closing the whole order. A full partial-receipt/remainder workflow remains an open business requirement.
+Receiving a loaded supplier order now changes stock, writes the purchase/payment and closes/links the order in one transaction. A repeated receipt is rejected even without a supplier invoice reference; failure rolls everything back. Supplier orders now accept several linked deliveries. Each receipt posts its own purchase, stock and optional payment in one transaction; the order stays open while a quantity remains, and closes only after the full ordered quantities are received. Overdelivery and unordered products are rejected before writes. The order editor reloads only remaining quantities for the next delivery. Cancelling an open order still cancels its outstanding remainder; broader supplier document policies remain open.
 
 ## W03 / W13 / W19 — shared shop-day reconciliation
 
@@ -65,7 +65,7 @@ A single isolated fixture opens with100DH, receives10units at5DH with10DH suppli
 - Physical printer/drawer/scanner/scale/RFID/display models and real drivers are unavailable to hosted CI. Simulated tests do not certify hardware.
 - Comparative LOGICA/ToDo timings on the same shop computer, touch/DPI/RTL visual acceptance and a real second-device backup transfer remain unverified. Synthetic Windows measurements are published separately.
 - Full LOGICA transaction-history migration needs a source database/schema sample and an agreed mapping; the existing ToDo catalogue exchange does not prove that migration.
-- Partial supplier receipts, BL/invoice lifecycle beyond the current quote/order/receipt flow, lot/expiry FEFO/FIFO policy, specialized sector modules and the multi-cashier network topology need a product scope decision. None are silently presented as implemented.
+- BL/invoice lifecycle beyond the current quote/order/receipt flow, lot/expiry FEFO/FIFO policy, specialized sector modules and the multi-cashier network topology need a product scope decision. None are silently presented as implemented.
 
 ## W07 — pack quantity regression after the handoff
 

@@ -228,9 +228,10 @@ CREATE TABLE IF NOT EXISTS product_variants (
 CREATE INDEX IF NOT EXISTS idx_product_variants_parent ON product_variants(parent_product_id);
 
 CREATE TABLE IF NOT EXISTS purchase_order_receipts (
-    order_id INTEGER PRIMARY KEY REFERENCES purchase_orders(id),
-    purchase_id INTEGER NOT NULL UNIQUE REFERENCES purchases(id)
+    purchase_id INTEGER PRIMARY KEY REFERENCES purchases(id),
+    order_id INTEGER NOT NULL REFERENCES purchase_orders(id)
 );
+CREATE INDEX IF NOT EXISTS idx_purchase_order_receipts_order ON purchase_order_receipts(order_id);
 
 CREATE TABLE IF NOT EXISTS checkout_requests (
     request_key TEXT PRIMARY KEY,
@@ -652,11 +653,11 @@ def connect():
 
 def init_db():
     with connect() as conn:
-        if conn.execute("SELECT 1 FROM sqlite_master WHERE name='products'").fetchone() and conn.execute('PRAGMA user_version').fetchone()[0] < 121:
+        if conn.execute("SELECT 1 FROM sqlite_master WHERE name='products'").fetchone() and conn.execute('PRAGMA user_version').fetchone()[0] < 129:
             from datetime import datetime
             backup_dir=DB_PATH.parent / 'migration_backups'
             backup_dir.mkdir(parents=True,exist_ok=True)
-            destination=sqlite3.connect(backup_dir / f"before_121_{datetime.now():%Y%m%d_%H%M%S_%f}.db")
+            destination=sqlite3.connect(backup_dir / f"before_129_{datetime.now():%Y%m%d_%H%M%S_%f}.db")
             try:
                 conn.backup(destination)
             finally:
@@ -767,4 +768,16 @@ def migrate(conn):
     # Backfill one payment row for legacy sales; new sales write their split directly.
     conn.execute("INSERT INTO sale_payments(sale_id,payment_method,amount_cents) SELECT s.id,s.payment_method,CASE WHEN s.payment_method='CASH' THEN s.paid_cents-s.change_cents ELSE s.paid_cents END FROM sales s WHERE NOT EXISTS (SELECT 1 FROM sale_payments sp WHERE sp.sale_id=s.id)")
     conn.execute("INSERT INTO return_payments(return_id,payment_method,amount_cents) SELECT r.id,r.refund_method,COALESCE(r.refund_paid_cents,r.total_cents) FROM returns r WHERE r.refund_method IN ('CASH','CARD') AND NOT EXISTS (SELECT 1 FROM return_payments rp WHERE rp.return_id=r.id)")
-    conn.execute('PRAGMA user_version=128')
+    # Schema 128 allowed one purchase per order. Keep its link while allowing
+    # subsequent partial deliveries to reference the same order.
+    receipt_pk={r['name'] for r in conn.execute('PRAGMA table_info(purchase_order_receipts)') if r['pk']}
+    if receipt_pk=={'order_id'}:
+        conn.execute('ALTER TABLE purchase_order_receipts RENAME TO purchase_order_receipts_v128')
+        conn.execute("""CREATE TABLE purchase_order_receipts (
+            purchase_id INTEGER PRIMARY KEY REFERENCES purchases(id),
+            order_id INTEGER NOT NULL REFERENCES purchase_orders(id)
+        )""")
+        conn.execute('INSERT INTO purchase_order_receipts(purchase_id,order_id) SELECT purchase_id,order_id FROM purchase_order_receipts_v128')
+        conn.execute('DROP TABLE purchase_order_receipts_v128')
+    conn.execute('CREATE INDEX IF NOT EXISTS idx_purchase_order_receipts_order ON purchase_order_receipts(order_id)')
+    conn.execute('PRAGMA user_version=129')

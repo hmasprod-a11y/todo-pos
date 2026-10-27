@@ -13,13 +13,14 @@ def validate(conn):
         raise ValueError('Sauvegarde corrompue')
     if conn.execute('PRAGMA foreign_key_check').fetchone():
         raise ValueError('Relations invalides dans la sauvegarde')
+    version=conn.execute('PRAGMA user_version').fetchone()[0]
     tables={r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     if not REQUIRED.issubset(tables):
         raise ValueError('Ce fichier ne contient pas une base ToDo complète.')
     with closing(sqlite3.connect(':memory:')) as expected:
         expected.executescript(SCHEMA)
         for (table,) in expected.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"):
-            if table in ('checkout_requests','product_variants','purchase_order_receipts') and table not in tables and conn.execute('PRAGMA user_version').fetchone()[0]<128:
+            if table in ('checkout_requests','product_variants','purchase_order_receipts') and table not in tables and version<128:
                 continue
             if table in ('clients','client_payments','product_categories') and table not in tables:
                 continue
@@ -27,7 +28,11 @@ def validate(conn):
             actual={r[1] for r in conn.execute(f'PRAGMA table_info({table})')}
             if not needed.issubset(actual):
                 raise ValueError(f'Structure ToDo incompatible : {table}')
-    if conn.execute('PRAGMA user_version').fetchone()[0]>128:
+    if version>=129:
+        receipt_pk={r[1] for r in conn.execute('PRAGMA table_info(purchase_order_receipts)') if r[5]}
+        if receipt_pk!={'purchase_id'}:
+            raise ValueError('Structure ToDo incompatible : purchase_order_receipts')
+    if version>129:
         raise ValueError('Sauvegarde issue d’une version plus récente de ToDo.')
 
 def create_backup():

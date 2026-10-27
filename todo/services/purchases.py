@@ -30,8 +30,16 @@ def receive_purchase(supplier_id, supplier_invoice, lines, notes="", paid_cents=
                 for pid,qty in rows:result[pid]=result.get(pid,Decimal(0))+Decimal(str(qty))
                 return result
             expected=quantities(conn.execute('SELECT product_id,qty FROM purchase_order_items WHERE order_id=?',(int(order_id),)))
+            received=quantities(conn.execute("""
+                SELECT pi.product_id,pi.qty FROM purchase_order_receipts por
+                JOIN purchase_items pi ON pi.purchase_id=por.purchase_id
+                WHERE por.order_id=?
+            """,(int(order_id),)))
+            remaining={pid:qty-received.get(pid,Decimal(0)) for pid,qty in expected.items()}
             actual=quantities((pid,qty) for pid,qty,cost in normalized)
-            if actual!=expected:raise ValueError('Réception partielle non disponible : les quantités doivent correspondre à la commande complète.')
+            if any(pid not in remaining or qty>remaining[pid] for pid,qty in actual.items()):
+                raise ValueError('Quantité reçue supérieure au reliquat de la commande.')
+            completed=all(actual.get(pid,Decimal(0))==qty for pid,qty in remaining.items())
         total = sum(int(round(qty * cost)) for pid,qty,cost in normalized)
         paid_cents = int(paid_cents or 0)
         payment_method = str(payment_method).upper()
@@ -81,9 +89,10 @@ def receive_purchase(supplier_id, supplier_invoice, lines, notes="", paid_cents=
             ).lastrowid
             audit(conn,"SUPPLIER_PAYMENT",payment_id,str(paid_cents))
         if order_id is not None:
-            conn.execute('INSERT INTO purchase_order_receipts(order_id,purchase_id) VALUES(?,?)',(int(order_id),pid_purchase))
-            conn.execute("UPDATE purchase_orders SET status='RECEIVED',received_at=CURRENT_TIMESTAMP WHERE id=?",(int(order_id),))
-            audit(conn,'PURCHASE_ORDER_RECEIVED',order_id,str(pid_purchase))
+            conn.execute('INSERT INTO purchase_order_receipts(purchase_id,order_id) VALUES(?,?)',(pid_purchase,int(order_id)))
+            if completed:
+                conn.execute("UPDATE purchase_orders SET status='RECEIVED',received_at=CURRENT_TIMESTAMP WHERE id=?",(int(order_id),))
+            audit(conn,'PURCHASE_ORDER_RECEIVED' if completed else 'PURCHASE_ORDER_PARTIAL',order_id,str(pid_purchase))
         audit(conn,"PURCHASE_RECEIVE",pid_purchase,str(total))
         conn.commit()
         return pid_purchase, total
@@ -126,17 +135,36 @@ def list_purchase_orders(status='OPEN'):
         """,(status,status)).fetchall()]
 
 def purchase_order_lines(order_id):
+    """Return unreceived order quantities, preserving the original line order."""
     with connect() as conn:
-        return [dict(r) for r in conn.execute("""
+        delivered={}
+        for row in conn.execute("""
+            SELECT pi.product_id,pi.qty FROM purchase_order_receipts por
+            JOIN purchase_items pi ON pi.purchase_id=por.purchase_id
+            WHERE por.order_id=? ORDER BY por.purchase_id,pi.id
+        """,(order_id,)):
+            pid=row['product_id']
+            delivered[pid]=delivered.get(pid,Decimal(0))+Decimal(str(row['qty']))
+        remaining=[]
+        for row in conn.execute("""
             SELECT poi.product_id,p.name,poi.qty,poi.unit_cost_cents
             FROM purchase_order_items poi JOIN products p ON p.id=poi.product_id
             WHERE poi.order_id=? ORDER BY poi.id
-        """,(order_id,)).fetchall()]
+        """,(order_id,)):
+            item=dict(row);pid=item['product_id'];qty=Decimal(str(item['qty']))
+            consumed=min(qty,delivered.get(pid,Decimal(0)))
+            delivered[pid]=delivered.get(pid,Decimal(0))-consumed
+            if qty>consumed:
+                item['qty']=float(qty-consumed)
+                remaining.append(item)
+        return remaining
 
 def mark_purchase_order_received(order_id):
     with connect() as conn:
         conn.execute("BEGIN IMMEDIATE")
         require_permission('MANAGEMENT', conn)
+        if conn.execute('SELECT 1 FROM purchase_order_receipts WHERE order_id=?',(order_id,)).fetchone():
+            raise ValueError("Une commande avec réception liée doit être clôturée par la réception de son reliquat.")
         if conn.execute("UPDATE purchase_orders SET status='RECEIVED',received_at=CURRENT_TIMESTAMP WHERE id=? AND status='OPEN'",(order_id,)).rowcount!=1:
             raise ValueError("Commande introuvable ou déjà clôturée")
         audit(conn,"PURCHASE_ORDER_RECEIVED",order_id)

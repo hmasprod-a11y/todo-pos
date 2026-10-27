@@ -79,7 +79,7 @@ class PurchasesFrame(ttk.Frame):
         s=self.prod.selection()
         if not s:return
         vals=self.prod.item(s[0],"values");pid=int(vals[0]);name=vals[1]
-        qty=simpledialog.askfloat(self.tr("Qté","الكمية","Qty"),f"{name}\\n{self.tr('Quantité reçue:','الكمية المستلمة:','Quantity received:')}",parent=self,minvalue=0.001)
+        qty=simpledialog.askfloat(self.tr("Qté","الكمية","Qty"),f"{name}\n{self.tr('Quantité reçue:','الكمية المستلمة:','Quantity received:')}",parent=self,minvalue=0.001)
         if qty is None:return
         cost=simpledialog.askfloat(self.tr("Coût","التكلفة","Cost"),f"{self.tr('Prix achat unitaire','ثمن الشراء للوحدة','Unit purchase price')} {name}:",parent=self,minvalue=0)
         if cost is None:return
@@ -99,7 +99,7 @@ class PurchasesFrame(ttk.Frame):
         i=self._selected_line_index()
         if i is None:return
         x=self.lines[i]
-        qty=simpledialog.askfloat(self.tr("Qté","الكمية","Qty"),f"{x['name']}\\n{self.tr('Quantité reçue:','الكمية المستلمة:','Quantity received:')}",initialvalue=x['qty'],parent=self,minvalue=0.001)
+        qty=simpledialog.askfloat(self.tr("Qté","الكمية","Qty"),f"{x['name']}\n{self.tr('Quantité reçue:','الكمية المستلمة:','Quantity received:')}",initialvalue=x['qty'],parent=self,minvalue=0.001)
         if qty is None:return
         cost=simpledialog.askfloat(self.tr("Coût","التكلفة","Cost"),f"{self.tr('Prix achat unitaire','ثمن الشراء للوحدة','Unit purchase price')} {x['name']}:",initialvalue=x['unit_cost_cents']/100,parent=self,minvalue=0)
         if cost is None:return
@@ -134,6 +134,7 @@ class PurchasesFrame(ttk.Frame):
             if not order:return
             self.refresh_suppliers(order['supplier_id'])
             self.lines=[dict(product_id=r['product_id'],name=r['name'],qty=r['qty'],unit_cost_cents=r['unit_cost_cents']) for r in purchase_order_lines(oid)]
+            self.invoice.set('');self.paid.set('0')
             self.refresh_lines();self._pending_order_id=oid;w.destroy()
         def cancel():
             sel=tree.selection()
@@ -158,7 +159,13 @@ class PurchasesFrame(ttk.Frame):
                 supplier_id=rows[0]['id'] if rows else save_supplier(sname)
                 self.refresh_suppliers(supplier_id)
             paid=to_cents(self.paid.get() or "0")
-            pid,total=receive_purchase(supplier_id,self.invoice.get().strip(),self.lines,paid_cents=paid,payment_method=self.payment_method.get(),order_id=getattr(self,'_pending_order_id',None))
+            order_id=getattr(self,'_pending_order_id',None)
+            pid,total=receive_purchase(supplier_id,self.invoice.get().strip(),self.lines,paid_cents=paid,payment_method=self.payment_method.get(),order_id=order_id)
+            remaining=purchase_order_lines(order_id) if order_id is not None else []
             self._pending_order_id=None
-            messagebox.showinfo("ToDo",f"{self.tr('Réception','استلام','Receipt')} #{pid}\\n{self.tr('Total','المجموع','Total')}: {fmt(total)}",parent=self);self.lines=[];self.paid.set("0");self.refresh_lines();self.search()
+            message=f"{self.tr('Réception','استلام','Receipt')} #{pid}\n{self.tr('Total','المجموع','Total')}: {fmt(total)}"
+            if remaining:
+                message+="\n"+self.tr('Reliquat ouvert : rechargez la commande pour la prochaine livraison.','الباقي مفتوح: أعد تحميل الطلب عند التسليم القادم.','Remainder open: reload the order for the next delivery.')
+            messagebox.showinfo("ToDo",message,parent=self)
+            self.lines=[];self.paid.set("0");self.invoice.set('');self.refresh_lines();self.search()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)

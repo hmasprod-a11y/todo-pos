@@ -32,6 +32,44 @@ class BackupValidationTests(unittest.TestCase):
             conn.executescript(SCHEMA);conn.execute('PRAGMA user_version=128');conn.execute('DROP TABLE checkout_requests')
             with self.assertRaises(ValueError):validate(conn)
 
+    def test_version_128_receipt_link_migrates_without_losing_purchase(self):
+        with tempfile.TemporaryDirectory() as td:
+            old_path=database.DB_PATH
+            database.DB_PATH=Path(td)/'shop.db'
+            try:
+                database.init_db()
+                with database.connect() as conn:
+                    supplier=conn.execute("INSERT INTO suppliers(name) VALUES('Supplier')").lastrowid
+                    order=conn.execute("INSERT INTO purchase_orders(supplier_id,status) VALUES(?,'RECEIVED')",(supplier,)).lastrowid
+                    purchase=conn.execute("INSERT INTO purchases(supplier_id) VALUES(?)",(supplier,)).lastrowid
+                    conn.execute('DROP TABLE purchase_order_receipts')
+                    conn.execute("""CREATE TABLE purchase_order_receipts (
+                        order_id INTEGER PRIMARY KEY REFERENCES purchase_orders(id),
+                        purchase_id INTEGER NOT NULL UNIQUE REFERENCES purchases(id)
+                    )""")
+                    conn.execute('INSERT INTO purchase_order_receipts(order_id,purchase_id) VALUES(?,?)',(order,purchase))
+                    conn.execute('PRAGMA user_version=128')
+                with database.connect() as conn:validate(conn)
+                database.init_db()
+                with database.connect() as conn:
+                    self.assertEqual(conn.execute('PRAGMA user_version').fetchone()[0],129)
+                    self.assertEqual(conn.execute('SELECT order_id FROM purchase_order_receipts WHERE purchase_id=?',(purchase,)).fetchone()[0],order)
+                    pk={r['name'] for r in conn.execute('PRAGMA table_info(purchase_order_receipts)') if r['pk']}
+                    self.assertEqual(pk,{'purchase_id'})
+                    validate(conn)
+                self.assertEqual(len(list((Path(td)/'migration_backups').glob('before_129_*.db'))),1)
+            finally:
+                database.DB_PATH=old_path
+
+    def test_version_129_rejects_old_one_receipt_schema(self):
+        with sqlite3.connect(':memory:') as conn:
+            conn.executescript(SCHEMA)
+            conn.execute('DROP TABLE purchase_order_receipts')
+            conn.execute('CREATE TABLE purchase_order_receipts(order_id INTEGER PRIMARY KEY,purchase_id INTEGER UNIQUE)')
+            conn.execute('PRAGMA user_version=129')
+            with self.assertRaisesRegex(ValueError,'purchase_order_receipts'):
+                validate(conn)
+
     def test_missing_required_table_is_rejected(self):
         with sqlite3.connect(":memory:") as conn:
             conn.execute("CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT)")
