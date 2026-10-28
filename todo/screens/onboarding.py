@@ -6,15 +6,28 @@ from services.onboarding import mark_complete
 from database import set_setting,connect
 from services.security import hash_pin
 from localization import Translator,language_direction
+from design_system import COLORS
 
 class FirstRunWizard(tk.Toplevel):
     """Offline first-run setup, localized before normal sign-in."""
     def __init__(self,master,on_done):
         super().__init__(master);self.on_done=on_done;self.transient(master);self.grab_set()
-        self.geometry("560x760");self.resizable(False,False)
+        height=min(760,max(500,self.winfo_screenheight()-100))
+        self.geometry(f"560x{height}");self.resizable(True,True)
         self.language=tk.StringVar(value="fr");self.language_label=tk.StringVar();self.country=tk.StringVar(value="MA");self.country_label=tk.StringVar();self.shop=tk.StringVar(value="ToDo");self.currency=tk.StringVar(value="DH");self.tax_rate=tk.StringVar(value="20");self.tax_included=tk.BooleanVar(value=True);self.printer=tk.StringVar();self.barcode=tk.StringVar();self.pin=tk.StringVar();self.pin_confirm=tk.StringVar()
         self._barcode_key="";self._language_selected=False;self._texts=[];self._text_inputs=[]
-        body=ttk.Frame(self,padding=26);body.pack(fill="both",expand=True);self.body=body
+        footer=ttk.Frame(self,padding=(26,8));footer.pack(side="bottom",fill="x")
+        viewport=ttk.Frame(self);viewport.pack(side="top",fill="both",expand=True)
+        canvas=tk.Canvas(viewport,background=COLORS['canvas'],highlightthickness=0)
+        scrollbar=ttk.Scrollbar(viewport,orient="vertical",command=canvas.yview)
+        scrollbar.pack(side="right",fill="y")
+        canvas.pack(side="left",fill="both",expand=True)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        body=ttk.Frame(canvas,padding=26);self.body=body
+        body_window=canvas.create_window((0,0),window=body,anchor="nw")
+        body.bind("<Configure>",lambda e:canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>",lambda e:canvas.itemconfigure(body_window,width=e.width))
+        self.body_canvas=canvas
         self.welcome=self._label("onboarding.welcome",style="Title.TLabel");self.welcome.pack(fill="x")
         self.subtitle=self._label("onboarding.subtitle");self.subtitle.pack(fill="x",pady=(0,20))
         self._label("onboarding.language").pack(fill="x")
@@ -31,7 +44,7 @@ class FirstRunWizard(tk.Toplevel):
         self._label("onboarding.pin").pack(fill="x");ttk.Entry(body,textvariable=self.pin,show="•").pack(fill="x")
         self._label("onboarding.pin_confirm").pack(fill="x");ttk.Entry(body,textvariable=self.pin_confirm,show="•").pack(fill="x",pady=(0,6))
         self.summary=ttk.Label(body);self.summary.pack(fill="x",pady=8)
-        self.start=ttk.Button(body,style="Primary.TButton",command=self.finish);self.start.pack(anchor="e",pady=14)
+        self.start=ttk.Button(footer,style="Primary.TButton",command=self.finish);self.start.pack(anchor="e",pady=6)
         self.country.trace_add("write",lambda *_:self.apply_country_defaults());self.language.trace_add("write",lambda *_:self.refresh());self.refresh()
     def select_language(self,event=None):
         code=self._language_codes.get(self.language_label.get())

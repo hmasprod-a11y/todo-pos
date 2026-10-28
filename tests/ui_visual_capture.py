@@ -66,6 +66,14 @@ def capture(window, language, route):
 try:
     wizard = next(child for child in app.winfo_children()
                   if isinstance(child, FirstRunWizard))
+    for language in ("fr", "ar", "en"):
+        wizard.language.set(language)
+        app.update()
+        if not wizard.start.winfo_ismapped():
+            raise AssertionError(f"{language}: onboarding start is hidden")
+        if wizard.start.winfo_rooty() + wizard.start.winfo_height() > wizard.winfo_rooty() + wizard.winfo_height():
+            raise AssertionError(f"{language}: onboarding start is clipped")
+        capture(wizard, language, "onboarding")
     wizard.pin.set("9876")
     wizard.pin_confirm.set("9876")
     wizard.finish()

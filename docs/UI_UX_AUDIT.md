@@ -11,7 +11,7 @@ This is a source and CI evidence inventory, not final visual acceptance. The sta
 | Purchases and suppliers | `purchases.py`, `suppliers.py`, `supplier_payments.py`, `supplier_returns.py` | Functional tests only | Windows screenshots and clipping checks |
 | Customers and documents | `clients.py`, `customer_orders.py`, `quotations.py`, `returns.py`, `loyalty.py` | Functional tests only | Windows screenshots and long content |
 | Reports and settings | `statistics.py`, `settings.py` | Main screen captures and layout tests in three languages | Dialogs, filled reports and scaling |
-| Entry and setup | `login.py`, `onboarding.py` | Smoke tests | Onboarding at compact display; fixed 560×760 source geometry |
+| Entry and setup | `login.py`, `onboarding.py` | Windows onboarding capture and action visibility gate in three languages | Screen scaling and long translated copy |
 
 ## Findings and status
 
@@ -19,7 +19,7 @@ This is a source and CI evidence inventory, not final visual acceptance. The sta
 | --- | --- | --- | --- |
 | UI-01 | Product editor requested 1100×900, taller than a 768 pixel display; Save/Cancel were at the bottom of the form. | Fit the window to the display, scroll its body and keep actions in a footer. | Windows geometry and capture gate on the delivery commit |
 | UI-02 | `ToDoApp` held many shared ttk colors, fonts and paddings inline. | Extracted the same settings into `todo/design_system.py`; later screens should consume the semantic tokens. | Existing screenshot and functional gates must remain green |
-| UI-03 | Many secondary windows use fixed geometry without a screen-height clamp. | Audit each dialog and apply the visible-footer pattern where needed. | Open |
+| UI-03 | First-run setup requested a fixed 560×760 window with its start action at the bottom. | Fit height to the display, scroll its body and keep Start in a footer. | Windows capture and geometry gate on the delivery commit |\n| UI-07 | Many other secondary windows use fixed geometry without a screen-height clamp. | Audit each dialog and apply the visible-footer pattern where needed. | Open |
 | UI-04 | Screens contain many independent literal color values and glyph-based icons. | Consolidate per semantic role; replace unclear final glyphs with a licensed offline icon set. | Open |
 | UI-05 | The capture runner requests 1366×768 but can only photograph the visible area of its actual virtual display. | Manifest records actual bounds and off-screen clipping. | OS-level 100/125/150% scaling remains open |
 | UI-06 | LOGICA executable/screens were not available in this repository review. | Compare only after actual screens can be inspected. | Open |

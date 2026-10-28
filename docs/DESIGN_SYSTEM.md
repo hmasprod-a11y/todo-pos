@@ -32,7 +32,7 @@ Hover, pressed, disabled and field colors are also defined centrally. This first
 
 - `Primary.TButton` marks the main next action; `Success.TButton` confirms a completed transaction; `Danger.TButton` marks cancellation or deletion. Labels remain visible alongside color.
 - `Search.TEntry`, `Quantity.TEntry`, `Treeview` and `TNotebook` provide shared type and padding. Screen-specific content stays in its screen module.
-- Dialogs with long forms need a visible action footer and a scrollable body. The product editor now follows this pattern.
+- Dialogs with long forms need a visible action footer and a scrollable body. The product editor and first-run wizard now follow this pattern.
 - Input focus, scanner shortcuts and keyboard navigation take priority over decorative effects. New images and icons must be bundled locally.
 
 ## Validation gates
