@@ -7,6 +7,7 @@ from services.reports import (
 )
 from services.money import fmt
 from database import connect, get_setting
+from design_system import COLORS
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 CHART_COLORS = [
@@ -191,15 +192,25 @@ class StatisticsFrame(ttk.Frame):
         self.stats_body.bind('<MouseWheel>', self._scroll_statistics)
 
         # ── Header ────────────────────────────────────────────────────────────
-        header = ttk.Frame(self.stats_body,style='Card.TFrame',padding=14)
-        header.pack(fill='x', pady=(0, 14))
+        header = ttk.Frame(self.stats_body,style='Card.TFrame',padding=12)
+        header.pack(fill='x', pady=(0, 12))
         ttk.Label(header, text=self.tr('Statistiques','الإحصائيات','Statistics'),
-                  style='Title.TLabel').pack(side='left')
+                  style='Title.TLabel').pack(anchor='w')
         ttk.Label(header, text=self.tr('Évolution ventes · Top articles · Top caissiers · Familles','تطور المبيعات · أفضل المنتجات · أفضل الكاشيرات · الفئات','Sales trends · Top products · Top cashiers · Categories'),
-                  foreground='#475569').pack(side='left', padx=16)
+                  foreground=COLORS['muted']).pack(anchor='w',pady=(2,8))
 
-        # period selector
-        period_bar = ttk.Frame(header)
+        # Keep the year and every period control visible when translations grow.
+        controls = ttk.Frame(header)
+        controls.pack(fill='x')
+        year_box = ttk.Frame(controls)
+        year_box.pack(side='left')
+        ttk.Button(year_box, text='‹', width=3, command=lambda: self._change_year(-1)).pack(side='left')
+        self.year_label = ttk.Label(year_box, text=str(self._year), width=6, anchor='center', font=('Segoe UI',10,'bold'))
+        self.year_label.pack(side='left')
+        ttk.Button(year_box, text='›', width=3, command=lambda: self._change_year(1)).pack(side='left')
+        ttk.Button(controls, text=self.tr('↺ Actualiser','↺ تحديث','↺ Refresh'),
+                   command=self.refresh).pack(side='left', padx=8)
+        period_bar = ttk.Frame(controls)
         period_bar.pack(side='right')
         self._period_btns = {}
         for label, key in [(self.tr('Semaine','أسبوع','Week'),'week'),(self.tr('Mois','شهر','Month'),'month'),(self.tr('Année','سنة','Year'),'year')]:
@@ -207,14 +218,6 @@ class StatisticsFrame(ttk.Frame):
                              command=lambda k=key: self._set_period(k))
             btn.pack(side='left', padx=2)
             self._period_btns[key] = btn
-        ttk.Button(header, text=self.tr('↺ Actualiser','↺ تحديث','↺ Refresh'),
-                   command=self.refresh).pack(side='right', padx=8)
-        year_box = ttk.Frame(header)
-        year_box.pack(side='right', padx=6)
-        ttk.Button(year_box, text='‹', width=3, command=lambda: self._change_year(-1)).pack(side='left')
-        self.year_label = ttk.Label(year_box, text=str(self._year), width=6, anchor='center', font=('Segoe UI',10,'bold'))
-        self.year_label.pack(side='left')
-        ttk.Button(year_box, text='›', width=3, command=lambda: self._change_year(1)).pack(side='left')
 
         custom=ttk.Frame(self.stats_body);custom.pack(fill='x',pady=(0,10))
         self._date_from=tk.StringVar(value=str(datetime.date.today().replace(day=1)))
@@ -241,15 +244,19 @@ class StatisticsFrame(ttk.Frame):
             ('top_month',     self.tr('Top mois','أفضل شهر','Top month'),        '#6B7280'),
         ]
         for i, (key, title, color) in enumerate(kpi_defs):
-            card = tk.Frame(self.kpi_frame, bg=color, height=76)
+            card = tk.Frame(self.kpi_frame, bg=COLORS['white'], height=76,
+                            highlightbackground=COLORS['border'], highlightthickness=1)
             card.grid(row=i//3, column=i%3, sticky='ew', padx=4, pady=4)
             card.grid_propagate(False)
-            self.kpi_frame.columnconfigure(i%3, weight=1)
-            tk.Label(card, text=title, bg=color, fg='white',
-                     font=('Segoe UI', 9)).pack(anchor='w', padx=12, pady=(8, 0))
-            val_lbl = tk.Label(card, text='—', bg=color, fg='white',
-                               font=('Segoe UI', 18, 'bold'))
-            val_lbl.pack(anchor='w', padx=12)
+            self.kpi_frame.columnconfigure(i%3, weight=1, uniform='statistics_kpi')
+            tk.Frame(card, bg=color, width=5).pack(side='left', fill='y')
+            content = tk.Frame(card, bg=COLORS['white'])
+            content.pack(side='left', fill='both', expand=True)
+            tk.Label(content, text=title, bg=COLORS['white'], fg=COLORS['muted'],
+                     font=('Segoe UI', 10), anchor='w').pack(fill='x', padx=12, pady=(8, 0))
+            val_lbl = tk.Label(content, text='—', bg=COLORS['white'], fg=COLORS['ink'],
+                               font=('Segoe UI', 18, 'bold'), anchor='w')
+            val_lbl.pack(fill='x', padx=12)
             self._kpi_labels[key] = val_lbl
 
         # ── Charts grid ───────────────────────────────────────────────────────
