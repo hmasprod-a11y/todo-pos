@@ -1,15 +1,18 @@
 import unittest
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 
 class SettingsLayoutTests(unittest.TestCase):
-    def test_shop_and_sale_controls_do_not_overlap_on_row_16(self):
+    def test_shop_settings_are_grouped_without_duplicate_primary_controls(self):
         text=(ROOT/'todo'/'screens'/'settings.py').read_text(encoding='utf-8')
-        start=text.index("f=ttk.LabelFrame(body,text=self.tr('Magasin et vente'")
-        end=text.index("pg=ttk.LabelFrame",start)
+        start=text.index("shop=ttk.LabelFrame(body,text=self.tr('Magasin et localisation'")
+        end=text.index("ttk.Separator(body).pack",start)
         block=text[start:end]
-        self.assertEqual(block.count("grid(row=16"),1)
-        for row in range(2,17):
-            self.assertIn(f"grid(row={row}",block)
+        for section in ('Magasin et localisation','Règles de stock','Options de vente et ticket','Windows et catalogue'):
+            self.assertIn(section,block)
+        for control in ('self.country_combo=','variable=self.stock_management_enabled','variable=self.credit_enabled','variable=self.start_with_windows'):
+            self.assertEqual(block.count(control),1,control)
+        self.assertEqual(block.count("ttk.Button(body,text=self.tr('Enregistrer'"),1)
 
 if __name__=='__main__':unittest.main()

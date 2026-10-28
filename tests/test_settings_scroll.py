@@ -14,7 +14,10 @@ class SettingsScrollTests(unittest.TestCase):
         self.assertIn("scrollregion=self.settings_canvas.bbox('all')",block)
         self.assertIn("itemconfigure(self.settings_window,width=e.width)",block)
         for section in (
-            "ttk.LabelFrame(body,text=self.tr('Magasin et vente'",
+            "ttk.LabelFrame(body,text=self.tr('Magasin et localisation'",
+            "ttk.LabelFrame(body,text=self.tr('Règles de stock'",
+            "ttk.LabelFrame(body,text=self.tr('Options de vente et ticket'",
+            "ttk.LabelFrame(body,text=self.tr('Windows et catalogue'",
             "ttk.LabelFrame(body,text=self.tr('Impression'",
             "ttk.LabelFrame(body,text=self.tr('Balance électronique'",
             "ttk.LabelFrame(body,text=self.tr('RFID'",
