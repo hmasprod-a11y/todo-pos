@@ -490,6 +490,12 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     misc.misc_qty_var.set('1')
     misc.misc_confirm.invoke();app.update()
     assert sale.cart[-1]['is_misc'] and sale.totals()[1]==850
+    # Preserve a real Windows capture of a populated ticket for visual review.
+    from PIL import ImageGrab
+    evidence_dir=Path('qa-evidence')/'ui-acceptance'
+    evidence_dir.mkdir(parents=True,exist_ok=True)
+    app.lift();app.update()
+    ImageGrab.grab().save(evidence_dir/'sale-filled.png')
     sale.remove();assert sale.totals()[1]==600
     with patch('tkinter.simpledialog.askfloat',return_value=1):sale.discount()
     assert sale.totals()[1]==500
