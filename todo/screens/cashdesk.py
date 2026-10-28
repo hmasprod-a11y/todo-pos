@@ -4,6 +4,7 @@ from services.cash import get_open_session,open_session,close_session,session_to
 from services.money import to_cents,fmt
 from services.globalization import current_country_profile
 from database import connect, get_setting
+from design_system import COLORS, FONT_FAMILY
 
 class CashFrame(ttk.Frame):
     def __init__(self,master,app):
@@ -12,9 +13,26 @@ class CashFrame(ttk.Frame):
         ttk.Label(self,text=self.tr('Caisse','الصندوق','Cash drawer'),style='Title.TLabel').pack(anchor='w')
         ttk.Label(self,text=self.tr('Suivi de caisse et opérations du jour','متابعة الصندوق وعمليات اليوم','Cash tracking and today operations'),foreground='#64748B').pack(anchor='w',pady=(2,10))
         self.info=ttk.Label(self,text="",font=("Segoe UI",11,'bold'),foreground='#334155');self.info.pack(anchor="w",pady=(0,8))
-        self.kpis=ttk.Frame(self,style='Card.TFrame',padding=8);self.kpis.pack(fill="x",pady=8);self.kpi_labels={}
-        for key,title in [("expected",self.tr("Cash attendu","النقد المتوقع","Expected cash")),("sales",self.tr("Ventes cash","المبيعات النقدية","Cash sales")),("card",self.tr("Ventes carte","مبيعات البطاقة","Card sales")),("expenses",self.tr("Dépenses","المصاريف","Expenses")),("returns",self.tr("Retours cash","المرتجعات النقدية","Cash returns"))]:
-            card=tk.Frame(self.kpis,bg="#FFFFFF",highlightbackground="#E2E8F0",highlightthickness=1);card.pack(side="left",fill="x",expand=True,padx=3);tk.Label(card,text=title.upper(),bg="#FFFFFF",fg="#64748B",font=("Segoe UI",8,"bold")).pack(anchor="w",padx=10,pady=(8,1));lbl=tk.Label(card,text="—",bg="#FFFFFF",fg="#0F172A",font=("Segoe UI",16,"bold"));lbl.pack(anchor="w",padx=10,pady=(0,8));self.kpi_labels[key]=lbl
+        self.kpis=ttk.Frame(self,style='Card.TFrame',padding=8)
+        self.kpis.pack(fill="x",pady=8)
+        self.kpi_labels={}
+        # Three equal columns keep translated values readable on narrower displays.
+        metrics=[
+            ("expected",self.tr("Cash attendu","النقد المتوقع","Expected cash")),
+            ("sales",self.tr("Ventes cash","المبيعات النقدية","Cash sales")),
+            ("card",self.tr("Ventes carte","مبيعات البطاقة","Card sales")),
+            ("expenses",self.tr("Dépenses","المصاريف","Expenses")),
+            ("returns",self.tr("Retours cash","المرتجعات النقدية","Cash returns")),
+        ]
+        for column in range(3):
+            self.kpis.columnconfigure(column,weight=1,uniform="cash_kpi")
+        for index,(key,title) in enumerate(metrics):
+            card=tk.Frame(self.kpis,bg=COLORS["white"],highlightbackground=COLORS["border"],highlightthickness=1)
+            card.grid(row=index//3,column=index%3,sticky="nsew",padx=3,pady=3)
+            tk.Label(card,text=title,bg=COLORS["white"],fg=COLORS["muted"],font=(FONT_FAMILY,10,"bold"),anchor="w").pack(fill="x",padx=10,pady=(8,1))
+            lbl=tk.Label(card,text="—",bg=COLORS["white"],fg=COLORS["ink"],font=(FONT_FAMILY,16,"bold"),anchor="w")
+            lbl.pack(fill="x",padx=10,pady=(0,8))
+            self.kpi_labels[key]=lbl
         b=ttk.Frame(self,style='Card.TFrame',padding=8);b.pack(fill="x",pady=8)
         ttk.Label(b,text=self.tr('Opérations','العمليات','Operations'),style='Card.TLabel',font=('Segoe UI',9,'bold')).pack(anchor='w',padx=4,pady=(0,6))
         main_actions=ttk.Frame(b);main_actions.pack(fill='x')
@@ -27,7 +45,7 @@ class CashFrame(ttk.Frame):
             ttk.Button(secondary_actions,text=self.tr('Clôturer','إغلاق الصندوق','Close drawer'),style='Primary.TButton',command=self.close).pack(side='left',fill='x',expand=True,padx=4)
         ttk.Button(secondary_actions,text=self.tr('Journal caisse','سجل الصندوق','Cash journal'),style='Soft.TButton',command=self.cash_journal).pack(side='left',fill='x',expand=True,padx=4)
         ttk.Button(secondary_actions,text=self.tr('Historique clôtures','سجل الإغلاقات','Closure history'),style='Soft.TButton',command=self.history).pack(side='left',fill='x',expand=True,padx=4)
-        self.details=tk.Text(self,height=16,font=("Consolas",11));self.details.pack(fill="x",pady=15);self.refresh()
+        self.details=tk.Text(self,height=8,font=("Consolas",11),wrap="word",relief="flat",padx=12,pady=10);self.details.pack(fill="both",expand=True,pady=(8,0));self.refresh()
     def refresh(self):
         s=get_open_session();self.details.config(state="normal");self.details.delete("1.0","end")
         if not s:
