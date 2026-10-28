@@ -138,3 +138,14 @@ def stock_products(query='', category_id=None, status='all'):
            WHERE """+' AND '.join(where)+""" ORDER BY p.name COLLATE NOCASE"""
     with connect() as conn:
         return [dict(r) for r in conn.execute(sql,params).fetchall()]
+
+
+def get_active_categories():
+    """Return active catalogue categories without depending on the UI."""
+    from database import connect
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT id, name FROM categories WHERE active=1 "
+            "ORDER BY sort_order, name COLLATE NOCASE"
+        ).fetchall()
+    return [dict(id=row["id"], name=row["name"]) for row in rows]
