@@ -125,7 +125,7 @@ class SaleFrame(ttk.Frame):
         self.list_page=ttk.Frame(self.catalog_tabs);self.photo_page=ttk.Frame(self.catalog_tabs)
         self.catalog_tabs.add(self.photo_page,text=self.tr('Photos','اختيار بالصورة','Photos'));self.catalog_tabs.add(self.list_page,text=self.tr('Liste','لائحة','List'))
         self.catalog_tabs.pack(fill='both',expand=True)
-        self.products=ttk.Treeview(self.list_page,columns=('price','stock'),show='tree headings',selectmode='browse',style='Catalog.Treeview',height=12)
+        self.products=ttk.Treeview(self.list_page,columns=('price','stock'),show='tree headings',selectmode='browse',style='Catalog.Treeview',height=4)
         self.products.heading('#0',text=self.tr('PRODUIT','المنتوج','PRODUCT'));self.products.column('#0',width=240,minwidth=160)
         for key,label in [('price',self.tr('PRIX','الثمن','PRICE')),('stock',self.tr('STOCK','المخزون','STOCK'))]:
             self.products.heading(key,text=label);self.products.column(key,width=95,stretch=False,anchor='center')
@@ -205,7 +205,7 @@ class SaleFrame(ttk.Frame):
         self.ticket_title.pack(side='left')
         ttk.Label(ticket_header,text=self.tr('Sélectionnez une ligne pour la modifier','حدد سطراً لتعديله','Select a line to edit it'),style='Card.TLabel',
                   foreground='#64748B',font=('Segoe UI',9)).pack(side='right')
-        self.ticket=ttk.Treeview(right,columns=('qty','price','discount','total'),show='tree headings',selectmode='browse',style='Cart.Treeview',height=12)
+        self.ticket=ttk.Treeview(right,columns=('qty','price','discount','total'),show='tree headings',selectmode='browse',style='Cart.Treeview',height=4)
         self.ticket.heading('#0',text=self.tr('ARTICLE','المنتوج','ITEM'));self.ticket.column('#0',width=190,minwidth=120)
         for key,label,width in [('qty',self.tr('QTÉ','الكمية','QTY'),55),('price',self.tr('P.U.','ثمن الوحدة','UNIT PRICE'),70),('discount',self.tr('REMISE %','التخفيض %','DISCOUNT %'),75),('total',self.tr('NET','الصافي','NET'),85)]:
             self.ticket.heading(key,text=label);self.ticket.column(key,width=width+8,minwidth=48,anchor='center')
