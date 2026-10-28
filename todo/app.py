@@ -9,6 +9,7 @@ from services.backup import create_backup
 from services.security import verify_pin, current_user, hash_pin, audit
 from database import connect
 from localization import Translator, SUPPORTED_LANGUAGES
+from design_system import configure_ttk
 
 from screens.home import HomeFrame
 from screens.sale import SaleFrame
@@ -73,53 +74,7 @@ class ToDoApp(tk.Tk):
         self.geometry("460x330")
         self.minsize(460, 330)
 
-        st = ttk.Style(self)
-        try:
-            st.theme_use("clam")
-        except Exception:
-            pass
-        self.configure(background='#F6F7FB')
-        self.option_add('*Font', ('Segoe UI', 10))
-        st.configure('.', font=('Segoe UI',10),background='#F6F7FB',foreground='#1E293B')
-        st.configure('TFrame',background='#F6F7FB')
-        st.configure('TLabel',background='#F6F7FB')
-        st.configure('TButton',font=('Segoe UI',10,'bold'),padding=(12,10),background='white',borderwidth=0)
-        st.configure('Soft.TButton',font=('Segoe UI',10,'bold'),padding=(12,10),background='#F1F5F9',foreground='#0F172A')
-        st.configure('Danger.TButton',font=('Segoe UI',10,'bold'),padding=(12,10),background='#DC2626',foreground='white')
-        st.configure('Success.TButton',font=('Segoe UI',10,'bold'),padding=(12,10),background='#15803D',foreground='white')
-        st.map('TButton',background=[('active','#DBEAFE'),('pressed','#BFDBFE')],foreground=[('disabled','#94A3B8')])
-        st.map('Soft.TButton',background=[('active','#E2E8F0'),('pressed','#CBD5E1')])
-        st.map('Danger.TButton',background=[('active','#B91C1C'),('pressed','#991B1B')],foreground=[('active','white'),('pressed','white')])
-        st.map('Success.TButton',background=[('active','#166534'),('pressed','#14532D')],foreground=[('active','white'),('pressed','white')])
-        st.configure('Primary.TButton',background='#2563EB',foreground='white',font=('Segoe UI',12,'bold'))
-        st.map('Primary.TButton',background=[('active','#1D4ED8')],foreground=[('active','white')])
-        st.configure('Sidebar.TFrame',background='#1E293B')
-        st.configure('Sidebar.TLabel',background='#1E293B',foreground='white')
-        st.configure('Sidebar.TButton',background='#1E293B',foreground='#E2E8F0',anchor='w',padding=(12,12))
-        st.map('Sidebar.TButton',background=[('active','#334155')],foreground=[('active','white')])
-        st.configure('Card.TFrame',background='white')
-        st.configure('Card.TLabel',background='white')
-        st.configure('CardTitle.TLabel',background='white',font=('Segoe UI',15,'bold'))
-        # Shared visual language for forms, settings and operational screens.
-        st.configure('TLabelframe',background='white',borderwidth=1,relief='solid')
-        st.configure('TLabelframe.Label',background='white',foreground='#334155',font=('Segoe UI',10,'bold'))
-        st.configure('TSeparator',background='#E2E8F0')
-        st.configure('TCheckbutton',background='white',foreground='#334155',font=('Segoe UI',10))
-        st.configure('TRadiobutton',background='white',foreground='#334155',font=('Segoe UI',10))
-        st.configure('Search.TEntry',font=('Segoe UI',17),padding=(10,8),fieldbackground='white',foreground='#0F172A')
-        st.configure('Quantity.TEntry',font=('Segoe UI',17,'bold'),padding=(8,8),fieldbackground='#F8FAFC',foreground='#0F172A')
-        st.configure('TNotebook',background='#F6F7FB',borderwidth=0)
-        st.configure('TNotebook.Tab',font=('Segoe UI',10,'bold'),padding=(16,9),background='#E2E8F0',foreground='#475569')
-        st.map('TNotebook.Tab',background=[('selected','white'),('active','#DBEAFE')],foreground=[('selected','#0F172A')])
-        st.configure('Title.TLabel',font=('Segoe UI',23,'bold'))
-        st.configure('Accent.TLabel',foreground='#2563EB',font=('Segoe UI',12,'bold'))
-        st.configure('Total.TLabel',background='white',foreground='#2563EB',font=('Segoe UI',28,'bold'))
-        st.configure('Treeview',font=('Segoe UI',10),rowheight=36,background='white',fieldbackground='white',foreground='#0F172A',borderwidth=0)
-        st.configure('Treeview.Heading',font=('Segoe UI',10,'bold'),padding=(10,10),background='#E2E8F0',foreground='#334155',relief='flat')
-        st.map('Treeview',background=[('selected','#DBEAFE')],foreground=[('selected','#0F172A')])
-        st.map('Treeview.Heading',background=[('active','#CBD5E1')])
-        st.configure('Catalog.Treeview',rowheight=56,font=('Segoe UI',10))
-        st.configure('Cart.Treeview',rowheight=50,font=('Segoe UI',10,'bold'))
+        configure_ttk(self)
 
         self.apply_theme()
         self.show_login() if is_complete() else FirstRunWizard(self,self.show_login)
