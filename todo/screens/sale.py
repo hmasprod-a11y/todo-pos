@@ -52,8 +52,9 @@ class SaleFrame(ttk.Frame):
         title_box=ttk.Frame(top)
         title_box.pack(side='left')
         ttk.Label(title_box,text=self.tr('Vente','البيع','Sale'),style='Title.TLabel').pack(anchor='w')
-        ttk.Label(title_box,text=self.tr('Caisse prête pour l’encaissement','الصندوق جاهز للبيع','Ready for checkout'),
-                  foreground='#64748B',font=('Segoe UI',9)).pack(anchor='w')
+        self.status=ttk.Label(title_box,text=self.tr('● Scanner prêt · Ctrl+F Rechercher · Entrée Ajouter','● الماسح جاهز · Ctrl+F بحث · Enter إضافة','● Scanner ready · Ctrl+F Search · Enter Add'),
+                              foreground='#475569',font=('Segoe UI',9,'bold'))
+        self.status.pack(anchor='w')
         self.payment_label=tk.Label(top,text=self.tr('Paiement : Espèces','الأداء: نقداً','Payment: Cash'),
                                     bg='#DCFCE7',fg='#166534',font=('Segoe UI',11,'bold'),
                                     padx=14,pady=7,bd=0)
@@ -94,15 +95,10 @@ class SaleFrame(ttk.Frame):
             button=ttk.Button(footer,text=label,style=style,command=command)
             button.pack(side='left',expand=True,fill='x',padx=3,ipady=3)
         self.custom_shortcut_bar=ttk.Frame(self)
-        self.custom_shortcut_bar.pack(side='bottom',fill='x',pady=(6,0))
+        # Compact screens use the existing Functions menu for these optional shortcuts.
+        if self.winfo_screenheight() >= 900:
+            self.custom_shortcut_bar.pack(side='bottom',fill='x',pady=(6,0))
         self.build_custom_shortcuts()
-        status_bar=tk.Frame(self,bg='#E2E8F0',padx=10,pady=6)
-        status_bar.pack(side='bottom',fill='x',pady=(8,0))
-        self.status=tk.Label(status_bar,text=self.tr('● Scanner prêt   ·   Ctrl+F Rechercher   ·   Entrée Ajouter','● الماسح جاهز   ·   Ctrl+F بحث   ·   Enter إضافة','● Scanner ready   ·   Ctrl+F Search   ·   Enter Add'),
-                             bg='#E2E8F0',fg='#334155',font=('Segoe UI',9,'bold'))
-        self.status.pack(side='left')
-        tk.Label(status_bar,text='ToDo POS',bg='#E2E8F0',fg='#64748B',
-                 font=('Segoe UI',9)).pack(side='right')
         # Reserve the fixed cashier actions before the expanding cart and catalog.
         body=ttk.Panedwindow(self,orient='horizontal')
         body.pack(fill='both',expand=True)
