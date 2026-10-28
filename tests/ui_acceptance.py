@@ -490,6 +490,11 @@ with patch('tkinter.messagebox.showerror',fail), patch('tkinter.messagebox.showw
     misc.misc_qty_var.set('1')
     misc.misc_confirm.invoke();app.update()
     assert sale.cart[-1]['is_misc'] and sale.totals()[1]==850
+    # Both active receipt lines must be fully visible on the compact Windows screen.
+    receipt_rows=sale.ticket.get_children()
+    assert len(receipt_rows)==2, receipt_rows
+    second_row=sale.ticket.bbox(receipt_rows[1])
+    assert second_row and second_row[1]+second_row[3]<=sale.ticket.winfo_height(), (second_row,sale.ticket.winfo_height())
     # Preserve a real Windows capture of a populated ticket for visual review.
     from PIL import ImageGrab
     evidence_dir=Path('qa-evidence')/'ui-acceptance'

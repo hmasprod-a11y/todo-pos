@@ -47,8 +47,9 @@ class SaleFrame(ttk.Frame):
         self.customer_order_id=None
         self.quotation_id=None
         self.bindings=[]
-        top=ttk.Frame(self,style='Card.TFrame',padding=(14,10))
-        top.pack(fill='x',pady=(0,12))
+        compact=self.winfo_screenheight()<900
+        top=ttk.Frame(self,style='Card.TFrame',padding=(14,6 if compact else 10))
+        top.pack(fill='x',pady=(0,6 if compact else 12))
         title_box=ttk.Frame(top)
         title_box.pack(side='left')
         ttk.Label(title_box,text=self.tr('Vente','البيع','Sale'),style='Title.TLabel').pack(anchor='w')
@@ -65,8 +66,8 @@ class SaleFrame(ttk.Frame):
         self.seller_button=ttk.Button(top,text=self.tr('Vendeur : aucun','البائع: لا أحد','Seller: none'),command=self.choose_seller)
         if get_setting('choose_seller_on_sale','0')=='1':
             self.seller_button.pack(side='left',padx=(0,12))
-        searchbar=ttk.Frame(self,style='Card.TFrame',padding=(14,12))
-        searchbar.pack(fill='x',pady=(0,12))
+        searchbar=ttk.Frame(self,style='Card.TFrame',padding=(14,6 if compact else 12))
+        searchbar.pack(fill='x',pady=(0,6 if compact else 12))
         ttk.Label(searchbar,text=self.tr('⌕  SCANNER / RECHERCHER','⌕  مسح / بحث','⌕  SCAN / SEARCH'),style='CardTitle.TLabel').pack(side='left',padx=(0,14))
         self.query=tk.StringVar()
         self.entry=ttk.Entry(searchbar,textvariable=self.query,style='Search.TEntry')
@@ -82,7 +83,7 @@ class SaleFrame(ttk.Frame):
         self.entry.bind('<Return>',self.confirm_search)
         self.entry.bind('<KeyRelease>',self.handle_scan_input)
         self.entry.bind('<Down>',self.focus_catalog)
-        footer=ttk.Frame(self);self.footer_actions=footer;footer.pack(side='bottom',fill='x',pady=(8,0))
+        footer=ttk.Frame(self);self.footer_actions=footer;footer.pack(side='bottom',fill='x',pady=(4 if compact else 8,0))
         footer_actions=[
             (self.tr('F2  ESPÈCES','F2  نقداً','F2  CASH'),lambda:self.set_payment('CASH'),'Success.TButton'),
             (self.tr('F3  CARTE','F3  بطاقة','F3  CARD'),lambda:self.set_payment('CARD'),'Primary.TButton'),
@@ -169,8 +170,6 @@ class SaleFrame(ttk.Frame):
         for label,command in [('−',lambda:self.change(-1)),('+',lambda:self.change(1)),('×2',self.double_selected),(self.tr('Qté F8','الكمية F8','Qty F8'),self.set_qty),(self.tr('Remise ligne','تخفيض السطر','Line discount'),self.line_discount),(self.tr('Suppr.','حذف','Delete'),self.remove)]:
             button_style='Danger.TButton' if label==self.tr('Suppr.','حذف','Delete') else 'Soft.TButton'
             ttk.Button(actions,text=label,style=button_style,command=command).pack(side='left',expand=True,fill='x',padx=2,ipady=0)
-        ttk.Button(self.edit_controls,text=self.tr('☰  Fonctions','☰  الوظائف','☰  Functions'),style='Soft.TButton',
-                   command=self.functions).pack(fill='x',pady=(3,0),ipady=0)
 
         self.subtotal_label=ttk.Label(checkout_area,text='',style='Card.TLabel',
                                      font=('Segoe UI',9,'bold'),foreground='#475569')
@@ -199,8 +198,8 @@ class SaleFrame(ttk.Frame):
         ticket_header.pack(fill='x',pady=(0,8))
         self.ticket_title=ttk.Label(ticket_header,text=self.tr('🧾  Ticket en cours','🧾  التذكرة الحالية','🧾  Current receipt'),style='CardTitle.TLabel')
         self.ticket_title.pack(side='left')
-        ttk.Label(ticket_header,text=self.tr('Sélectionnez une ligne pour la modifier','حدد سطراً لتعديله','Select a line to edit it'),style='Card.TLabel',
-                  foreground='#64748B',font=('Segoe UI',9)).pack(side='right')
+        ttk.Button(ticket_header,text=self.tr('☰  Fonctions','☰  الوظائف','☰  Functions'),style='Soft.TButton',
+                   command=self.functions).pack(side='right')
         self.ticket=ttk.Treeview(right,columns=('qty','price','discount','total'),show='tree headings',selectmode='browse',style='Cart.Treeview',height=4)
         self.ticket.heading('#0',text=self.tr('ARTICLE','المنتوج','ITEM'));self.ticket.column('#0',width=190,minwidth=120)
         for key,label,width in [('qty',self.tr('QTÉ','الكمية','QTY'),55),('price',self.tr('P.U.','ثمن الوحدة','UNIT PRICE'),70),('discount',self.tr('REMISE %','التخفيض %','DISCOUNT %'),75),('total',self.tr('NET','الصافي','NET'),85)]:
