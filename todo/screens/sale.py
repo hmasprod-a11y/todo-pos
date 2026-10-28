@@ -81,6 +81,29 @@ class SaleFrame(ttk.Frame):
         self.entry.bind('<Return>',self.confirm_search)
         self.entry.bind('<KeyRelease>',self.handle_scan_input)
         self.entry.bind('<Down>',self.focus_catalog)
+        footer=ttk.Frame(self);self.footer_actions=footer;footer.pack(side='bottom',fill='x',pady=(8,0))
+        footer_actions=[
+            (self.tr('F2  ESPÈCES','F2  نقداً','F2  CASH'),lambda:self.set_payment('CASH'),'Success.TButton'),
+            (self.tr('F3  CARTE','F3  بطاقة','F3  CARD'),lambda:self.set_payment('CARD'),'Primary.TButton'),
+            (self.tr('F4  Attente','F4  انتظار','F4  HOLD'),self.hold,'Soft.TButton'),
+            (self.tr('Liste attente','لائحة الانتظار','Held receipts'),self.show_held,'Soft.TButton'),
+            (self.tr('F7  Remise','F7  تخفيض','F7  Discount'),self.discount,'Soft.TButton'),
+            (self.tr('ESC  Annuler','ESC  إلغاء','ESC  Cancel'),self.cancel,'Danger.TButton'),
+        ]
+        for label,command,style in footer_actions:
+            button=ttk.Button(footer,text=label,style=style,command=command)
+            button.pack(side='left',expand=True,fill='x',padx=3,ipady=3)
+        self.custom_shortcut_bar=ttk.Frame(self)
+        self.custom_shortcut_bar.pack(side='bottom',fill='x',pady=(6,0))
+        self.build_custom_shortcuts()
+        status_bar=tk.Frame(self,bg='#E2E8F0',padx=10,pady=6)
+        status_bar.pack(side='bottom',fill='x',pady=(8,0))
+        self.status=tk.Label(status_bar,text=self.tr('● Scanner prêt   ·   Ctrl+F Rechercher   ·   Entrée Ajouter','● الماسح جاهز   ·   Ctrl+F بحث   ·   Enter إضافة','● Scanner ready   ·   Ctrl+F Search   ·   Enter Add'),
+                             bg='#E2E8F0',fg='#334155',font=('Segoe UI',9,'bold'))
+        self.status.pack(side='left')
+        tk.Label(status_bar,text='ToDo POS',bg='#E2E8F0',fg='#64748B',
+                 font=('Segoe UI',9)).pack(side='right')
+        # Reserve the fixed cashier actions before the expanding cart and catalog.
         body=ttk.Panedwindow(self,orient='horizontal')
         body.pack(fill='both',expand=True)
         right=ttk.Frame(body,style='Card.TFrame',padding=14);body.add(right,weight=4)
@@ -191,28 +214,6 @@ class SaleFrame(ttk.Frame):
         self.ticket.tag_configure('odd',background='#FFFFFF')
         self.ticket.pack(fill='both',expand=True)
         self.ticket.bind('<Delete>',lambda e:self.remove())
-        footer=ttk.Frame(self);footer.pack(fill='x',pady=(12,0))
-        footer_actions=[
-            (self.tr('F2  ESPÈCES','F2  نقداً','F2  CASH'),lambda:self.set_payment('CASH'),'Success.TButton'),
-            (self.tr('F3  CARTE','F3  بطاقة','F3  CARD'),lambda:self.set_payment('CARD'),'Primary.TButton'),
-            (self.tr('F4  Attente','F4  انتظار','F4  HOLD'),self.hold,'Soft.TButton'),
-            (self.tr('Liste attente','لائحة الانتظار','Held receipts'),self.show_held,'Soft.TButton'),
-            (self.tr('F7  Remise','F7  تخفيض','F7  Discount'),self.discount,'Soft.TButton'),
-            (self.tr('ESC  Annuler','ESC  إلغاء','ESC  Cancel'),self.cancel,'Danger.TButton'),
-        ]
-        for label,command,style in footer_actions:
-            button=ttk.Button(footer,text=label,style=style,command=command)
-            button.pack(side='left',expand=True,fill='x',padx=3,ipady=3)
-        self.custom_shortcut_bar=ttk.Frame(self)
-        self.custom_shortcut_bar.pack(fill='x',pady=(6,0))
-        self.build_custom_shortcuts()
-        status_bar=tk.Frame(self,bg='#E2E8F0',padx=10,pady=6)
-        status_bar.pack(fill='x',pady=(8,0))
-        self.status=tk.Label(status_bar,text=self.tr('● Scanner prêt   ·   Ctrl+F Rechercher   ·   Entrée Ajouter','● الماسح جاهز   ·   Ctrl+F بحث   ·   Enter إضافة','● Scanner ready   ·   Ctrl+F Search   ·   Enter Add'),
-                             bg='#E2E8F0',fg='#334155',font=('Segoe UI',9,'bold'))
-        self.status.pack(side='left')
-        tk.Label(status_bar,text='ToDo POS',bg='#E2E8F0',fg='#64748B',
-                 font=('Segoe UI',9)).pack(side='right')
         commands={'<F2>':lambda:self.set_payment('CASH'),'<F3>':lambda:self.set_payment('CARD'),'<F4>':self.hold,'<F5>':lambda:self.checkout(True),'<F7>':self.discount,'<F8>':self.set_qty,'<F9>':self.toggle_return_mode,'<Escape>':self.cancel,'<Control-f>':self.focus_search}
         if get_setting('require_client_on_sale','0')=='1':commands['<F6>']=self.choose_client
         for sequence,command in commands.items():

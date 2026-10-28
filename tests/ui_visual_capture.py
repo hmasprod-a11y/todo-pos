@@ -97,6 +97,13 @@ try:
         ):
             app.show(route)
             capture(app, language, route)
+            if route == "sale":
+                for name in ("footer_actions", "checkout_main", "return_button", "total_label"):
+                    widget = getattr(app.current, name)
+                    if not widget.winfo_ismapped():
+                        raise AssertionError(f"{language}: sale {name} is hidden")
+                    if widget.winfo_rooty() + widget.winfo_height() > app.winfo_rooty() + app.winfo_height():
+                        raise AssertionError(f"{language}: sale {name} is clipped")
         app.show("products")
         editor = ProductEditor(app.current)
         app.update()
