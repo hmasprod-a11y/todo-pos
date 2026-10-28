@@ -151,6 +151,22 @@ class SaleFrame(ttk.Frame):
         checkout_area=ttk.Frame(right,style='Card.TFrame')
         checkout_area.pack(side='bottom',fill='x')
 
+        self.checkout_buttons=ttk.Frame(checkout_area,style='Card.TFrame')
+        self.checkout_buttons.pack(side='bottom',fill='x',pady=(2,0))
+        self.checkout_main=ttk.Button(self.checkout_buttons,text=self.tr('✓ SOLDER avec ticket F5','✓ الأداء مع التذكرة F5','✓ PAY with receipt F5'),
+                                      style='Success.TButton',command=lambda:self.checkout(True))
+        self.checkout_main.pack(side='left',expand=True,fill='x',padx=(0,2),ipady=3)
+        self.checkout_without_ticket=None
+        if get_setting('sans_ticket_enabled','1')=='1':
+            self.checkout_without_ticket=ttk.Button(self.checkout_buttons,text=self.tr('SOLDER sans ticket','الأداء بدون تذكرة','PAY without receipt'),
+                                                     style='Primary.TButton',command=lambda:self.checkout(False))
+            self.checkout_without_ticket.pack(side='left',expand=True,fill='x',padx=(2,0),ipady=3)
+        # Return is an immediate cashier action: keep it beside payment, never
+        # in a lower toolbar that can be hidden on a compact screen.
+        self.return_button=ttk.Button(self.checkout_buttons,text=self.tr('↩ RETOUR  F9','↩ إرجاع  F9','↩ RETURN  F9'),
+                                      style='Danger.TButton',command=self.toggle_return_mode)
+        self.return_button.pack(side='left',expand=True,fill='x',padx=(2,0),ipady=3)
+
         self.edit_controls=ttk.Frame(checkout_area,style='Card.TFrame')
         self.edit_controls.pack(fill='x',pady=(2,4))
         actions=ttk.Frame(self.edit_controls,style='Card.TFrame');actions.pack(fill='x')
@@ -182,22 +198,6 @@ class SaleFrame(ttk.Frame):
             justify='left'
         )
         self.last_sale_summary.pack(fill='x')
-
-        self.checkout_buttons=ttk.Frame(checkout_area,style='Card.TFrame')
-        self.checkout_buttons.pack(fill='x',pady=(2,0))
-        self.checkout_main=ttk.Button(self.checkout_buttons,text=self.tr('✓ SOLDER avec ticket F5','✓ الأداء مع التذكرة F5','✓ PAY with receipt F5'),
-                                      style='Success.TButton',command=lambda:self.checkout(True))
-        self.checkout_main.pack(side='left',expand=True,fill='x',padx=(0,2),ipady=3)
-        self.checkout_without_ticket=None
-        if get_setting('sans_ticket_enabled','1')=='1':
-            self.checkout_without_ticket=ttk.Button(self.checkout_buttons,text=self.tr('SOLDER sans ticket','الأداء بدون تذكرة','PAY without receipt'),
-                                                     style='Primary.TButton',command=lambda:self.checkout(False))
-            self.checkout_without_ticket.pack(side='left',expand=True,fill='x',padx=(2,0),ipady=3)
-        # Return is an immediate cashier action: keep it beside payment, never
-        # in a lower toolbar that can be hidden on a compact screen.
-        self.return_button=ttk.Button(self.checkout_buttons,text=self.tr('↩ RETOUR  F9','↩ إرجاع  F9','↩ RETURN  F9'),
-                                      style='Danger.TButton',command=self.toggle_return_mode)
-        self.return_button.pack(side='left',expand=True,fill='x',padx=(2,0),ipady=3)
 
         ticket_header=ttk.Frame(right,style='Card.TFrame')
         ticket_header.pack(fill='x',pady=(0,8))
@@ -912,7 +912,7 @@ class SaleFrame(ttk.Frame):
         elif self.last_sale_box.winfo_manager():
             self.last_sale_box.pack_forget()
         if not self.edit_controls.winfo_manager():self.edit_controls.pack(fill='x',pady=(2,4),before=self.subtotal_label)
-        if not self.checkout_buttons.winfo_manager():self.checkout_buttons.pack(fill='x',pady=(2,0))
+        if not self.checkout_buttons.winfo_manager():self.checkout_buttons.pack(side='bottom',fill='x',pady=(2,0))
         self.total_label.config(text=fmt(sign*total,self.currency))
         self.app.update_customer_display(display_cart,sign*total)
 
