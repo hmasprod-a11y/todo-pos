@@ -2,7 +2,7 @@ import csv
 import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog,filedialog
 from database import connect, get_setting
-from services.inventory import apply_stock_movement, stock_activity, reorder_list, stock_summary, stock_products
+from services.inventory import apply_stock_movement, stock_activity, reorder_list, stock_summary, stock_products, get_active_categories
 from services.money import fmt
 
 class StockFrame(ttk.Frame):
@@ -24,8 +24,7 @@ class StockFrame(ttk.Frame):
         self.q=tk.StringVar();self.filter=tk.StringVar(value=self.tr('Tous','الكل','All'))
         self.search_entry=ttk.Entry(filters,textvariable=self.q,width=25,style="Search.TEntry");self.search_entry.pack(side="left",padx=(0,8));self.search_entry.bind("<KeyRelease>",lambda e:self.refresh())
         box=ttk.Combobox(filters,textvariable=self.filter,values=[self.tr('Tous','الكل','All'),self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),self.tr('Stock négatif','مخزون سالب','Negative stock')],state="readonly",width=14);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
-        with connect() as c:
-            category_rows=c.execute("SELECT id,name FROM categories WHERE active=1 ORDER BY sort_order,name COLLATE NOCASE").fetchall()
+        category_rows=get_active_categories()
         self.family_values=[(self.tr('Toutes familles','كل الفئات','All categories'),None)]+[(r['name'],r['id']) for r in category_rows]
         self.family_map={label:cid for label,cid in self.family_values}
         self.family=tk.StringVar(value=self.family_values[0][0])
