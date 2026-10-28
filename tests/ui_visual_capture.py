@@ -87,7 +87,14 @@ try:
         print(f'Language start: {language}', flush=True)
         app.change_language(language)
         app.geometry("1366x768+0+0")
-        for route in ("sale", "products", "stock", "cash", "statistics", "settings"):
+        for route in (
+            "home", "sale", "products", "management", "stock", "inventory",
+            "inventory_sessions", "sorties", "purchases", "suppliers",
+            "supplier_payments", "supplier_returns", "clients",
+            "customer_orders", "quotations", "loyalty", "promotions",
+            "returns", "cash", "journal", "statistics", "settings",
+            "rendez_vous",
+        ):
             app.show(route)
             capture(app, language, route)
         app.show("products")
