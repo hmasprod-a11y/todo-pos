@@ -36,7 +36,11 @@ class ProductEditor(tk.Toplevel):
         self.pid=product_id; self.on_saved=on_saved
         self.loaded_stock=0
         self.img_source="";self.img_rel="";self.img_ref=None
-        self.title('ToDo — '+self.tr('Article','المنتوج','Product'));self.geometry("1100x900");self.resizable(True,True);self.transient(master)
+        self.title('ToDo — '+self.tr('Article','المنتوج','Product'))
+        width=min(1100,max(760,self.winfo_screenwidth()-40))
+        height=min(900,max(520,self.winfo_screenheight()-100))
+        self.geometry(f"{width}x{height}")
+        self.resizable(True,True);self.transient(master)
         # Do not grab the whole application: a modal grab prevents the global
         # virtual keyboard (another Toplevel) from receiving mouse/touch events.
         # The editor remains transient, while its own embedded keyboard works
@@ -50,7 +54,19 @@ class ProductEditor(tk.Toplevel):
         self.tax_included=tk.BooleanVar(value=bool(tax_defaults['tax_included']))
         self.tax_class=tk.StringVar(value='STANDARD')
         self.grid_price_vars={}
-        root=ttk.Frame(self,padding=15);root.pack(fill="both",expand=True)
+        # Keep actions visible on compact screens; the editor body can scroll.
+        actions=ttk.Frame(self,padding=(12,8));actions.pack(side='bottom',fill='x')
+        body=ttk.Frame(self);body.pack(side='top',fill='both',expand=True)
+        canvas=tk.Canvas(body,background='#F6F7FB',highlightthickness=0)
+        self.body_canvas=canvas
+        scrollbar=ttk.Scrollbar(body,orient='vertical',command=canvas.yview)
+        scrollbar.pack(side='right',fill='y')
+        canvas.pack(side='left',fill='both',expand=True)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        root=ttk.Frame(canvas,padding=15)
+        body_window=canvas.create_window((0,0),window=root,anchor='nw')
+        root.bind('<Configure>',lambda e:canvas.configure(scrollregion=canvas.bbox('all')))
+        canvas.bind('<Configure>',lambda e:canvas.itemconfigure(body_window,width=e.width))
         self._keyboard_target = None
         self.bind_all('<FocusIn>', self._remember_keyboard_target, add='+')
         left=ttk.Frame(root);left.pack(side="left",fill="both",expand=True,padx=(0,18))
@@ -87,10 +103,11 @@ class ProductEditor(tk.Toplevel):
         self.add_offer_row()
         ttk.Button(left,text=self.tr("+ Ajouter une offre","+ إضافة عرض","+ Add offer"),command=self.add_offer_row).grid(row=13,column=0,columnspan=2,sticky="w",pady=4)
         ttk.Label(left,text=self.tr("Prix/unité : dès la quantité indiquée.\nLot : groupes complets, reste au prix normal.\nSi plusieurs offres : le plus grand seuil atteint s'applique.","ثمن الوحدة: ابتداءً من الكمية المحددة.\nالحزمة: مجموعات كاملة والباقي بالثمن العادي.\nعند تعدد العروض يطبق أكبر حد تم بلوغه.","Unit price: from the stated quantity.\nPack: complete groups, remainder at the normal price.\nWhen several offers apply, the highest reached threshold wins."),wraplength=440).grid(row=14,column=0,columnspan=2,sticky="w",pady=6)
-        b=ttk.Frame(left);b.grid(row=15,column=0,columnspan=2,sticky="e",pady=16)
-        ttk.Button(b,text=self.tr('Enregistrer','حفظ','Save'),style='Success.TButton',command=self.save).pack(side='left',padx=4,ipadx=8)
-        ttk.Button(b,text=self.tr('Annuler','إلغاء','Cancel'),style='Danger.TButton',command=self.destroy).pack(side='left',padx=4)
-        ttk.Button(b,text=self.tr('⌨ Clavier','⌨ لوحة المفاتيح','⌨ Keyboard'),style='Primary.TButton',command=self.toggle_embedded_keyboard).pack(side='left',padx=(10,0))
+        self.save_button=ttk.Button(actions,text=self.tr('Enregistrer','حفظ','Save'),style='Success.TButton',command=self.save)
+        self.save_button.pack(side='left',padx=4,ipadx=8)
+        self.cancel_button=ttk.Button(actions,text=self.tr('Annuler','إلغاء','Cancel'),style='Danger.TButton',command=self.destroy)
+        self.cancel_button.pack(side='left',padx=4)
+        ttk.Button(actions,text=self.tr('⌨ Clavier','⌨ لوحة المفاتيح','⌨ Keyboard'),style='Primary.TButton',command=self.toggle_embedded_keyboard).pack(side='left',padx=(10,0))
         self.preview=tk.Label(right,text=self.tr("Aucune image","لا توجد صورة","No image"),bg="white",relief="groove",width=25,height=13);self.preview.pack()
         ttk.Button(right,text=self.tr('Choisir image','اختيار صورة','Choose image'),style='Soft.TButton',command=self.choose_image).pack(fill='x',pady=8)
         ttk.Checkbutton(right,text=self.tr('Afficher dans les photos de vente','إظهار الصورة في شاشة البيع','Show in sale photos'),variable=self.show_in_sale_photos).pack(anchor='w',fill='x',pady=(0,8))

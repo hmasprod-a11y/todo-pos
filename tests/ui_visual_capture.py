@@ -81,7 +81,16 @@ try:
             capture(app, language, route)
         app.show("products")
         editor = ProductEditor(app.current)
+        app.update()
+        for button in (editor.save_button, editor.cancel_button):
+            if not button.winfo_ismapped():
+                raise AssertionError(f"{language}: product action is hidden")
+            bottom = button.winfo_rooty() + button.winfo_height()
+            if bottom > editor.winfo_rooty() + editor.winfo_height():
+                raise AssertionError(f"{language}: product action is clipped")
         capture(editor, language, "product-editor")
+        editor.body_canvas.yview_moveto(1.0)
+        capture(editor, language, "product-editor-bottom")
         editor.destroy()
 finally:
     app.destroy()
