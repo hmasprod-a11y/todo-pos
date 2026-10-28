@@ -26,6 +26,9 @@ from screens.products import ProductEditor
 output = project / "qa-evidence" / "ui-visual"
 output.mkdir(parents=True, exist_ok=True)
 app = ToDoApp()
+def raise_tk_exception(kind, value, traceback):
+    raise value.with_traceback(traceback)
+app.report_callback_exception = raise_tk_exception
 records = []
 faulthandler.dump_traceback_later(120, repeat=True)
 
