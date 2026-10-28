@@ -44,6 +44,13 @@ try:
         body = canvas.nametowidget(canvas.itemcget(page.settings_window, 'window'))
         groups = {widget.cget('text'): widget for widget in body.winfo_children() if isinstance(widget, ttk.LabelFrame)}
         data, users = groups[data_title], groups[users_title]
+        option_groups = {
+            'fr': ('Magasin et localisation', 'Règles de stock', 'Options de vente et ticket', 'Windows et catalogue'),
+            'ar': ('المتجر واللغة', 'قواعد المخزون', 'خيارات البيع والتذكرة', 'Windows والكتالوج'),
+            'en': ('Shop and locale', 'Stock rules', 'Sale and receipt options', 'Windows and catalog'),
+        }
+        assert all(label in groups for label in option_groups[language]), (language, groups.keys())
+        assert all(groups[label].winfo_reqwidth() <= canvas.winfo_width() for label in option_groups[language]), language
         assert len(data.winfo_children()) == 2, language
         assert len(users.winfo_children()) == 3, language
         assert data.winfo_reqwidth() <= canvas.winfo_width(), (language, 'data', data.winfo_reqwidth(), canvas.winfo_width())
