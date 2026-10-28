@@ -182,7 +182,7 @@ class SaleFrame(ttk.Frame):
 
         total_color=getattr(self.app,'theme_color','#2563EB')
         self.total_box=tk.Frame(checkout_area,bg=total_color,padx=12,pady=6)
-        self.total_box.pack(fill='x',pady=(2,4))
+        self.total_box.pack(side='bottom',fill='x',pady=(2,4))
         tk.Label(self.total_box,text=self.tr('TOTAL NET','المجموع الصافي','NET TOTAL'),bg=total_color,fg='white',
                  font=('Segoe UI',11,'bold')).pack(side='left')
         self.total_label=tk.Label(self.total_box,text='',bg=total_color,fg='white',
@@ -908,7 +908,7 @@ class SaleFrame(ttk.Frame):
         else:
             self.ticket_title.config(text=self.tr(f'🧾  Ticket en cours  ·  {item_count} article(s)',f'🧾  التذكرة الحالية  ·  {item_count} منتوج',f'🧾  Current receipt  ·  {item_count} item(s)'))
         if completed:
-            if not self.last_sale_box.winfo_manager():self.last_sale_box.pack(fill='x',pady=(4,6),before=self.total_box)
+            if not self.last_sale_box.winfo_manager():self.last_sale_box.pack(side='bottom',fill='x',pady=(4,6))
         elif self.last_sale_box.winfo_manager():
             self.last_sale_box.pack_forget()
         if not self.edit_controls.winfo_manager():self.edit_controls.pack(fill='x',pady=(2,4),before=self.subtotal_label)
