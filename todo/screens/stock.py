@@ -1,8 +1,8 @@
 import csv
 import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog,filedialog
-from database import connect, get_setting
-from services.inventory import apply_stock_movement, stock_activity, reorder_list, stock_summary, stock_products
+from database import get_setting
+from services.inventory import adjust_stock, stock_activity, reorder_list, stock_summary, stock_products, get_active_categories, product_stock_movements
 from services.money import fmt
 
 class StockFrame(ttk.Frame):
@@ -24,8 +24,7 @@ class StockFrame(ttk.Frame):
         self.q=tk.StringVar();self.filter=tk.StringVar(value=self.tr('Tous','الكل','All'))
         self.search_entry=ttk.Entry(filters,textvariable=self.q,width=25,style="Search.TEntry");self.search_entry.pack(side="left",padx=(0,8));self.search_entry.bind("<KeyRelease>",lambda e:self.refresh())
         box=ttk.Combobox(filters,textvariable=self.filter,values=[self.tr('Tous','الكل','All'),self.tr('Alertes stock','تنبيهات المخزون','Stock alerts'),self.tr('Stock négatif','مخزون سالب','Negative stock')],state="readonly",width=14);box.pack(side="left");box.bind("<<ComboboxSelected>>",lambda e:self.refresh())
-        with connect() as c:
-            category_rows=c.execute("SELECT id,name FROM categories WHERE active=1 ORDER BY sort_order,name COLLATE NOCASE").fetchall()
+        category_rows=get_active_categories()
         self.family_values=[(self.tr('Toutes familles','كل الفئات','All categories'),None)]+[(r['name'],r['id']) for r in category_rows]
         self.family_map={label:cid for label,cid in self.family_values}
         self.family=tk.StringVar(value=self.family_values[0][0])
@@ -120,7 +119,7 @@ class StockFrame(ttk.Frame):
         note=simpledialog.askstring(self.tr("Ajustement","تسوية المخزون","Stock adjustment"),self.tr("Raison obligatoire:","السبب إجباري:","Reason required:"),parent=self) or ""
         if not note.strip():return
         try:
-            with connect() as c:c.execute("BEGIN IMMEDIATE");apply_stock_movement(c,pid,q,"ADJUSTMENT",note=note);c.commit()
+            adjust_stock(pid,q,note)
             self.refresh()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
 
@@ -216,7 +215,6 @@ class StockFrame(ttk.Frame):
         for key,label,width in [('date',self.tr('Date','التاريخ','Date'),145),('user',self.tr('Utilisateur','المستخدم','User'),100),('type',self.tr('Type','النوع','Type'),100),('old',self.tr('Avant','قبل','Before'),70),('delta',self.tr('Variation','التغيير','Variation'),70),('new',self.tr('Après','بعد','After'),70),('document',self.tr('Document','الوثيقة','Document'),100),('reason',self.tr('Raison','السبب','Reason'),220)]:
             tree.heading(key,text=label);tree.column(key,width=width)
         tree.pack(fill='both',expand=True,padx=12,pady=12)
-        with connect() as conn:
-            rows=conn.execute("SELECT sm.*,u.display_name username FROM stock_movements sm LEFT JOIN users u ON u.id=sm.user_id WHERE product_id=? ORDER BY sm.id DESC",(pid,)).fetchall()
+        rows=product_stock_movements(pid)
         for r in rows:
             tree.insert('','end',values=(r['created_at'],r['username'] or self.tr('Historique','سجل','History'),self._movement_label(r['movement_type']),r['old_qty'],r['qty_delta'],r['stock_after'],f"{self._ref_label(r['ref_type'])} #{r['ref_id'] or ''}",r['note']))
