@@ -4,6 +4,7 @@ import os,sys
 import tkinter as tk
 from tkinter import ttk,messagebox,filedialog,simpledialog
 from database import get_setting,set_setting,connect
+from services.settings_reference import list_sellers, list_price_grids
 from services.secrets import get_smtp_password,set_smtp_password
 from country_profiles import PROFILES, get_country_profile
 from services.globalization import select_country_profile
@@ -445,7 +446,7 @@ class SettingsFrame(ttk.Frame):
 
     def refresh_sellers(self):
         for w in self.sellers_frame.winfo_children():w.destroy()
-        with connect() as c:rows=c.execute("SELECT id,name,active FROM sellers ORDER BY name COLLATE NOCASE").fetchall()
+        rows=list_sellers()
         for r in rows:
             line=ttk.Frame(self.sellers_frame);line.pack(fill="x",pady=2)
             ttk.Label(line,text=r["name"],width=30).pack(side="left")
@@ -490,7 +491,7 @@ class SettingsFrame(ttk.Frame):
 
     def refresh_price_grids(self):
         for w in self.price_grids_frame.winfo_children():w.destroy()
-        with connect() as c:rows=c.execute("SELECT id,name,active FROM price_grids ORDER BY name COLLATE NOCASE").fetchall()
+        rows=list_price_grids()
         for r in rows:
             line=ttk.Frame(self.price_grids_frame);line.pack(fill="x",pady=2)
             ttk.Label(line,text=r["name"],width=30).pack(side="left")
