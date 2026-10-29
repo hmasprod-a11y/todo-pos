@@ -162,3 +162,15 @@ def product_stock_movements(product_id):
             (product_id,),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def adjust_stock(product_id, qty_delta, note):
+    """Apply a manual stock adjustment in a single atomic transaction."""
+    from database import connect
+    with connect() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        result = apply_stock_movement(
+            conn, product_id, qty_delta, "ADJUSTMENT", note=note
+        )
+        conn.commit()
+    return result
