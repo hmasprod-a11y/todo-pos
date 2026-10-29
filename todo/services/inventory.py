@@ -149,3 +149,16 @@ def get_active_categories():
             "ORDER BY sort_order, name COLLATE NOCASE"
         ).fetchall()
     return [dict(id=row["id"], name=row["name"]) for row in rows]
+
+
+def product_stock_movements(product_id):
+    """Return stock movement history for one product, newest first."""
+    from database import connect
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT sm.*, u.display_name username FROM stock_movements sm "
+            "LEFT JOIN users u ON u.id=sm.user_id "
+            "WHERE product_id=? ORDER BY sm.id DESC",
+            (product_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
