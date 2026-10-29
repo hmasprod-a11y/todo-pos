@@ -2,7 +2,7 @@ import csv
 import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog,filedialog
 from database import connect, get_setting
-from services.inventory import apply_stock_movement, stock_activity, reorder_list, stock_summary, stock_products, get_active_categories, product_stock_movements
+from services.inventory import adjust_stock, stock_activity, reorder_list, stock_summary, stock_products, get_active_categories, product_stock_movements
 from services.money import fmt
 
 class StockFrame(ttk.Frame):
@@ -119,7 +119,7 @@ class StockFrame(ttk.Frame):
         note=simpledialog.askstring(self.tr("Ajustement","تسوية المخزون","Stock adjustment"),self.tr("Raison obligatoire:","السبب إجباري:","Reason required:"),parent=self) or ""
         if not note.strip():return
         try:
-            with connect() as c:c.execute("BEGIN IMMEDIATE");apply_stock_movement(c,pid,q,"ADJUSTMENT",note=note);c.commit()
+            adjust_stock(pid,q,note)
             self.refresh()
         except Exception as e:messagebox.showerror("ToDo",str(e),parent=self)
 
