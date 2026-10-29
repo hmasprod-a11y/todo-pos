@@ -1,7 +1,7 @@
 import csv
 import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog,filedialog
-from database import connect, get_setting
+from database import get_setting
 from services.inventory import adjust_stock, stock_activity, reorder_list, stock_summary, stock_products, get_active_categories, product_stock_movements
 from services.money import fmt
 
