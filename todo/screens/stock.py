@@ -2,7 +2,7 @@ import csv
 import tkinter as tk
 from tkinter import ttk,messagebox,simpledialog,filedialog
 from database import connect, get_setting
-from services.inventory import apply_stock_movement, stock_activity, reorder_list, stock_summary, stock_products, get_active_categories
+from services.inventory import apply_stock_movement, stock_activity, reorder_list, stock_summary, stock_products, get_active_categories, product_stock_movements
 from services.money import fmt
 
 class StockFrame(ttk.Frame):
@@ -215,7 +215,6 @@ class StockFrame(ttk.Frame):
         for key,label,width in [('date',self.tr('Date','التاريخ','Date'),145),('user',self.tr('Utilisateur','المستخدم','User'),100),('type',self.tr('Type','النوع','Type'),100),('old',self.tr('Avant','قبل','Before'),70),('delta',self.tr('Variation','التغيير','Variation'),70),('new',self.tr('Après','بعد','After'),70),('document',self.tr('Document','الوثيقة','Document'),100),('reason',self.tr('Raison','السبب','Reason'),220)]:
             tree.heading(key,text=label);tree.column(key,width=width)
         tree.pack(fill='both',expand=True,padx=12,pady=12)
-        with connect() as conn:
-            rows=conn.execute("SELECT sm.*,u.display_name username FROM stock_movements sm LEFT JOIN users u ON u.id=sm.user_id WHERE product_id=? ORDER BY sm.id DESC",(pid,)).fetchall()
+        rows=product_stock_movements(pid)
         for r in rows:
             tree.insert('','end',values=(r['created_at'],r['username'] or self.tr('Historique','سجل','History'),self._movement_label(r['movement_type']),r['old_qty'],r['qty_delta'],r['stock_after'],f"{self._ref_label(r['ref_type'])} #{r['ref_id'] or ''}",r['note']))
